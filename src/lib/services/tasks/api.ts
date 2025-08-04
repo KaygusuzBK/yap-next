@@ -1,11 +1,11 @@
 import apiClient, { handleApiResponse, handleApiError } from '../api';
-import { Task, PaginatedResponse } from '@/lib/types';
+import { Task, TaskStats, CreateTaskRequest, UpdateTaskRequest } from '@/lib/types';
 
 export const taskService = {
-  // Tüm görevleri getir
-  async getAllTasks(): Promise<PaginatedResponse<Task>> {
+  // Tüm görevleri getir (array döner, PaginatedResponse değil)
+  async getAllTasks(): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>('/tasks');
+      const response = await apiClient.get<Task[]>('/tasks');
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -23,7 +23,7 @@ export const taskService = {
   },
 
   // Yeni görev oluştur
-  async createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
+  async createTask(task: CreateTaskRequest): Promise<Task> {
     try {
       const response = await apiClient.post<Task>('/tasks', task);
       return handleApiResponse(response);
@@ -32,10 +32,10 @@ export const taskService = {
     }
   },
 
-  // Görev güncelle
-  async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+  // Görev güncelle (PATCH kullanılıyor)
+  async updateTask(id: string, updates: UpdateTaskRequest): Promise<Task> {
     try {
-      const response = await apiClient.put<Task>(`/tasks/${id}`, updates);
+      const response = await apiClient.patch<Task>(`/tasks/${id}`, updates);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -43,18 +43,29 @@ export const taskService = {
   },
 
   // Görev sil
-  async deleteTask(id: string): Promise<void> {
+  async deleteTask(id: string): Promise<{ message: string }> {
     try {
-      await apiClient.delete(`/tasks/${id}`);
+      const response = await apiClient.delete<{ message: string }>(`/tasks/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Görev istatistikleri
+  async getTaskStats(): Promise<TaskStats> {
+    try {
+      const response = await apiClient.get<TaskStats>('/tasks/stats');
+      return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
   },
 
   // Proje bazında görevleri getir
-  async getTasksByProject(projectId: string): Promise<PaginatedResponse<Task>> {
+  async getTasksByProject(projectId: string): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>(`/tasks?projectId=${projectId}`);
+      const response = await apiClient.get<Task[]>(`/tasks?projectId=${projectId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -62,9 +73,9 @@ export const taskService = {
   },
 
   // Durum bazında görevleri getir
-  async getTasksByStatus(status: Task['status']): Promise<PaginatedResponse<Task>> {
+  async getTasksByStatus(status: Task['status']): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>(`/tasks?status=${status}`);
+      const response = await apiClient.get<Task[]>(`/tasks?status=${status}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -72,9 +83,9 @@ export const taskService = {
   },
 
   // Atanan kişi bazında görevleri getir
-  async getTasksByAssignee(assigneeId: string): Promise<PaginatedResponse<Task>> {
+  async getTasksByAssignee(assigneeId: string): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>(`/tasks?assigneeId=${assigneeId}`);
+      const response = await apiClient.get<Task[]>(`/tasks?assigneeId=${assigneeId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -82,9 +93,9 @@ export const taskService = {
   },
 
   // Öncelik bazında görevleri getir
-  async getTasksByPriority(priority: Task['priority']): Promise<PaginatedResponse<Task>> {
+  async getTasksByPriority(priority: Task['priority']): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>(`/tasks?priority=${priority}`);
+      const response = await apiClient.get<Task[]>(`/tasks?priority=${priority}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -92,9 +103,9 @@ export const taskService = {
   },
 
   // Geciken görevleri getir
-  async getOverdueTasks(): Promise<PaginatedResponse<Task>> {
+  async getOverdueTasks(): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>('/tasks?overdue=true');
+      const response = await apiClient.get<Task[]>('/tasks?overdue=true');
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -102,9 +113,9 @@ export const taskService = {
   },
 
   // Tag bazında görevleri getir
-  async getTasksByTag(tag: string): Promise<PaginatedResponse<Task>> {
+  async getTasksByTag(tag: string): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>(`/tasks?tag=${tag}`);
+      const response = await apiClient.get<Task[]>(`/tasks?tag=${tag}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -152,9 +163,9 @@ export const taskService = {
   },
 
   // Alt görevleri getir
-  async getSubTasks(parentTaskId: string): Promise<PaginatedResponse<Task>> {
+  async getSubTasks(parentTaskId: string): Promise<Task[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Task>>(`/tasks?parentTaskId=${parentTaskId}`);
+      const response = await apiClient.get<Task[]>(`/tasks?parentTaskId=${parentTaskId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);

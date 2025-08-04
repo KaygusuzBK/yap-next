@@ -1,6 +1,7 @@
-import { authService } from '@/lib/services/auth/api'
+import { authService } from '@/lib/services/auth/api';
+import apiClient, { handleApiResponse, handleApiError } from '@/lib/services/api';
 
-// Mock axios
+// Mock the API client
 jest.mock('@/lib/services/api', () => ({
   __esModule: true,
   default: {
@@ -8,142 +9,225 @@ jest.mock('@/lib/services/api', () => ({
     get: jest.fn(),
     put: jest.fn(),
   },
-  handleApiResponse: jest.fn((response) => response.data),
-  handleApiError: jest.fn((error) => {
-    throw new Error(error.response?.data?.message || `API Error: ${error.response?.status}`);
-  }),
-}))
+  handleApiResponse: jest.fn(),
+  handleApiError: jest.fn(),
+}));
 
-// Mock localStorage
-Object.defineProperty(window, 'localStorage', {
-  value: {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn(),
-  },
-  writable: true,
-})
+const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
+const mockHandleApiResponse = handleApiResponse as jest.MockedFunction<typeof handleApiResponse>;
+const mockHandleApiError = handleApiError as jest.MockedFunction<typeof handleApiError>;
 
 describe('Auth Service', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    window.localStorage.clear()
-  })
+    jest.clearAllMocks();
+    // Mock localStorage
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+      },
+      writable: true,
+    });
+  });
 
   describe('login', () => {
-    it('should login successfully and store token', async () => {
-      const mockResponse = { token: 'test-token', user: { id: '1', name: 'Test User' } }
-      const mockAxios = require('@/lib/services/api').default
-      mockAxios.post.mockResolvedValueOnce({ data: mockResponse })
+    it('should login successfully', async () => {
+      const credentials = { email: 'test@example.com', password: 'password123' };
+      const mockResponse = {
+        user: { id: '1', name: 'Test User', email: 'test@example.com' },
+        token: 'mock-token',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      };
 
-      const result = await authService.login({ email: 'test@example.com', password: 'password' })
+      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
 
-      expect(mockAxios.post).toHaveBeenCalledWith('/auth/login', {
-        email: 'test@example.com',
-        password: 'password'
-      })
-      expect(window.localStorage.setItem).toHaveBeenCalledWith('authToken', 'test-token')
-      expect(result).toEqual(mockResponse)
-    })
+      const result = await authService.login(credentials);
 
-    it('should throw error on failed login', async () => {
-      const mockAxios = require('@/lib/services/api').default
-      const mockError = {
-        response: {
-          status: 401,
-          data: { message: 'Invalid credentials' }
-        }
-      }
-      mockAxios.post.mockRejectedValueOnce(mockError)
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/login', credentials);
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'mock-token');
+    });
 
-      await expect(authService.login({ email: 'test@example.com', password: 'wrong' })).rejects.toThrow(
-        'Invalid credentials'
-      )
-    })
-  })
+    it('should handle login error', async () => {
+      const credentials = { email: 'test@example.com', password: 'wrong-password' };
+      const error = new Error('Invalid credentials');
 
-  describe('logout', () => {
-    it('should remove token from localStorage', () => {
-      authService.logout()
-      expect(window.localStorage.removeItem).toHaveBeenCalledWith('authToken')
-    })
-  })
+      mockApiClient.post.mockRejectedValueOnce(error);
+      mockHandleApiError.mockImplementationOnce(() => {
+        throw error;
+      });
 
-  describe('isAuthenticated', () => {
-    it('should return true when token exists', () => {
-      window.localStorage.getItem.mockReturnValue('test-token')
-      expect(authService.isAuthenticated()).toBe(true)
-    })
-
-    it('should return false when no token exists', () => {
-      window.localStorage.getItem.mockReturnValue(null)
-      expect(authService.isAuthenticated()).toBe(false)
-    })
-  })
-
-  describe('getProfile', () => {
-    it('should fetch current user with auth token', async () => {
-      const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' }
-      const mockAxios = require('@/lib/services/api').default
-      mockAxios.get.mockResolvedValueOnce({ data: mockUser })
-
-      const result = await authService.getProfile()
-
-      expect(mockAxios.get).toHaveBeenCalledWith('/auth/profile')
-      expect(result).toEqual(mockUser)
-    })
-  })
+      await expect(authService.login(credentials)).rejects.toThrow('Invalid credentials');
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/login', credentials);
+    });
+  });
 
   describe('register', () => {
-    it('should register successfully and store token', async () => {
-      const mockResponse = { token: 'test-token', user: { id: '1', name: 'Test User' } }
-      const mockAxios = require('@/lib/services/api').default
-      mockAxios.post.mockResolvedValueOnce({ data: mockResponse })
-
-      const result = await authService.register({
+    it('should register successfully', async () => {
+      const userData = {
         name: 'Test User',
         email: 'test@example.com',
-        password: 'password'
-      })
+        password: 'password123',
+        role: 'member' as const,
+      };
+      const mockResponse = {
+        user: { id: '1', name: 'Test User', email: 'test@example.com' },
+        token: 'mock-token',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      };
 
-      expect(mockAxios.post).toHaveBeenCalledWith('/auth/register', {
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'password'
-      })
-      expect(window.localStorage.setItem).toHaveBeenCalledWith('authToken', 'test-token')
-      expect(result).toEqual(mockResponse)
-    })
-  })
+      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
 
-  describe('updateProfile', () => {
-    it('should update user profile', async () => {
-      const mockUser = { id: '1', name: 'Updated User', email: 'test@example.com' }
-      const mockAxios = require('@/lib/services/api').default
-      mockAxios.put.mockResolvedValueOnce({ data: mockUser })
+      const result = await authService.register(userData);
 
-      const result = await authService.updateProfile({ name: 'Updated User' })
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/register', userData);
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'mock-token');
+    });
+  });
 
-      expect(mockAxios.put).toHaveBeenCalledWith('/auth/profile', { name: 'Updated User' })
-      expect(result).toEqual(mockUser)
-    })
-  })
+  describe('refresh', () => {
+    it('should refresh token successfully', async () => {
+      const mockResponse = {
+        user: { id: '1', name: 'Test User', email: 'test@example.com' },
+        token: 'new-mock-token',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      };
+
+      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+
+      const result = await authService.refresh();
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/refresh');
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'new-mock-token');
+    });
+  });
+
+  describe('getProfile', () => {
+    it('should get user profile successfully', async () => {
+      const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' };
+
+      mockApiClient.get.mockResolvedValueOnce({ data: mockUser });
+      mockHandleApiResponse.mockReturnValueOnce(mockUser);
+
+      const result = await authService.getProfile();
+
+      expect(mockApiClient.get).toHaveBeenCalledWith('/auth/profile');
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockUser });
+      expect(result).toEqual(mockUser);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should send forgot password request successfully', async () => {
+      const email = 'test@example.com';
+      const mockResponse = { message: 'Password reset email sent' };
+
+      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+
+      const result = await authService.forgotPassword(email);
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/forgot-password', { email });
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset password successfully', async () => {
+      const token = 'reset-token';
+      const newPassword = 'newpassword123';
+      const mockResponse = { message: 'Password reset successfully' };
+
+      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+
+      const result = await authService.resetPassword(token, newPassword);
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/reset-password', { token, newPassword });
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+    });
+  });
 
   describe('changePassword', () => {
     it('should change password successfully', async () => {
-      const mockAxios = require('@/lib/services/api').default
-      mockAxios.post.mockResolvedValueOnce({})
+      const passwords = { currentPassword: 'oldpass', newPassword: 'newpass' };
+      const mockResponse = { message: 'Password changed successfully' };
 
-      await authService.changePassword({
-        currentPassword: 'oldpassword',
-        newPassword: 'newpassword'
-      })
+      mockApiClient.put.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
 
-      expect(mockAxios.post).toHaveBeenCalledWith('/auth/change-password', {
-        currentPassword: 'oldpassword',
-        newPassword: 'newpassword'
-      })
-    })
-  })
-}) 
+      const result = await authService.changePassword(passwords);
+
+      expect(mockApiClient.put).toHaveBeenCalledWith('/auth/change-password', passwords);
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('logout', () => {
+    it('should logout successfully', async () => {
+      const mockResponse = { message: 'Logged out successfully' };
+
+      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+
+      const result = await authService.logout();
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/logout');
+      expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
+      expect(result).toEqual(mockResponse);
+      expect(localStorage.removeItem).toHaveBeenCalledWith('authToken');
+    });
+
+    it('should clear token even if logout fails', async () => {
+      const error = new Error('Network error');
+
+      mockApiClient.post.mockRejectedValueOnce(error);
+      mockHandleApiError.mockImplementationOnce(() => {
+        throw error;
+      });
+
+      await expect(authService.logout()).rejects.toThrow('Network error');
+      expect(localStorage.removeItem).toHaveBeenCalledWith('authToken');
+    });
+  });
+
+  describe('isAuthenticated', () => {
+    it('should return true when token exists', () => {
+      (localStorage.getItem as jest.Mock).mockReturnValueOnce('mock-token');
+      expect(authService.isAuthenticated()).toBe(true);
+    });
+
+    it('should return false when token does not exist', () => {
+      (localStorage.getItem as jest.Mock).mockReturnValueOnce(null);
+      expect(authService.isAuthenticated()).toBe(false);
+    });
+  });
+
+  describe('getToken', () => {
+    it('should return token when it exists', () => {
+      (localStorage.getItem as jest.Mock).mockReturnValueOnce('mock-token');
+      expect(authService.getToken()).toBe('mock-token');
+    });
+
+    it('should return null when token does not exist', () => {
+      (localStorage.getItem as jest.Mock).mockReturnValueOnce(null);
+      expect(authService.getToken()).toBe(null);
+    });
+  });
+}); 

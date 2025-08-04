@@ -1,11 +1,11 @@
 import apiClient, { handleApiResponse, handleApiError } from '../api';
-import { Comment, PaginatedResponse } from '@/lib/types';
+import { Comment, CreateCommentRequest } from '@/lib/types';
 
 export const commentService = {
   // Görev için yorumları getir
-  async getCommentsByTask(taskId: string): Promise<PaginatedResponse<Comment>> {
+  async getCommentsByTask(taskId: string): Promise<Comment[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments?taskId=${taskId}`);
+      const response = await apiClient.get<Comment[]>(`/comments?taskId=${taskId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -13,9 +13,9 @@ export const commentService = {
   },
 
   // Proje için yorumları getir
-  async getCommentsByProject(projectId: string): Promise<PaginatedResponse<Comment>> {
+  async getCommentsByProject(projectId: string): Promise<Comment[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments?projectId=${projectId}`);
+      const response = await apiClient.get<Comment[]>(`/comments?projectId=${projectId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -33,7 +33,7 @@ export const commentService = {
   },
 
   // Yeni yorum oluştur
-  async createComment(comment: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Comment> {
+  async createComment(comment: CreateCommentRequest): Promise<Comment> {
     try {
       const response = await apiClient.post<Comment>('/comments', comment);
       return handleApiResponse(response);
@@ -53,18 +53,19 @@ export const commentService = {
   },
 
   // Yorum sil
-  async deleteComment(id: string): Promise<void> {
+  async deleteComment(id: string): Promise<{ message: string }> {
     try {
-      await apiClient.delete(`/comments/${id}`);
+      const response = await apiClient.delete<{ message: string }>(`/comments/${id}`);
+      return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
   },
 
   // Kullanıcının yorumlarını getir
-  async getCommentsByUser(userId: string): Promise<PaginatedResponse<Comment>> {
+  async getCommentsByUser(userId: string): Promise<Comment[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments?userId=${userId}`);
+      const response = await apiClient.get<Comment[]>(`/comments?userId=${userId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -82,7 +83,7 @@ export const commentService = {
   },
 
   // Yanıt yorumu oluştur
-  async createReply(parentId: string, comment: Omit<Comment, 'id' | 'createdAt' | 'updatedAt' | 'parentId'>): Promise<Comment> {
+  async createReply(parentId: string, comment: CreateCommentRequest): Promise<Comment> {
     try {
       const response = await apiClient.post<Comment>(`/comments/${parentId}/replies`, comment);
       return handleApiResponse(response);
@@ -92,9 +93,9 @@ export const commentService = {
   },
 
   // Yanıt yorumlarını getir
-  async getReplies(parentId: string): Promise<PaginatedResponse<Comment>> {
+  async getReplies(parentId: string): Promise<Comment[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments/${parentId}/replies`);
+      const response = await apiClient.get<Comment[]>(`/comments/${parentId}/replies`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);

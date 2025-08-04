@@ -36,13 +36,13 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
-  status: 'todo' | 'in_progress' | 'review' | 'completed' | 'cancelled';
+  status: 'todo' | 'in_progress' | 'completed' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  assigneeId?: string;
+  assigneeId: string;
   projectId: string;
   dueDate?: string;
   estimatedHours?: number;
-  actualHours: number;
+  actualHours?: number;
   parentTaskId?: string;
   tags?: string[];
   createdAt: string;
@@ -116,6 +116,25 @@ export interface DashboardStats {
   totalHours: number;
 }
 
+// Project Stats (from API)
+export interface ProjectStats {
+  total: number;
+  active: number;
+  completed: number;
+  cancelled: number;
+  completionRate: number;
+}
+
+// Task Stats (from API)
+export interface TaskStats {
+  total: number;
+  todo: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  completionRate: number;
+}
+
 // Filter Options
 export interface FilterOptions {
   status?: string;
@@ -157,7 +176,101 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Form Types
+// Authentication Request/Response Types
+export interface LoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface LoginResponse {
+  user: User;
+  token: string;
+  tokenType: string;
+  expiresIn: number;
+}
+
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  avatar?: string;
+  role?: 'admin' | 'manager' | 'member';
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+// Project Request/Response Types
+export interface CreateProjectRequest {
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  budget?: number;
+  progress?: number;
+}
+
+export interface UpdateProjectRequest {
+  title?: string;
+  description?: string;
+  status?: 'active' | 'completed' | 'on_hold' | 'cancelled';
+  startDate?: string;
+  endDate?: string;
+  budget?: number;
+  progress?: number;
+}
+
+// Task Request/Response Types
+export interface CreateTaskRequest {
+  title: string;
+  description?: string;
+  projectId: string;
+  assigneeId: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  dueDate?: string;
+  estimatedHours?: number;
+  parentTaskId?: string;
+  tags?: string[];
+}
+
+export interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  status?: 'todo' | 'in_progress' | 'completed' | 'cancelled';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  assigneeId?: string;
+  dueDate?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  tags?: string[];
+}
+
+// Comment Request/Response Types
+export interface CreateCommentRequest {
+  content: string;
+  taskId?: string;
+  projectId?: string;
+}
+
+// Utility Types
+export interface HealthResponse {
+  status: string;
+  timestamp: string;
+}
+
+// Form Types (keeping for backward compatibility)
 export interface LoginForm {
   email: string;
   password: string;
@@ -199,7 +312,7 @@ export interface CreateProjectForm {
 export interface CreateTaskForm {
   title: string;
   description?: string;
-  status?: 'todo' | 'in_progress' | 'review' | 'completed' | 'cancelled';
+  status?: 'todo' | 'in_progress' | 'completed' | 'cancelled';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   assigneeId?: string;
   projectId: string;

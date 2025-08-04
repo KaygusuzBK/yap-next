@@ -1,11 +1,11 @@
 import apiClient, { handleApiResponse, handleApiError } from '../api';
-import { User, PaginatedResponse } from '@/lib/types';
+import { User } from '@/lib/types';
 
 export const userService = {
   // Tüm kullanıcıları getir
-  async getAllUsers(): Promise<PaginatedResponse<User>> {
+  async getAllUsers(): Promise<User[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<User>>('/users');
+      const response = await apiClient.get<User[]>('/users');
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -33,18 +33,19 @@ export const userService = {
   },
 
   // Kullanıcı sil
-  async deleteUser(id: string): Promise<void> {
+  async deleteUser(id: string): Promise<{ message: string }> {
     try {
-      await apiClient.delete(`/users/${id}`);
+      const response = await apiClient.delete<{ message: string }>(`/users/${id}`);
+      return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
   },
 
   // Rol bazında kullanıcıları getir
-  async getUsersByRole(role: User['role']): Promise<PaginatedResponse<User>> {
+  async getUsersByRole(role: User['role']): Promise<User[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<User>>(`/users?role=${role}`);
+      const response = await apiClient.get<User[]>(`/users?role=${role}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -52,9 +53,9 @@ export const userService = {
   },
 
   // Aktif kullanıcıları getir
-  async getActiveUsers(): Promise<PaginatedResponse<User>> {
+  async getActiveUsers(): Promise<User[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<User>>('/users?isActive=true');
+      const response = await apiClient.get<User[]>('/users?isActive=true');
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -79,9 +80,10 @@ export const userService = {
   },
 
   // Kullanıcı şifresini sıfırla
-  async resetUserPassword(id: string): Promise<void> {
+  async resetUserPassword(id: string): Promise<{ message: string }> {
     try {
-      await apiClient.post(`/users/${id}/reset-password`);
+      const response = await apiClient.post<{ message: string }>(`/users/${id}/reset-password`);
+      return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
@@ -115,9 +117,9 @@ export const userService = {
   },
 
   // Kullanıcının projelerini getir
-  async getUserProjects(id: string): Promise<PaginatedResponse<any>> {
+  async getUserProjects(id: string): Promise<any[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<any>>(`/users/${id}/projects`);
+      const response = await apiClient.get<any[]>(`/users/${id}/projects`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -125,9 +127,9 @@ export const userService = {
   },
 
   // Kullanıcının görevlerini getir
-  async getUserTasks(id: string): Promise<PaginatedResponse<any>> {
+  async getUserTasks(id: string): Promise<any[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<any>>(`/users/${id}/tasks`);
+      const response = await apiClient.get<any[]>(`/users/${id}/tasks`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);

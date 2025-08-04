@@ -1,11 +1,11 @@
 import apiClient, { handleApiResponse, handleApiError } from '../api';
-import { Project, PaginatedResponse } from '@/lib/types';
+import { Project, ProjectStats, CreateProjectRequest, UpdateProjectRequest } from '@/lib/types';
 
 export const projectService = {
-  // Tüm projeleri getir
-  async getAllProjects(): Promise<PaginatedResponse<Project>> {
+  // Tüm projeleri getir (array döner, PaginatedResponse değil)
+  async getAllProjects(): Promise<Project[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Project>>('/projects');
+      const response = await apiClient.get<Project[]>('/projects');
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -23,7 +23,7 @@ export const projectService = {
   },
 
   // Yeni proje oluştur
-  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+  async createProject(project: CreateProjectRequest): Promise<Project> {
     try {
       const response = await apiClient.post<Project>('/projects', project);
       return handleApiResponse(response);
@@ -32,10 +32,10 @@ export const projectService = {
     }
   },
 
-  // Proje güncelle
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  // Proje güncelle (PATCH kullanılıyor)
+  async updateProject(id: string, updates: UpdateProjectRequest): Promise<Project> {
     try {
-      const response = await apiClient.put<Project>(`/projects/${id}`, updates);
+      const response = await apiClient.patch<Project>(`/projects/${id}`, updates);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -43,18 +43,29 @@ export const projectService = {
   },
 
   // Proje sil
-  async deleteProject(id: string): Promise<void> {
+  async deleteProject(id: string): Promise<{ message: string }> {
     try {
-      await apiClient.delete(`/projects/${id}`);
+      const response = await apiClient.delete<{ message: string }>(`/projects/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Proje istatistikleri
+  async getProjectStats(): Promise<ProjectStats> {
+    try {
+      const response = await apiClient.get<ProjectStats>('/projects/stats');
+      return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
   },
 
   // Durum bazında projeleri getir
-  async getProjectsByStatus(status: Project['status']): Promise<PaginatedResponse<Project>> {
+  async getProjectsByStatus(status: Project['status']): Promise<Project[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Project>>(`/projects?status=${status}`);
+      const response = await apiClient.get<Project[]>(`/projects?status=${status}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -62,9 +73,9 @@ export const projectService = {
   },
 
   // Sahip bazında projeleri getir
-  async getProjectsByOwner(ownerId: string): Promise<PaginatedResponse<Project>> {
+  async getProjectsByOwner(ownerId: string): Promise<Project[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Project>>(`/projects?ownerId=${ownerId}`);
+      const response = await apiClient.get<Project[]>(`/projects?ownerId=${ownerId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
@@ -72,17 +83,17 @@ export const projectService = {
   },
 
   // Ekip üyesi bazında projeleri getir
-  async getProjectsByTeamMember(memberId: string): Promise<PaginatedResponse<Project>> {
+  async getProjectsByTeamMember(memberId: string): Promise<Project[]> {
     try {
-      const response = await apiClient.get<PaginatedResponse<Project>>(`/projects?memberId=${memberId}`);
+      const response = await apiClient.get<Project[]>(`/projects?memberId=${memberId}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
   },
 
-  // Proje istatistiklerini getir
-  async getProjectStats(projectId: string): Promise<{
+  // Proje istatistiklerini getir (eski method - geriye uyumluluk için)
+  async getProjectStatsById(projectId: string): Promise<{
     totalTasks: number;
     completedTasks: number;
     inProgressTasks: number;

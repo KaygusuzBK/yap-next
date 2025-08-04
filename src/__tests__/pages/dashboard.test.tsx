@@ -1,258 +1,211 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import DashboardPage from '@/app/dashboard/page'
+import { render, screen, waitFor } from '@testing-library/react';
+import DashboardPage from '@/app/dashboard/page';
+import { dashboardService } from '@/lib/services/dashboard/api';
+import { projectService } from '@/lib/services/projects/api';
+import { taskService } from '@/lib/services/tasks/api';
 
 // Mock the services
-jest.mock('@/lib/services/dashboard/api', () => ({
-  dashboardService: {
-    getDashboardStats: jest.fn(),
-  },
-}))
+jest.mock('@/lib/services/dashboard/api');
+jest.mock('@/lib/services/projects/api');
+jest.mock('@/lib/services/tasks/api');
 
-jest.mock('@/lib/services/projects/api', () => ({
-  projectService: {
-    getAllProjects: jest.fn(),
-  },
-}))
-
-jest.mock('@/lib/services/tasks/api', () => ({
-  taskService: {
-    getAllTasks: jest.fn(),
-  },
-}))
-
-// Mock demo data imports
-jest.mock('@/data/demo/projects', () => ({
-  demoProjects: [
-    {
-      id: '1',
-      title: 'Demo Project',
-      description: 'Bu bir demo proje açıklamasıdır',
-      status: 'active',
-      progress: 75,
-      startDate: '2024-01-01',
-      endDate: '2024-06-30',
-      budget: 10000,
-      ownerId: '1',
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    },
-  ],
-}))
-
-jest.mock('@/data/demo/tasks', () => ({
-  demoTasks: [
-    {
-      id: '1',
-      title: 'Demo Task',
-      description: 'Bu bir demo görev açıklamasıdır',
-      status: 'in_progress',
-      priority: 'high',
-      assigneeId: '1',
-      projectId: '1',
-      dueDate: '2024-04-01T00:00:00Z',
-      estimatedHours: 8,
-      actualHours: 4,
-      parentTaskId: null,
-      tags: ['demo', 'test'],
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    },
-  ],
-}))
-
-jest.mock('@/data/demo/users', () => ({
-  demoUsers: [
-    {
-      id: '1',
-      name: 'Demo User',
-      email: 'demo@example.com',
-      password: 'hashed_password',
-      avatar: 'https://example.com/avatar.jpg',
-      role: 'member',
-      isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    },
-  ],
-}))
+const mockDashboardService = dashboardService as jest.Mocked<typeof dashboardService>;
+const mockProjectService = projectService as jest.Mocked<typeof projectService>;
+const mockTaskService = taskService as jest.Mocked<typeof taskService>;
 
 describe('Dashboard Page', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-  })
+    jest.clearAllMocks();
+  });
 
-  it('should display dashboard stats when data loads successfully', async () => {
-    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
-    const mockProjectService = require('@/lib/services/projects/api').projectService
-    const mockTaskService = require('@/lib/services/tasks/api').taskService
-
+  it('should render dashboard with stats and data', async () => {
+    // Mock successful API responses
     mockDashboardService.getDashboardStats.mockResolvedValueOnce({
-      totalProjects: 5,
-      activeProjects: 3,
-      completedProjects: 2,
+      totalProjects: 10,
+      activeProjects: 5,
+      completedProjects: 3,
       totalTasks: 25,
       completedTasks: 15,
       overdueTasks: 2,
       teamMembers: 8,
       totalHours: 120,
-    })
+    });
 
-    mockProjectService.getAllProjects.mockResolvedValueOnce({
-      data: [
-        {
-          id: '1',
-          title: 'Test Project',
-          status: 'active',
-          progress: 75,
-        },
-      ],
-    })
+    mockProjectService.getAllProjects.mockResolvedValueOnce([
+      {
+        id: '1',
+        title: 'Test Project',
+        description: 'Test Description',
+        status: 'active',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+        budget: 10000,
+        progress: 50,
+        ownerId: 'user1',
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
+      },
+    ]);
 
-    mockTaskService.getAllTasks.mockResolvedValueOnce({
-      data: [
-        {
-          id: '1',
-          title: 'Test Task',
-          status: 'in_progress',
-          priority: 'high',
-        },
-      ],
-    })
+    mockTaskService.getAllTasks.mockResolvedValueOnce([
+      {
+        id: '1',
+        title: 'Test Task',
+        description: 'Test Task Description',
+        status: 'in_progress',
+        priority: 'medium',
+        assigneeId: 'user1',
+        projectId: 'project1',
+        dueDate: '2024-12-31',
+        estimatedHours: 8,
+        actualHours: 4,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
+      },
+    ]);
 
-    render(<DashboardPage />)
+    render(<DashboardPage />);
 
+    // Wait for loading to complete
     await waitFor(() => {
-      expect(screen.getByText('5')).toBeInTheDocument() // Total projects
-      expect(screen.getByText('25')).toBeInTheDocument() // Total tasks
-      expect(screen.getByText('8')).toBeInTheDocument() // Team members
-    })
-  })
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+    });
 
-  it('should handle API errors gracefully', async () => {
-    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
-    const mockProjectService = require('@/lib/services/projects/api').projectService
-    const mockTaskService = require('@/lib/services/tasks/api').taskService
+    // Check if dashboard title is rendered
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
 
-    mockDashboardService.getDashboardStats.mockRejectedValueOnce(new Error('API Error'))
-    mockProjectService.getAllProjects.mockRejectedValueOnce(new Error('API Error'))
-    mockTaskService.getAllTasks.mockRejectedValueOnce(new Error('API Error'))
-
-    render(<DashboardPage />)
-
-    await waitFor(() => {
-      // Should still render the page even with errors
-      expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    })
-  })
+    // Check if stats are displayed
+    expect(screen.getByText('10')).toBeInTheDocument(); // totalProjects
+    expect(screen.getByText('25')).toBeInTheDocument(); // totalTasks
+    expect(screen.getByText('8')).toBeInTheDocument(); // teamMembers
+    expect(screen.getByText('120')).toBeInTheDocument(); // totalHours
+  });
 
   it('should display action buttons', async () => {
-    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
-    const mockProjectService = require('@/lib/services/projects/api').projectService
-    const mockTaskService = require('@/lib/services/tasks/api').taskService
+    // Mock successful API responses
+    mockDashboardService.getDashboardStats.mockResolvedValueOnce({
+      totalProjects: 10,
+      activeProjects: 5,
+      completedProjects: 3,
+      totalTasks: 25,
+      completedTasks: 15,
+      overdueTasks: 2,
+      teamMembers: 8,
+      totalHours: 120,
+    });
 
-    mockDashboardService.getDashboardStats.mockRejectedValueOnce(new Error('API Error'))
-    mockProjectService.getAllProjects.mockRejectedValueOnce(new Error('API Error'))
-    mockTaskService.getAllTasks.mockRejectedValueOnce(new Error('API Error'))
+    mockProjectService.getAllProjects.mockResolvedValueOnce([]);
+    mockTaskService.getAllTasks.mockResolvedValueOnce([]);
 
-    render(<DashboardPage />)
+    render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Yeni Proje')).toBeInTheDocument()
-      expect(screen.getByText('Filtrele')).toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+    });
+
+    // Check if action buttons are present
+    expect(screen.getByText('Filtrele')).toBeInTheDocument();
+    expect(screen.getByText('Yeni Proje')).toBeInTheDocument();
+  });
 
   it('should display project cards when projects are loaded', async () => {
-    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
-    const mockProjectService = require('@/lib/services/projects/api').projectService
-    const mockTaskService = require('@/lib/services/tasks/api').taskService
-
+    // Mock successful API responses
     mockDashboardService.getDashboardStats.mockResolvedValueOnce({
-      totalProjects: 5,
-      activeProjects: 3,
-      completedProjects: 2,
+      totalProjects: 10,
+      activeProjects: 5,
+      completedProjects: 3,
       totalTasks: 25,
       completedTasks: 15,
       overdueTasks: 2,
       teamMembers: 8,
       totalHours: 120,
-    })
+    });
 
-    mockProjectService.getAllProjects.mockResolvedValueOnce({
-      data: [
-        {
-          id: '1',
-          title: 'Test Project',
-          description: 'Test project description',
-          status: 'active',
-          progress: 75,
-        },
-      ],
-    })
+    mockProjectService.getAllProjects.mockResolvedValueOnce([
+      {
+        id: '1',
+        title: 'Test Project',
+        description: 'Test Description',
+        status: 'active',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+        budget: 10000,
+        progress: 50,
+        ownerId: 'user1',
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
+      },
+    ]);
 
-    mockTaskService.getAllTasks.mockResolvedValueOnce({
-      data: [
-        {
-          id: '1',
-          title: 'Test Task',
-          description: 'Test task description',
-          status: 'in_progress',
-          priority: 'high',
-        },
-      ],
-    })
+    mockTaskService.getAllTasks.mockResolvedValueOnce([]);
 
-    render(<DashboardPage />)
+    render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Project')).toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+    });
+
+    // Check if project card is displayed
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
+    expect(screen.getByText('Test Description')).toBeInTheDocument();
+  });
 
   it('should display task cards when tasks are loaded', async () => {
-    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
-    const mockProjectService = require('@/lib/services/projects/api').projectService
-    const mockTaskService = require('@/lib/services/tasks/api').taskService
-
+    // Mock successful API responses
     mockDashboardService.getDashboardStats.mockResolvedValueOnce({
-      totalProjects: 5,
-      activeProjects: 3,
-      completedProjects: 2,
+      totalProjects: 10,
+      activeProjects: 5,
+      completedProjects: 3,
       totalTasks: 25,
       completedTasks: 15,
       overdueTasks: 2,
       teamMembers: 8,
       totalHours: 120,
-    })
+    });
 
-    mockProjectService.getAllProjects.mockResolvedValueOnce({
-      data: [
-        {
-          id: '1',
-          title: 'Test Project',
-          description: 'Test project description',
-          status: 'active',
-          progress: 75,
-        },
-      ],
-    })
+    mockProjectService.getAllProjects.mockResolvedValueOnce([]);
 
-    mockTaskService.getAllTasks.mockResolvedValueOnce({
-      data: [
-        {
-          id: '1',
-          title: 'Test Task',
-          description: 'Test task description',
-          status: 'in_progress',
-          priority: 'high',
-        },
-      ],
-    })
+    mockTaskService.getAllTasks.mockResolvedValueOnce([
+      {
+        id: '1',
+        title: 'Test Task',
+        description: 'Test Task Description',
+        status: 'in_progress',
+        priority: 'medium',
+        assigneeId: 'user1',
+        projectId: 'project1',
+        dueDate: '2024-12-31',
+        estimatedHours: 8,
+        actualHours: 4,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
+      },
+    ]);
 
-    render(<DashboardPage />)
+    render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Task')).toBeInTheDocument()
-    })
-  })
-}) 
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+    });
+
+    // Check if task card is displayed
+    expect(screen.getByText('Test Task')).toBeInTheDocument();
+    expect(screen.getByText('Test Task Description')).toBeInTheDocument();
+  });
+
+  it('should handle API errors gracefully', async () => {
+    // Mock API error
+    mockDashboardService.getDashboardStats.mockRejectedValueOnce(new Error('API Error'));
+    mockProjectService.getAllProjects.mockRejectedValueOnce(new Error('API Error'));
+    mockTaskService.getAllTasks.mockRejectedValueOnce(new Error('API Error'));
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+    });
+
+    // Should still render the dashboard with fallback data
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+  });
+}); 

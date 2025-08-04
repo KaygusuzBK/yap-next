@@ -42,8 +42,9 @@ export default function DashboardPage() {
         ]);
 
         setStats(statsData);
-        setRecentProjects(projectsResponse.data.filter(p => p.status === 'active').slice(0, 5));
-        setRecentTasks(tasksResponse.data.filter(t => t.status === 'in_progress').slice(0, 5));
+        // API artık array döndürüyor, PaginatedResponse değil
+        setRecentProjects(projectsResponse.filter(p => p.status === 'active').slice(0, 5));
+        setRecentTasks(tasksResponse.filter(t => t.status === 'in_progress').slice(0, 5));
       } catch (error) {
         console.error('Dashboard verileri yüklenirken hata:', error);
         // Fallback olarak demo verileri kullan

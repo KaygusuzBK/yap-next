@@ -1,5 +1,13 @@
 import apiClient, { handleApiResponse, handleApiError } from '../api';
-import { LoginRequest, LoginResponse, User } from '@/lib/types';
+import { 
+  LoginRequest, 
+  LoginResponse, 
+  RegisterRequest, 
+  ChangePasswordRequest, 
+  ForgotPasswordRequest, 
+  ResetPasswordRequest,
+  User 
+} from '@/lib/types';
 
 export const authService = {
   // Kullanıcı girişi
@@ -19,20 +27,8 @@ export const authService = {
     }
   },
 
-  // Kullanıcı çıkışı
-  logout(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-    }
-  },
-
   // Kullanıcı kaydı
-  async register(userData: {
-    name: string;
-    email: string;
-    password: string;
-    role?: string;
-  }): Promise<LoginResponse> {
+  async register(userData: RegisterRequest): Promise<LoginResponse> {
     try {
       const response = await apiClient.post<LoginResponse>('/auth/register', userData);
       const data = handleApiResponse(response);
@@ -48,7 +44,24 @@ export const authService = {
     }
   },
 
-  // Mevcut kullanıcı bilgilerini getir
+  // Token yenileme
+  async refresh(): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/refresh');
+      const data = handleApiResponse(response);
+      
+      // Token'ı localStorage'a kaydet
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authToken', data.token);
+      }
+      
+      return data;
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Kullanıcı profili
   async getProfile(): Promise<User> {
     try {
       const response = await apiClient.get<User>('/auth/profile');
@@ -58,24 +71,56 @@ export const authService = {
     }
   },
 
-  // Kullanıcı güncelle
-  async updateProfile(updates: Partial<User>): Promise<User> {
+  // Şifre sıfırlama isteği
+  async forgotPassword(email: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.put<User>('/auth/profile', updates);
+      const response = await apiClient.post<{ message: string }>('/auth/forgot-password', { email });
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as any);
     }
   },
 
-  // Şifre değiştir
-  async changePassword(passwords: {
-    currentPassword: string;
-    newPassword: string;
-  }): Promise<void> {
+  // Token ile şifre sıfırlama
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
     try {
-      await apiClient.post('/auth/change-password', passwords);
+      const response = await apiClient.post<{ message: string }>('/auth/reset-password', { 
+        token, 
+        newPassword 
+      });
+      return handleApiResponse(response);
     } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Şifre değiştirme
+  async changePassword(passwords: ChangePasswordRequest): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.put<{ message: string }>('/auth/change-password', passwords);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Kullanıcı çıkışı
+  async logout(): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post<{ message: string }>('/auth/logout');
+      const data = handleApiResponse(response);
+      
+      // Token'ı localStorage'dan temizle
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+      }
+      
+      return data;
+    } catch (error) {
+      // Hata olsa bile token'ı temizle
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+      }
       throw handleApiError(error as any);
     }
   },
