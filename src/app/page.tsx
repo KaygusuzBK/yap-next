@@ -1,102 +1,171 @@
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Rocket, 
+  Zap, 
+  Shield, 
+  Code, 
+  Palette, 
+  Smartphone,
+  ArrowRight,
+  Github,
+  ExternalLink
+} from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Header */}
+      <header className="container mx-auto px-4 py-6">
+        <nav className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Rocket className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-xl font-bold">YAP Next</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="sm">
+              <Github className="w-4 h-4 mr-2" />
+              GitHub
+            </Button>
+            <Button size="sm">
+              Başla
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </nav>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Hero Section */}
+      <main className="container mx-auto px-4 py-20">
+        <div className="text-center space-y-8">
+          <div className="space-y-4">
+            <Badge variant="secondary" className="mb-4">
+              <Zap className="w-3 h-3 mr-1" />
+              Yeni Nesil Web Uygulaması
+            </Badge>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+              Modern Web Deneyimi
+              <span className="text-primary block">Next.js ile</span>
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              TypeScript, Tailwind CSS ve modern web teknolojileri ile geliştirilmiş 
+              hızlı, güvenli ve ölçeklenebilir web uygulamaları.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/dashboard">
+              <Button size="lg" className="text-lg px-8 py-6">
+                Dashboard&apos;a Git
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+              <ExternalLink className="w-5 h-5 mr-2" />
+              Dokümantasyon
+            </Button>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="mt-32 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Code className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>TypeScript</CardTitle>
+              <CardDescription>
+                Tip güvenliği ile daha güvenilir kod yazın ve geliştirme deneyimini artırın.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Palette className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Tailwind CSS</CardTitle>
+              <CardDescription>
+                Utility-first CSS framework ile hızlı ve tutarlı tasarım geliştirin.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Smartphone className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Responsive</CardTitle>
+              <CardDescription>
+                Tüm cihazlarda mükemmel görünüm için responsive tasarım.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Zap className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Hızlı</CardTitle>
+              <CardDescription>
+                Next.js optimizasyonları ile lightning-fast performans.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Güvenli</CardTitle>
+              <CardDescription>
+                Modern güvenlik standartları ile korunan uygulamalar.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Rocket className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Ölçeklenebilir</CardTitle>
+              <CardDescription>
+                Büyüyen ihtiyaçlarınızı karşılayacak esnek mimari.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="container mx-auto px-4 py-12 mt-32 border-t">
+        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+              <Rocket className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <span className="font-semibold">YAP Next</span>
+          </div>
+          <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+            <a href="#" className="hover:text-foreground transition-colors">Hakkında</a>
+            <a href="#" className="hover:text-foreground transition-colors">Dokümantasyon</a>
+            <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
+            <a href="#" className="hover:text-foreground transition-colors">İletişim</a>
+          </div>
+        </div>
+        <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+          © 2024 YAP Next. Tüm hakları saklıdır.
+        </div>
       </footer>
     </div>
   );
