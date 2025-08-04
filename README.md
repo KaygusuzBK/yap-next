@@ -1,36 +1,157 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YAP Next - Modern Web Uygulaması
 
-## Getting Started
+Next.js, TypeScript ve Tailwind CSS ile geliştirilmiş modern web uygulaması.
 
-First, run the development server:
+## 🚀 Özellikler
 
+- ⚡ **Next.js 15** - En son Next.js sürümü ile hızlı geliştirme
+- 🔷 **TypeScript** - Tip güvenliği ile daha güvenilir kod
+- 🎨 **Tailwind CSS** - Utility-first CSS framework
+- 📱 **Responsive Design** - Tüm cihazlarda mükemmel görünüm
+- 🌙 **Dark Mode** - Otomatik tema desteği
+- 🎯 **Modern UI** - Shadcn/ui bileşenleri
+- 🔧 **ESLint** - Kod kalitesi ve tutarlılık
+- 📦 **Turbopack** - Hızlı geliştirme deneyimi
+
+## 🛠️ Teknolojiler
+
+- **Framework:** Next.js 15.4.5
+- **Language:** TypeScript 5
+- **Styling:** Tailwind CSS 4
+- **UI Components:** Shadcn/ui
+- **Icons:** Lucide React
+- **State Management:** Zustand
+- **Forms:** React Hook Form + Zod
+- **Charts:** Recharts
+- **Drag & Drop:** @dnd-kit
+
+## 📦 Kurulum
+
+1. **Projeyi klonlayın:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd yap-next
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Bağımlılıkları yükleyin:**
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Development server'ı başlatın:**
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Tarayıcınızda açın:**
+```
+http://localhost:3000
+```
 
-## Learn More
+## 🚀 Kullanılabilir Scriptler
 
-To learn more about Next.js, take a look at the following resources:
+- `npm run dev` - Development server'ı başlatır (Turbopack ile)
+- `npm run build` - Production build oluşturur
+- `npm run start` - Production server'ı başlatır
+- `npm run lint` - ESLint ile kod kontrolü yapar
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Proje Yapısı
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+yap-next/
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── layout.tsx      # Root layout
+│   │   ├── page.tsx        # Ana sayfa
+│   │   └── globals.css     # Global stiller
+│   ├── components/         # React bileşenleri
+│   │   └── ui/            # Shadcn/ui bileşenleri
+│   └── lib/               # Utility fonksiyonları
+├── public/                # Statik dosyalar
+├── tailwind.config.ts     # Tailwind yapılandırması
+├── next.config.ts         # Next.js yapılandırması
+└── package.json           # Proje bağımlılıkları
+```
 
-## Deploy on Vercel
+## 🎨 Tema ve Renkler
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Proje, modern bir tasarım sistemi kullanır:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Primary:** Modern mavi tonları
+- **Secondary:** Nötr gri tonları
+- **Accent:** Vurgu renkleri
+- **Dark Mode:** Otomatik tema desteği
+
+## 🔧 Geliştirme
+
+### Yeni Sayfa Ekleme
+
+```bash
+# Yeni sayfa oluştur
+touch src/app/about/page.tsx
+```
+
+### Yeni Bileşen Ekleme
+
+```bash
+# Yeni bileşen oluştur
+touch src/components/MyComponent.tsx
+```
+
+### Stil Ekleme
+
+Tailwind CSS utility sınıflarını kullanın:
+
+```tsx
+<div className="flex items-center justify-center bg-primary text-primary-foreground">
+  Merhaba Dünya!
+</div>
+```
+
+## 📱 Responsive Design
+
+Proje, tüm cihaz boyutları için optimize edilmiştir:
+
+- **Mobile:** 320px+
+- **Tablet:** 768px+
+- **Desktop:** 1024px+
+- **Large Desktop:** 1280px+
+
+## 🚀 Deployment
+
+### Vercel (Önerilen)
+
+1. Vercel hesabınızda yeni proje oluşturun
+2. GitHub repository'nizi bağlayın
+3. Otomatik deployment başlayacaktır
+
+### Diğer Platformlar
+
+```bash
+# Production build
+npm run build
+
+# Production server başlat
+npm run start
+```
+
+## 🤝 Katkıda Bulunma
+
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Değişikliklerinizi commit edin (`git commit -m 'Add amazing feature'`)
+4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
+5. Pull Request oluşturun
+
+## 📄 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır.
+
+## 📞 İletişim
+
+- **GitHub:** [@username](https://github.com/username)
+- **Email:** info@yapnext.com
+
+---
+
+⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
