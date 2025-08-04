@@ -1,88 +1,128 @@
-import { Project, FilterOptions, PaginatedResponse } from '@/lib/types';
-
-const API_BASE_URL = 'https://yap-nest-axplyzlx3-berkans-projects-d2fa45cc.vercel.app';
-
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      'Authorization': `Bearer ${token}`,
-    };
-  }
-
-  const response = await fetch(url, config);
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  return response.json();
-};
+import apiClient, { handleApiResponse, handleApiError } from '../api';
+import { Project, PaginatedResponse } from '@/lib/types';
 
 export const projectService = {
-  async getAllProjects(filters?: FilterOptions): Promise<PaginatedResponse<Project>> {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.ownerId) params.append('ownerId', filters.ownerId);
-    if (filters?.page) params.append('page', filters.page.toString());
-    if (filters?.limit) params.append('limit', filters.limit.toString());
-
-    const queryString = params.toString();
-    const endpoint = queryString ? `/projects?${queryString}` : '/projects';
-    return apiRequest(endpoint);
+  // Tüm projeleri getir
+  async getAllProjects(): Promise<PaginatedResponse<Project>> {
+    try {
+      const response = await apiClient.get<PaginatedResponse<Project>>('/projects');
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
+  // Projeyi ID ile getir
   async getProjectById(id: string): Promise<Project> {
-    return apiRequest(`/projects/${id}`);
+    try {
+      const response = await apiClient.get<Project>(`/projects/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
-  async createProject(projectData: {
-    title: string;
-    description?: string;
-    status?: 'active' | 'completed' | 'on_hold' | 'cancelled';
-    startDate: string;
-    endDate?: string;
-    budget?: number;
-    progress?: number;
-  }): Promise<Project> {
-    return apiRequest('/projects', {
-      method: 'POST',
-      body: JSON.stringify(projectData),
-    });
+  // Yeni proje oluştur
+  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+    try {
+      const response = await apiClient.post<Project>('/projects', project);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
-  async updateProject(id: string, updates: Partial<{
-    title: string;
-    description: string;
-    status: 'active' | 'completed' | 'on_hold' | 'cancelled';
-    startDate: string;
-    endDate: string;
-    budget: number;
-    progress: number;
-  }>): Promise<Project> {
-    return apiRequest(`/projects/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
+  // Proje güncelle
+  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+    try {
+      const response = await apiClient.put<Project>(`/projects/${id}`, updates);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
+  // Proje sil
   async deleteProject(id: string): Promise<void> {
-    return apiRequest(`/projects/${id}`, {
-      method: 'DELETE',
-    });
+    try {
+      await apiClient.delete(`/projects/${id}`);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
+  // Durum bazında projeleri getir
   async getProjectsByStatus(status: Project['status']): Promise<PaginatedResponse<Project>> {
-    return apiRequest(`/projects?status=${status}`);
+    try {
+      const response = await apiClient.get<PaginatedResponse<Project>>(`/projects?status=${status}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
+  // Sahip bazında projeleri getir
   async getProjectsByOwner(ownerId: string): Promise<PaginatedResponse<Project>> {
-    return apiRequest(`/projects?ownerId=${ownerId}`);
+    try {
+      const response = await apiClient.get<PaginatedResponse<Project>>(`/projects?ownerId=${ownerId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Ekip üyesi bazında projeleri getir
+  async getProjectsByTeamMember(memberId: string): Promise<PaginatedResponse<Project>> {
+    try {
+      const response = await apiClient.get<PaginatedResponse<Project>>(`/projects?memberId=${memberId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Proje istatistiklerini getir
+  async getProjectStats(projectId: string): Promise<{
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+    overdueTasks: number;
+    totalHours: number;
+    progress: number;
+  }> {
+    try {
+      const response = await apiClient.get(`/projects/${projectId}/stats`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Proje üyelerini getir
+  async getProjectMembers(projectId: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`/projects/${projectId}/members`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Projeye üye ekle
+  async addProjectMember(projectId: string, userId: string, role: string): Promise<void> {
+    try {
+      await apiClient.post(`/projects/${projectId}/members`, { userId, role });
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Projeden üye çıkar
+  async removeProjectMember(projectId: string, userId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/projects/${projectId}/members/${userId}`);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 };

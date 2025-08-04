@@ -1,29 +1,18 @@
+import apiClient, { handleApiResponse, handleApiError } from '../api';
 import { DashboardStats } from '@/lib/types';
-const API_BASE_URL = 'https://yap-nest-pa3xjusm2-berkans-projects-d2fa45cc.vercel.app';
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      'Authorization': `Bearer ${token}`,
-    };
-  }
-  const response = await fetch(url, config);
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  return response.json();
-};
+
 export const dashboardService = {
+  // Dashboard istatistiklerini getir
   async getDashboardStats(): Promise<DashboardStats> {
-    return apiRequest('/dashboard/stats');
+    try {
+      const response = await apiClient.get<DashboardStats>('/dashboard/stats');
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
+
+  // Son aktiviteleri getir
   async getRecentActivities(): Promise<Array<{
     id: string;
     type: string;
@@ -31,23 +20,105 @@ export const dashboardService = {
     description: string;
     timestamp: string;
     userId: string;
+    user?: {
+      id: string;
+      name: string;
+      avatar?: string;
+    };
   }>> {
-    return apiRequest('/dashboard/activities');
+    try {
+      const response = await apiClient.get('/dashboard/activities');
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
-  async getProjectProgress(): Promise<Array<{
-    id: string;
-    title: string;
-    progress: number;
-    status: string;
-  }>> {
-    return apiRequest('/dashboard/project-progress');
-  },
-  async getTaskAnalytics(): Promise<{
-    totalTasks: number;
-    completedTasks: number;
-    inProgressTasks: number;
-    overdueTasks: number;
+
+  // Kullanıcı dashboard verilerini getir
+  async getUserDashboard(userId: string): Promise<{
+    stats: DashboardStats;
+    recentProjects: any[];
+    recentTasks: any[];
+    upcomingDeadlines: any[];
+    teamActivity: any[];
   }> {
-    return apiRequest('/dashboard/task-analytics');
+    try {
+      const response = await apiClient.get(`/dashboard/user/${userId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Proje dashboard verilerini getir
+  async getProjectDashboard(projectId: string): Promise<{
+    projectStats: {
+      totalTasks: number;
+      completedTasks: number;
+      inProgressTasks: number;
+      overdueTasks: number;
+      totalHours: number;
+      progress: number;
+    };
+    recentTasks: any[];
+    teamMembers: any[];
+    recentComments: any[];
+  }> {
+    try {
+      const response = await apiClient.get(`/dashboard/project/${projectId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Takım performansını getir
+  async getTeamPerformance(): Promise<{
+    teamStats: {
+      totalMembers: number;
+      activeMembers: number;
+      totalProjects: number;
+      completedProjects: number;
+      totalTasks: number;
+      completedTasks: number;
+    };
+    memberPerformance: Array<{
+      userId: string;
+      name: string;
+      avatar?: string;
+      completedTasks: number;
+      totalHours: number;
+      efficiency: number;
+    }>;
+  }> {
+    try {
+      const response = await apiClient.get('/dashboard/team-performance');
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Zaman çizelgesi verilerini getir
+  async getTimelineData(): Promise<Array<{
+    id: string;
+    type: 'project' | 'task' | 'milestone';
+    title: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+    assignee?: {
+      id: string;
+      name: string;
+      avatar?: string;
+    };
+  }>> {
+    try {
+      const response = await apiClient.get('/dashboard/timeline');
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 };

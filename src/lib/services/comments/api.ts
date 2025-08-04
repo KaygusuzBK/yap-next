@@ -1,75 +1,103 @@
-import { Comment, FilterOptions, PaginatedResponse } from '@/lib/types';
-
-const API_BASE_URL = 'https://yap-nest-axplyzlx3-berkans-projects-d2fa45cc.vercel.app';
-
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      'Authorization': `Bearer ${token}`,
-    };
-  }
-
-  const response = await fetch(url, config);
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  return response.json();
-};
+import apiClient, { handleApiResponse, handleApiError } from '../api';
+import { Comment, PaginatedResponse } from '@/lib/types';
 
 export const commentService = {
-  async getAllComments(filters?: FilterOptions): Promise<PaginatedResponse<Comment>> {
-    const params = new URLSearchParams();
-    if (filters?.taskId) params.append('taskId', filters.taskId);
-    if (filters?.projectId) params.append('projectId', filters.projectId);
-    if (filters?.authorId) params.append('authorId', filters.authorId);
-    if (filters?.page) params.append('page', filters.page.toString());
-    if (filters?.limit) params.append('limit', filters.limit.toString());
-
-    const queryString = params.toString();
-    const endpoint = queryString ? `/comments?${queryString}` : '/comments';
-    return apiRequest(endpoint);
-  },
-
+  // Görev için yorumları getir
   async getCommentsByTask(taskId: string): Promise<PaginatedResponse<Comment>> {
-    return apiRequest(`/comments?taskId=${taskId}`);
+    try {
+      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments?taskId=${taskId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
+  // Proje için yorumları getir
   async getCommentsByProject(projectId: string): Promise<PaginatedResponse<Comment>> {
-    return apiRequest(`/comments?projectId=${projectId}`);
+    try {
+      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments?projectId=${projectId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
-  async createComment(commentData: {
-    content: string;
-    taskId?: string;
-    projectId?: string;
-  }): Promise<Comment> {
-    return apiRequest('/comments', {
-      method: 'POST',
-      body: JSON.stringify(commentData),
-    });
+  // Yorumu ID ile getir
+  async getCommentById(id: string): Promise<Comment> {
+    try {
+      const response = await apiClient.get<Comment>(`/comments/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
-  async updateComment(id: string, updates: {
-    content: string;
-  }): Promise<Comment> {
-    return apiRequest(`/comments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
+  // Yeni yorum oluştur
+  async createComment(comment: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Comment> {
+    try {
+      const response = await apiClient.post<Comment>('/comments', comment);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 
+  // Yorum güncelle
+  async updateComment(id: string, updates: Partial<Comment>): Promise<Comment> {
+    try {
+      const response = await apiClient.put<Comment>(`/comments/${id}`, updates);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Yorum sil
   async deleteComment(id: string): Promise<void> {
-    return apiRequest(`/comments/${id}`, {
-      method: 'DELETE',
-    });
+    try {
+      await apiClient.delete(`/comments/${id}`);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Kullanıcının yorumlarını getir
+  async getCommentsByUser(userId: string): Promise<PaginatedResponse<Comment>> {
+    try {
+      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments?userId=${userId}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Yorumu beğen/beğenme
+  async toggleCommentLike(id: string): Promise<Comment> {
+    try {
+      const response = await apiClient.post<Comment>(`/comments/${id}/like`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Yanıt yorumu oluştur
+  async createReply(parentId: string, comment: Omit<Comment, 'id' | 'createdAt' | 'updatedAt' | 'parentId'>): Promise<Comment> {
+    try {
+      const response = await apiClient.post<Comment>(`/comments/${parentId}/replies`, comment);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
+  },
+
+  // Yanıt yorumlarını getir
+  async getReplies(parentId: string): Promise<PaginatedResponse<Comment>> {
+    try {
+      const response = await apiClient.get<PaginatedResponse<Comment>>(`/comments/${parentId}/replies`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
 };

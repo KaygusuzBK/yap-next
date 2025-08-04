@@ -1,78 +1,95 @@
-import { User } from '@/lib/types';
-
-const API_BASE_URL = 'https://yap-nest-axplyzlx3-berkans-projects-d2fa45cc.vercel.app';
-
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      'Authorization': `Bearer ${token}`,
-    };
-  }
-  const response = await fetch(url, config);
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  return response.json();
-};
+import apiClient, { handleApiResponse, handleApiError } from '../api';
+import { LoginRequest, LoginResponse, User } from '@/lib/types';
 
 export const authService = {
-  async register(userData: { name: string; email: string; password: string; avatar?: string; role?: string }) {
-    return apiRequest('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
+  // Kullanıcı girişi
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+      const data = handleApiResponse(response);
+      
+      // Token'ı localStorage'a kaydet
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authToken', data.token);
+      }
+      
+      return data;
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
-  async login(credentials: { email: string; password: string; rememberMe?: boolean }) {
-    const response = await apiRequest('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-    if (response.token) localStorage.setItem('authToken', response.token);
-    return response;
+
+  // Kullanıcı çıkışı
+  logout(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+    }
   },
-  async refresh() {
-    const response = await apiRequest('/auth/refresh', {
-      method: 'POST',
-    });
-    if (response.token) localStorage.setItem('authToken', response.token);
-    return response;
+
+  // Kullanıcı kaydı
+  async register(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+  }): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/register', userData);
+      const data = handleApiResponse(response);
+      
+      // Token'ı localStorage'a kaydet
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authToken', data.token);
+      }
+      
+      return data;
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
+
+  // Mevcut kullanıcı bilgilerini getir
   async getProfile(): Promise<User> {
-    return apiRequest('/auth/profile');
+    try {
+      const response = await apiClient.get<User>('/auth/profile');
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
-  async changePassword(passwords: { currentPassword: string; newPassword: string }) {
-    return apiRequest('/auth/change-password', {
-      method: 'PUT',
-      body: JSON.stringify(passwords),
-    });
+
+  // Kullanıcı güncelle
+  async updateProfile(updates: Partial<User>): Promise<User> {
+    try {
+      const response = await apiClient.put<User>('/auth/profile', updates);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
-  async forgotPassword(email: string) {
-    return apiRequest('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    });
+
+  // Şifre değiştir
+  async changePassword(passwords: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    try {
+      await apiClient.post('/auth/change-password', passwords);
+    } catch (error) {
+      throw handleApiError(error as any);
+    }
   },
-  async resetPassword(data: { token: string; newPassword: string }) {
-    return apiRequest('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-  async logout() {
-    await apiRequest('/auth/logout', {
-      method: 'POST',
-    });
-    localStorage.removeItem('authToken');
-  },
+
+  // Kullanıcının giriş yapmış olup olmadığını kontrol et
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('authToken');
+    if (typeof window === 'undefined') return false;
+    const token = localStorage.getItem('authToken');
+    return !!token;
+  },
+
+  // Token'ı getir
+  getToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('authToken');
   },
 };

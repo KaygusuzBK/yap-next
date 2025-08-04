@@ -7,7 +7,7 @@ jest.mock('@/lib/services/auth/api', () => ({
   authService: {
     login: jest.fn(),
     logout: jest.fn(),
-    getCurrentUser: jest.fn(),
+    getProfile: jest.fn(),
   },
 }))
 
@@ -27,7 +27,7 @@ describe('Auth Store', () => {
   describe('initial state', () => {
     it('should have correct initial state', () => {
       const { result } = renderHook(() => useAuthStore())
-      
+
       expect(result.current.user).toBeNull()
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
@@ -37,8 +37,7 @@ describe('Auth Store', () => {
   describe('login', () => {
     it('should login successfully', async () => {
       const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' }
-      ;(authService.login as jest.Mock).mockResolvedValueOnce({ token: 'test-token' })
-      ;(authService.getCurrentUser as jest.Mock).mockResolvedValueOnce(mockUser)
+      ;(authService.login as jest.Mock).mockResolvedValueOnce({ token: 'test-token', user: mockUser })
 
       const { result } = renderHook(() => useAuthStore())
 
@@ -49,8 +48,8 @@ describe('Auth Store', () => {
       expect(authService.login).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password',
+        rememberMe: false,
       })
-      expect(authService.getCurrentUser).toHaveBeenCalled()
       expect(result.current.user).toEqual(mockUser)
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
@@ -78,7 +77,7 @@ describe('Auth Store', () => {
 
       // Set initial state
       act(() => {
-        useAuthStore.setState({ user: { id: '1', name: 'Test User' } })
+        useAuthStore.setState({ user: { id: '1', name: 'Test User' } as any })
       })
 
       act(() => {
@@ -93,7 +92,7 @@ describe('Auth Store', () => {
   describe('fetchCurrentUser', () => {
     it('should fetch current user successfully', async () => {
       const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' }
-      ;(authService.getCurrentUser as jest.Mock).mockResolvedValueOnce(mockUser)
+      ;(authService.getProfile as jest.Mock).mockResolvedValueOnce(mockUser)
 
       const { result } = renderHook(() => useAuthStore())
 
@@ -101,7 +100,7 @@ describe('Auth Store', () => {
         await result.current.fetchCurrentUser()
       })
 
-      expect(authService.getCurrentUser).toHaveBeenCalled()
+      expect(authService.getProfile).toHaveBeenCalled()
       expect(result.current.user).toEqual(mockUser)
       expect(result.current.loading).toBe(false)
     })

@@ -81,164 +81,178 @@ describe('Dashboard Page', () => {
     jest.clearAllMocks()
   })
 
-  it('renders dashboard title', async () => {
-    // Mock successful API calls
-    const { dashboardService } = require('@/lib/services/dashboard/api')
-    const { projectService } = require('@/lib/services/projects/api')
-    const { taskService } = require('@/lib/services/tasks/api')
+  it('should display dashboard stats when data loads successfully', async () => {
+    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
+    const mockProjectService = require('@/lib/services/projects/api').projectService
+    const mockTaskService = require('@/lib/services/tasks/api').taskService
 
-    dashboardService.getDashboardStats.mockResolvedValue({
-      totalProjects: 10,
-      activeProjects: 5,
-      completedProjects: 3,
-      totalTasks: 50,
-      completedTasks: 30,
+    mockDashboardService.getDashboardStats.mockResolvedValueOnce({
+      totalProjects: 5,
+      activeProjects: 3,
+      completedProjects: 2,
+      totalTasks: 25,
+      completedTasks: 15,
       overdueTasks: 2,
       teamMembers: 8,
-      totalHours: 1200,
+      totalHours: 120,
     })
-    projectService.getAllProjects.mockResolvedValue([])
-    taskService.getAllTasks.mockResolvedValue([])
+
+    mockProjectService.getAllProjects.mockResolvedValueOnce({
+      data: [
+        {
+          id: '1',
+          title: 'Test Project',
+          status: 'active',
+          progress: 75,
+        },
+      ],
+    })
+
+    mockTaskService.getAllTasks.mockResolvedValueOnce({
+      data: [
+        {
+          id: '1',
+          title: 'Test Task',
+          status: 'in_progress',
+          priority: 'high',
+        },
+      ],
+    })
 
     render(<DashboardPage />)
 
     await waitFor(() => {
+      expect(screen.getByText('5')).toBeInTheDocument() // Total projects
+      expect(screen.getByText('25')).toBeInTheDocument() // Total tasks
+      expect(screen.getByText('8')).toBeInTheDocument() // Team members
+    })
+  })
+
+  it('should handle API errors gracefully', async () => {
+    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
+    const mockProjectService = require('@/lib/services/projects/api').projectService
+    const mockTaskService = require('@/lib/services/tasks/api').taskService
+
+    mockDashboardService.getDashboardStats.mockRejectedValueOnce(new Error('API Error'))
+    mockProjectService.getAllProjects.mockRejectedValueOnce(new Error('API Error'))
+    mockTaskService.getAllTasks.mockRejectedValueOnce(new Error('API Error'))
+
+    render(<DashboardPage />)
+
+    await waitFor(() => {
+      // Should still render the page even with errors
       expect(screen.getByText('Dashboard')).toBeInTheDocument()
     })
   })
 
-  it('shows loading state initially', () => {
+  it('should display action buttons', async () => {
+    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
+    const mockProjectService = require('@/lib/services/projects/api').projectService
+    const mockTaskService = require('@/lib/services/tasks/api').taskService
+
+    mockDashboardService.getDashboardStats.mockRejectedValueOnce(new Error('API Error'))
+    mockProjectService.getAllProjects.mockRejectedValueOnce(new Error('API Error'))
+    mockTaskService.getAllTasks.mockRejectedValueOnce(new Error('API Error'))
+
     render(<DashboardPage />)
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('Yeni Proje')).toBeInTheDocument()
+      expect(screen.getByText('Filtrele')).toBeInTheDocument()
+    })
   })
 
-  it('displays dashboard stats when data loads successfully', async () => {
-    const mockStats = {
-      totalProjects: 10,
-      activeProjects: 5,
-      completedProjects: 3,
-      totalTasks: 50,
-      completedTasks: 30,
+  it('should display project cards when projects are loaded', async () => {
+    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
+    const mockProjectService = require('@/lib/services/projects/api').projectService
+    const mockTaskService = require('@/lib/services/tasks/api').taskService
+
+    mockDashboardService.getDashboardStats.mockResolvedValueOnce({
+      totalProjects: 5,
+      activeProjects: 3,
+      completedProjects: 2,
+      totalTasks: 25,
+      completedTasks: 15,
       overdueTasks: 2,
       teamMembers: 8,
-      totalHours: 1200,
-    }
+      totalHours: 120,
+    })
 
-    const mockProjects = [
-      {
-        id: '1',
-        title: 'Test Project',
-        description: 'Test project description',
-        status: 'active',
-        progress: 75,
-        startDate: '2024-01-01',
-        endDate: '2024-06-30',
-        budget: 10000,
-        ownerId: '1',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-    ]
+    mockProjectService.getAllProjects.mockResolvedValueOnce({
+      data: [
+        {
+          id: '1',
+          title: 'Test Project',
+          description: 'Test project description',
+          status: 'active',
+          progress: 75,
+        },
+      ],
+    })
 
-    const mockTasks = [
-      {
-        id: '1',
-        title: 'Test Task',
-        description: 'Test task description',
-        status: 'in_progress',
-        priority: 'high',
-        assigneeId: '1',
-        projectId: '1',
-        dueDate: '2024-04-01T00:00:00Z',
-        estimatedHours: 8,
-        actualHours: 4,
-        parentTaskId: null,
-        tags: ['test'],
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-    ]
-
-    // Mock the service calls
-    const { dashboardService } = require('@/lib/services/dashboard/api')
-    const { projectService } = require('@/lib/services/projects/api')
-    const { taskService } = require('@/lib/services/tasks/api')
-
-    dashboardService.getDashboardStats.mockResolvedValue(mockStats)
-    projectService.getAllProjects.mockResolvedValue(mockProjects)
-    taskService.getAllTasks.mockResolvedValue(mockTasks)
+    mockTaskService.getAllTasks.mockResolvedValueOnce({
+      data: [
+        {
+          id: '1',
+          title: 'Test Task',
+          description: 'Test task description',
+          status: 'in_progress',
+          priority: 'high',
+        },
+      ],
+    })
 
     render(<DashboardPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('10')).toBeInTheDocument() // totalProjects
-      expect(screen.getByText('50')).toBeInTheDocument() // totalTasks
-      expect(screen.getByText('8')).toBeInTheDocument() // teamMembers
+      expect(screen.getByText('Test Project')).toBeInTheDocument()
     })
   })
 
-  it('shows error state when API fails', async () => {
-    // Mock the service to throw an error
-    const { dashboardService } = require('@/lib/services/dashboard/api')
-    const { projectService } = require('@/lib/services/projects/api')
-    const { taskService } = require('@/lib/services/tasks/api')
+  it('should display task cards when tasks are loaded', async () => {
+    const mockDashboardService = require('@/lib/services/dashboard/api').dashboardService
+    const mockProjectService = require('@/lib/services/projects/api').projectService
+    const mockTaskService = require('@/lib/services/tasks/api').taskService
 
-    dashboardService.getDashboardStats.mockRejectedValue(new Error('API Error'))
-    projectService.getAllProjects.mockRejectedValue(new Error('API Error'))
-    taskService.getAllTasks.mockRejectedValue(new Error('API Error'))
-
-    render(<DashboardPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Bağlantı Hatası')).toBeInTheDocument()
-      expect(screen.getByText('Tekrar Dene')).toBeInTheDocument()
-    })
-  })
-
-  it('displays action buttons', async () => {
-    // Mock successful API calls
-    const { dashboardService } = require('@/lib/services/dashboard/api')
-    const { projectService } = require('@/lib/services/projects/api')
-    const { taskService } = require('@/lib/services/tasks/api')
-
-    dashboardService.getDashboardStats.mockResolvedValue({
-      totalProjects: 10,
-      activeProjects: 5,
-      completedProjects: 3,
-      totalTasks: 50,
-      completedTasks: 30,
+    mockDashboardService.getDashboardStats.mockResolvedValueOnce({
+      totalProjects: 5,
+      activeProjects: 3,
+      completedProjects: 2,
+      totalTasks: 25,
+      completedTasks: 15,
       overdueTasks: 2,
       teamMembers: 8,
-      totalHours: 1200,
+      totalHours: 120,
     })
-    projectService.getAllProjects.mockResolvedValue([])
-    taskService.getAllTasks.mockResolvedValue([])
+
+    mockProjectService.getAllProjects.mockResolvedValueOnce({
+      data: [
+        {
+          id: '1',
+          title: 'Test Project',
+          description: 'Test project description',
+          status: 'active',
+          progress: 75,
+        },
+      ],
+    })
+
+    mockTaskService.getAllTasks.mockResolvedValueOnce({
+      data: [
+        {
+          id: '1',
+          title: 'Test Task',
+          description: 'Test task description',
+          status: 'in_progress',
+          priority: 'high',
+        },
+      ],
+    })
 
     render(<DashboardPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Filtrele')).toBeInTheDocument()
-      expect(screen.getByText('Yeni Proje')).toBeInTheDocument()
-    })
-  })
-
-  it('shows demo data when API fails', async () => {
-    // Mock the service to throw an error
-    const { dashboardService } = require('@/lib/services/dashboard/api')
-    const { projectService } = require('@/lib/services/projects/api')
-    const { taskService } = require('@/lib/services/tasks/api')
-
-    dashboardService.getDashboardStats.mockRejectedValue(new Error('API Error'))
-    projectService.getAllProjects.mockRejectedValue(new Error('API Error'))
-    taskService.getAllTasks.mockRejectedValue(new Error('API Error'))
-
-    render(<DashboardPage />)
-
-    await waitFor(() => {
-      // Should show demo data instead of error
-      expect(screen.getByText('Dashboard')).toBeInTheDocument()
-      expect(screen.getByText('Filtrele')).toBeInTheDocument()
-      expect(screen.getByText('Yeni Proje')).toBeInTheDocument()
+      expect(screen.getByText('Test Task')).toBeInTheDocument()
     })
   })
 }) 

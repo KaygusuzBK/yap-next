@@ -17,7 +17,9 @@ import {
   Filter
 } from 'lucide-react';
 import { DashboardStats, Project, Task } from '@/lib/types';
-import { dashboardService, projectService, taskService } from '@/lib/services/real-api';
+import { dashboardService } from '@/lib/services/dashboard/api';
+import { projectService } from '@/lib/services/projects/api';
+import { taskService } from '@/lib/services/tasks/api';
 import { demoProjects } from '@/data/demo/projects';
 import { demoTasks } from '@/data/demo/tasks';
 import { demoUsers } from '@/data/demo/users';
@@ -117,277 +119,182 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        {/* İstatistik Kartları */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Toplam Proje</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalProjects}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.activeProjects} aktif proje
-                </p>
-              </CardContent>
-            </Card>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Toplam Proje</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalProjects || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats?.activeProjects || 0} aktif proje
+              </p>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Toplam Görev</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalTasks}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.completedTasks} tamamlandı
-                </p>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Toplam Görev</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalTasks || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats?.completedTasks || 0} tamamlanan görev
+              </p>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ekip Üyeleri</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.teamMembers}</div>
-                <p className="text-xs text-muted-foreground">
-                  Aktif ekip üyeleri
-                </p>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Takım Üyeleri</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.teamMembers || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Aktif ekip üyeleri
+              </p>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Toplam Saat</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalHours}h</div>
-                <p className="text-xs text-muted-foreground">
-                  Harcanan toplam saat
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Toplam Saat</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalHours || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Harcanan toplam saat
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Ana İçerik */}
+        {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
             <TabsTrigger value="projects">Projeler</TabsTrigger>
             <TabsTrigger value="tasks">Görevler</TabsTrigger>
-            <TabsTrigger value="analytics">Analitik</TabsTrigger>
+            <TabsTrigger value="activity">Aktivite</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Aktif Projeler */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Activity className="w-5 h-5 mr-2" />
-                    Aktif Projeler
-                  </CardTitle>
-                  <CardDescription>
-                    Devam eden projelerin durumu
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {recentProjects.map((project) => (
-                    <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{project.title}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {project.description ? project.description.substring(0, 60) + '...' : 'Açıklama yok'}
-                        </p>
+            {/* Recent Projects */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Son Projeler</h2>
+                <Button variant="outline" size="sm">
+                  Tümünü Gör
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentProjects.map((project) => (
+                  <Card key={project.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{project.title}</CardTitle>
+                        <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                          {project.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                        </Badge>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">{project.progress}%</div>
-                        <div className="w-20 bg-muted rounded-full h-2 mt-1">
+                      <CardDescription>{project.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>İlerleme</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-primary h-2 rounded-full" 
                             style={{ width: `${project.progress}%` }}
                           ></div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Devam Eden Görevler */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="w-5 h-5 mr-2" />
-                    Devam Eden Görevler
-                  </CardTitle>
-                  <CardDescription>
-                    Şu anda çalışılan görevler
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {recentTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{task.title}</h4>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant={
-                            task.priority === 'urgent' ? 'destructive' :
-                            task.priority === 'high' ? 'default' :
-                            task.priority === 'medium' ? 'secondary' : 'outline'
-                          }>
-                            {task.priority}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {task.actualHours || 0}h / {task.estimatedHours || 0}h
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
 
-            {/* Geciken Görevler */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-destructive">
-                  <AlertTriangle className="w-5 h-5 mr-2" />
-                  Geciken Görevler
-                </CardTitle>
-                <CardDescription>
-                  Son teslim tarihi geçmiş görevler
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  Geciken görev bulunmuyor. Harika iş çıkarıyorsunuz! 🎉
-                </div>
-              </CardContent>
-            </Card>
+            {/* Recent Tasks */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Son Görevler</h2>
+                <Button variant="outline" size="sm">
+                  Tümünü Gör
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentTasks.map((task) => (
+                  <Card key={task.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{task.title}</CardTitle>
+                        <Badge 
+                          variant={
+                            task.priority === 'high' ? 'destructive' : 
+                            task.priority === 'medium' ? 'default' : 'secondary'
+                          }
+                        >
+                          {task.priority === 'high' ? 'Yüksek' : 
+                           task.priority === 'medium' ? 'Orta' : 'Düşük'}
+                        </Badge>
+                      </div>
+                      <CardDescription>{task.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Durum</span>
+                          <Badge variant="outline">
+                            {task.status === 'in_progress' ? 'Devam Ediyor' : 
+                             task.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
+                          </Badge>
+                        </div>
+                        {task.dueDate && (
+                          <div className="text-sm text-muted-foreground">
+                            Son Tarih: {new Date(task.dueDate).toLocaleDateString('tr-TR')}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="projects" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tüm Projeler</CardTitle>
-                <CardDescription>
-                  Projelerinizin detaylı listesi
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentProjects.map((project) => (
-                    <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{project.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {project.description || 'Açıklama yok'}
-                        </p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <Badge variant={
-                            project.status === 'active' ? 'default' :
-                            project.status === 'completed' ? 'secondary' :
-                            project.status === 'paused' ? 'outline' : 'destructive'
-                          }>
-                            {project.status}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(project.startDate).toLocaleDateString('tr-TR')} - {new Date(project.endDate).toLocaleDateString('tr-TR')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">{project.progress}%</div>
-                        <div className="w-24 bg-muted rounded-full h-2 mt-1">
-                          <div 
-                            className="bg-primary h-2 rounded-full" 
-                            style={{ width: `${project.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="text-center py-8">
+              <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Proje Yönetimi</h3>
+              <p className="text-muted-foreground">Proje detayları burada görüntülenecek</p>
+            </div>
           </TabsContent>
 
           <TabsContent value="tasks" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tüm Görevler</CardTitle>
-                <CardDescription>
-                  Görevlerinizin detaylı listesi
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{task.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {task.description}
-                        </p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <Badge variant={
-                            task.status === 'completed' ? 'secondary' :
-                            task.status === 'in_progress' ? 'default' :
-                            task.status === 'review' ? 'outline' : 'outline'
-                          }>
-                            {task.status}
-                          </Badge>
-                          <Badge variant={
-                            task.priority === 'urgent' ? 'destructive' :
-                            task.priority === 'high' ? 'default' :
-                            task.priority === 'medium' ? 'secondary' : 'outline'
-                          }>
-                            {task.priority}
-                          </Badge>
-                          {task.dueDate && (
-                            <span className="text-sm text-muted-foreground">
-                              Teslim: {new Date(task.dueDate).toLocaleDateString('tr-TR')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">
-                          {task.actualHours || 0}h / {task.estimatedHours || 0}h
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {task.tags.slice(0, 2).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="text-center py-8">
+              <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Görev Yönetimi</h3>
+              <p className="text-muted-foreground">Görev detayları burada görüntülenecek</p>
+            </div>
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analitik</CardTitle>
-                <CardDescription>
-                  Proje ve görev performans analizi
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  Analitik grafikleri burada görüntülenecek
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="activity" className="space-y-6">
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Aktivite Akışı</h3>
+              <p className="text-muted-foreground">Son aktiviteler burada görüntülenecek</p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
