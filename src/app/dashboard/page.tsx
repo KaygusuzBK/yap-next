@@ -17,28 +17,51 @@ import {
   Filter
 } from 'lucide-react';
 import { DashboardStats, Project, Task } from '@/lib/types';
-import { dashboardService, projectService, taskService } from '@/lib/services/api';
+import { dashboardService, projectService, taskService } from '@/lib/services/real-api';
+import { demoProjects } from '@/data/demo/projects';
+import { demoTasks } from '@/data/demo/tasks';
+import { demoUsers } from '@/data/demo/users';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
+        setError(null);
         const [statsData, projectsData, tasksData] = await Promise.all([
           dashboardService.getDashboardStats(),
-          projectService.getActiveProjects(),
-          taskService.getTasksByStatus('in_progress')
+          projectService.getAllProjects(),
+          taskService.getAllTasks()
         ]);
 
         setStats(statsData);
-        setRecentProjects(projectsData.slice(0, 5));
-        setRecentTasks(tasksData.slice(0, 5));
+        setRecentProjects(projectsData.filter(p => p.status === 'active').slice(0, 5));
+        setRecentTasks(tasksData.filter(t => t.status === 'in_progress').slice(0, 5));
       } catch (error) {
         console.error('Dashboard verileri yüklenirken hata:', error);
+        // Fallback olarak demo verileri kullan
+        const demoStats: DashboardStats = {
+          totalProjects: demoProjects.length,
+          activeProjects: demoProjects.filter(p => p.status === 'active').length,
+          completedProjects: demoProjects.filter(p => p.status === 'completed').length,
+          totalTasks: demoTasks.length,
+          completedTasks: demoTasks.filter(t => t.status === 'completed').length,
+          overdueTasks: demoTasks.filter(t => {
+            if (!t.dueDate) return false;
+            return new Date(t.dueDate) < new Date() && t.status !== 'completed';
+          }).length,
+          teamMembers: demoUsers.length,
+          totalHours: demoTasks.reduce((sum, task) => sum + (task.actualHours || 0), 0),
+        };
+        
+        setStats(demoStats);
+        setRecentProjects(demoProjects.filter(p => p.status === 'active').slice(0, 5));
+        setRecentTasks(demoTasks.filter(t => t.status === 'in_progress').slice(0, 5));
       } finally {
         setLoading(false);
       }
@@ -51,6 +74,21 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Bağlantı Hatası</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Tekrar Dene
+          </Button>
+        </div>
       </div>
     );
   }
