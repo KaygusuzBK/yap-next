@@ -10,7 +10,9 @@ import {
   Smartphone,
   ArrowRight,
   Github,
-  ExternalLink
+  ExternalLink,
+  LogIn,
+  UserPlus
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,10 +33,18 @@ export default function Home() {
               <Github className="w-4 h-4 mr-2" />
               GitHub
             </Button>
-            <Button size="sm">
-              Başla
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <Link href="/login">
+              <Button variant="outline" size="sm">
+                <LogIn className="w-4 h-4 mr-2" />
+                Giriş Yap
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button size="sm">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Kayıt Ol
+              </Button>
+            </Link>
           </div>
         </nav>
       </header>
@@ -58,10 +68,16 @@ export default function Home() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button size="lg" className="text-lg px-8 py-6">
-                Dashboard&apos;a Git
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <LogIn className="w-5 h-5 mr-2" />
+                Giriş Yap
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+                <UserPlus className="w-5 h-5 mr-2" />
+                Kayıt Ol
               </Button>
             </Link>
             <Button variant="outline" size="lg" className="text-lg px-8 py-6">

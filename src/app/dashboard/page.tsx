@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,15 @@ import {
   TrendingUp,
   Activity,
   Plus,
-  Filter
+  Filter,
+  LogOut,
+  User
 } from 'lucide-react';
 import { DashboardStats, Project, Task } from '@/lib/types';
 import { dashboardService } from '@/lib/services/dashboard/api';
 import { projectService } from '@/lib/services/projects/api';
 import { taskService } from '@/lib/services/tasks/api';
+import { useAuthStore } from '@/lib/services/auth/store';
 import { demoProjects } from '@/data/demo/projects';
 import { demoTasks } from '@/data/demo/tasks';
 import { demoUsers } from '@/data/demo/users';
@@ -30,6 +34,9 @@ export default function DashboardPage() {
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -73,6 +80,15 @@ export default function DashboardPage() {
     loadDashboardData();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Çıkış yapılırken hata:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -107,6 +123,13 @@ export default function DashboardPage() {
               <p className="text-muted-foreground">Proje yönetimi genel bakış</p>
             </div>
             <div className="flex items-center space-x-4">
+              {user && (
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <User className="w-4 h-4" />
+                  <span>{user.name}</span>
+                  <Badge variant="outline">{user.role}</Badge>
+                </div>
+              )}
               <Button variant="outline" size="sm">
                 <Filter className="w-4 h-4 mr-2" />
                 Filtrele
@@ -114,6 +137,10 @@ export default function DashboardPage() {
               <Button size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Yeni Proje
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Çıkış
               </Button>
             </div>
           </div>
