@@ -33,15 +33,15 @@ export default function DashboardPage() {
     const loadDashboardData = async () => {
       try {
         setError(null);
-        const [statsData, projectsData, tasksData] = await Promise.all([
+        const [statsData, projectsResponse, tasksResponse] = await Promise.all([
           dashboardService.getDashboardStats(),
           projectService.getAllProjects(),
           taskService.getAllTasks()
         ]);
 
         setStats(statsData);
-        setRecentProjects(projectsData.filter(p => p.status === 'active').slice(0, 5));
-        setRecentTasks(tasksData.filter(t => t.status === 'in_progress').slice(0, 5));
+        setRecentProjects(projectsResponse.data.filter(p => p.status === 'active').slice(0, 5));
+        setRecentTasks(tasksResponse.data.filter(t => t.status === 'in_progress').slice(0, 5));
       } catch (error) {
         console.error('Dashboard verileri yüklenirken hata:', error);
         // Fallback olarak demo verileri kullan

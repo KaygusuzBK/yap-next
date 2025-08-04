@@ -107,7 +107,7 @@ describe('Auth Store', () => {
     })
 
     it('should handle fetch error', async () => {
-      ;(authService.getCurrentUser as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
+      ;(authService.getProfile as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useAuthStore())
 
