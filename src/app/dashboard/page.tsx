@@ -203,7 +203,7 @@ export default function DashboardPage() {
                       <div className="flex-1">
                         <h4 className="font-medium">{project.title}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {project.description.substring(0, 60)}...
+                          {project.description ? project.description.substring(0, 60) + '...' : 'Açıklama yok'}
                         </p>
                       </div>
                       <div className="text-right">
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                       <div className="flex-1">
                         <h4 className="font-medium">{project.title}</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {project.description}
+                          {project.description || 'Açıklama yok'}
                         </p>
                         <div className="flex items-center space-x-4 mt-2">
                           <Badge variant={
