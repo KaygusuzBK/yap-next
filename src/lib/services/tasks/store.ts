@@ -18,8 +18,8 @@ export const useTaskStore = create<TaskState>((set) => ({
     try {
       const tasks = await taskService.getAllTasks();
       set({ tasks, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));

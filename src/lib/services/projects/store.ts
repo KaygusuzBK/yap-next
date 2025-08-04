@@ -18,8 +18,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
     try {
       const projects = await projectService.getAllProjects();
       set({ projects, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));

@@ -27,8 +27,8 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     try {
       const notifications = await notificationService.getUserNotifications();
       set({ notifications, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));

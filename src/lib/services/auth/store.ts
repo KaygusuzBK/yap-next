@@ -21,8 +21,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       await authService.login({ email, password });
       const user = await authService.getCurrentUser();
       set({ user, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
   logout: () => {

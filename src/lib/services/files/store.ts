@@ -26,8 +26,8 @@ export const useFileStore = create<FileState>((set) => ({
     try {
       const files = await fileService.getFilesByTask(taskId);
       set({ files, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));

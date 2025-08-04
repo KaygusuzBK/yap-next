@@ -18,8 +18,8 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     try {
       const stats = await dashboardService.getDashboardStats();
       set({ stats, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));

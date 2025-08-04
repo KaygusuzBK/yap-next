@@ -18,8 +18,8 @@ export const useCommentStore = create<CommentState>((set) => ({
     try {
       const comments = await commentService.getCommentsByTask(taskId);
       set({ comments, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));

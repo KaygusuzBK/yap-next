@@ -18,8 +18,8 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       const users = await userService.getAllUsers();
       set({ users, loading: false });
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : 'Bilinmeyen hata', loading: false });
     }
   },
 }));
