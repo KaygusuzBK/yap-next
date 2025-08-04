@@ -18,7 +18,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
@@ -89,7 +89,7 @@ export default function Home() {
 
         {/* Features Grid */}
         <div className="mt-32 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Code className="w-6 h-6 text-primary" />
@@ -101,7 +101,7 @@ export default function Home() {
             </CardHeader>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Palette className="w-6 h-6 text-primary" />
@@ -113,7 +113,7 @@ export default function Home() {
             </CardHeader>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Smartphone className="w-6 h-6 text-primary" />
@@ -125,7 +125,7 @@ export default function Home() {
             </CardHeader>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Zap className="w-6 h-6 text-primary" />
@@ -137,7 +137,7 @@ export default function Home() {
             </CardHeader>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Shield className="w-6 h-6 text-primary" />
@@ -149,7 +149,7 @@ export default function Home() {
             </CardHeader>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Rocket className="w-6 h-6 text-primary" />
