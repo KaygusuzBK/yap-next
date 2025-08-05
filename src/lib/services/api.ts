@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://yap-nest-axplyzlx3-berkans-projects-d2fa45cc.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://yap-nest-ln0v4e3dr-berkans-projects-d2fa45cc.vercel.app';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
