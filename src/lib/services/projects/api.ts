@@ -61,27 +61,18 @@ export const projectService = {
       const projectData = {
         title: project.title,
         description: project.description,
-        status: project.status || 'active',
+        status: 'active',
         start_date: project.startDate,
         end_date: project.endDate,
         budget: project.budget,
-        progress: project.progress || 0,
-        owner_id: project.ownerId
+        progress: project.progress || 0
       };
-
       const newProject = await db.createProject(projectData);
-      
       return {
-        id: newProject.id,
-        title: newProject.title,
-        description: newProject.description,
-        status: newProject.status,
+        ...newProject,
         startDate: newProject.start_date,
         endDate: newProject.end_date,
-        budget: newProject.budget,
-        progress: newProject.progress,
         ownerId: newProject.owner_id,
-        owner: newProject.owner,
         createdAt: newProject.created_at,
         updatedAt: newProject.updated_at
       };
@@ -145,11 +136,11 @@ export const projectService = {
       const cancelled = projects.filter((p: any) => p.status === 'cancelled').length;
       
       return {
-        totalProjects: total,
-        activeProjects: active,
-        completedProjects: completed,
-        cancelledProjects: cancelled,
-        completionRate: total > 0 ? (completed / total) * 100 : 0
+        total,
+        active,
+        completed,
+        cancelled,
+        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
       };
     } catch (error) {
       throw error;
@@ -159,25 +150,17 @@ export const projectService = {
   // Durum bazında projeleri getir
   async getProjectsByStatus(status: Project['status']): Promise<Project[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('status', status)
         .order('created_at', { ascending: false });
-      
       if (error) throw error;
-      
       return data.map((project: any) => ({
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        status: project.status,
+        ...project,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: project.budget,
-        progress: project.progress,
         ownerId: project.owner_id,
-        owner: project.owner,
         createdAt: project.created_at,
         updatedAt: project.updated_at
       }));
@@ -189,25 +172,17 @@ export const projectService = {
   // Sahip bazında projeleri getir
   async getProjectsByOwner(ownerId: string): Promise<Project[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('owner_id', ownerId)
         .order('created_at', { ascending: false });
-      
       if (error) throw error;
-      
       return data.map((project: any) => ({
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        status: project.status,
+        ...project,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: project.budget,
-        progress: project.progress,
         ownerId: project.owner_id,
-        owner: project.owner,
         createdAt: project.created_at,
         updatedAt: project.updated_at
       }));

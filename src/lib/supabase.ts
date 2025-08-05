@@ -20,8 +20,7 @@ export const auth = {
       }
     });
     
-    if (error) throw error;
-    return data;
+    return { data, error };
   },
 
   // Sign in with email and password
@@ -31,8 +30,7 @@ export const auth = {
       password,
     });
     
-    if (error) throw error;
-    return data;
+    return { data, error };
   },
 
   // Sign out

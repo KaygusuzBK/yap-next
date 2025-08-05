@@ -8,8 +8,6 @@ import {
   Code, 
   Palette, 
   Smartphone,
-  ArrowRight,
-  Github,
   ExternalLink,
   LogIn,
   UserPlus
@@ -19,36 +17,6 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <nav className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Rocket className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">YAP Next</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm">
-              <Github className="w-4 h-4 mr-2" />
-              GitHub
-            </Button>
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                <LogIn className="w-4 h-4 mr-2" />
-                Giriş Yap
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Kayıt Ol
-              </Button>
-            </Link>
-          </div>
-        </nav>
-      </header>
-
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-20">
         <div className="text-center space-y-8">
@@ -162,27 +130,6 @@ export default function Home() {
           </Card>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="container mx-auto px-4 py-12 mt-32 border-t">
-        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-              <Rocket className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold">YAP Next</span>
-          </div>
-          <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Hakkında</a>
-            <a href="#" className="hover:text-foreground transition-colors">Dokümantasyon</a>
-            <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
-            <a href="#" className="hover:text-foreground transition-colors">İletişim</a>
-          </div>
-        </div>
-        <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          © 2024 YAP Next. Tüm hakları saklıdır.
-        </div>
-      </footer>
     </div>
   );
 }

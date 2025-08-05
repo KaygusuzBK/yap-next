@@ -71,35 +71,24 @@ export const taskService = {
       const taskData = {
         title: task.title,
         description: task.description,
-        status: task.status || 'todo',
+        status: 'todo',
         priority: task.priority || 'medium',
         assignee_id: task.assigneeId,
         project_id: task.projectId,
         due_date: task.dueDate,
         estimated_hours: task.estimatedHours,
-        actual_hours: task.actualHours || 0,
         parent_task_id: task.parentTaskId,
         tags: task.tags || []
       };
-
       const newTask = await db.createTask(taskData);
-      
       return {
-        id: newTask.id,
-        title: newTask.title,
-        description: newTask.description,
-        status: newTask.status,
-        priority: newTask.priority,
-        assigneeId: newTask.assignee_id,
-        assignee: newTask.assignee,
-        projectId: newTask.project_id,
-        project: newTask.project,
+        ...newTask,
         dueDate: newTask.due_date,
         estimatedHours: newTask.estimated_hours,
         actualHours: newTask.actual_hours,
+        assigneeId: newTask.assignee_id,
+        projectId: newTask.project_id,
         parentTaskId: newTask.parent_task_id,
-        parentTask: newTask.parent_task,
-        tags: newTask.tags,
         createdAt: newTask.created_at,
         updatedAt: newTask.updated_at
       };
@@ -171,12 +160,12 @@ export const taskService = {
       const cancelled = tasks.filter((t: any) => t.status === 'cancelled').length;
       
       return {
-        totalTasks: total,
-        todoTasks: todo,
-        inProgressTasks: inProgress,
-        completedTasks: completed,
-        cancelledTasks: cancelled,
-        completionRate: total > 0 ? (completed / total) * 100 : 0
+        total,
+        todo,
+        inProgress,
+        completed,
+        cancelled,
+        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
       };
     } catch (error) {
       throw error;
@@ -186,7 +175,7 @@ export const taskService = {
   // Proje bazında görevleri getir
   async getTasksByProject(projectId: string): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('project_id', projectId)
@@ -221,7 +210,7 @@ export const taskService = {
   // Durum bazında görevleri getir
   async getTasksByStatus(status: Task['status']): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('status', status)
@@ -256,7 +245,7 @@ export const taskService = {
   // Atanan kişi bazında görevleri getir
   async getTasksByAssignee(assigneeId: string): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('assignee_id', assigneeId)
@@ -291,7 +280,7 @@ export const taskService = {
   // Öncelik bazında görevleri getir
   async getTasksByPriority(priority: Task['priority']): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('priority', priority)
@@ -326,7 +315,7 @@ export const taskService = {
   // Geciken görevleri getir
   async getOverdueTasks(): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .lt('due_date', new Date().toISOString())
@@ -361,7 +350,7 @@ export const taskService = {
   // Tag bazında görevleri getir
   async getTasksByTag(tag: string): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .contains('tags', [tag])
@@ -396,7 +385,7 @@ export const taskService = {
   // Görev durumunu güncelle
   async updateTaskStatus(id: string, status: Task['status']): Promise<Task> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({ status })
         .eq('id', id)
@@ -432,7 +421,7 @@ export const taskService = {
   // Görev önceliğini güncelle
   async updateTaskPriority(id: string, priority: Task['priority']): Promise<Task> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({ priority })
         .eq('id', id)
@@ -468,7 +457,7 @@ export const taskService = {
   // Görev atamasını güncelle
   async assignTask(id: string, assigneeId: string): Promise<Task> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({ assignee_id: assigneeId })
         .eq('id', id)
@@ -504,7 +493,7 @@ export const taskService = {
   // Görev saatlerini güncelle
   async updateTaskHours(id: string, actualHours: number): Promise<Task> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({ actual_hours: actualHours })
         .eq('id', id)
@@ -540,7 +529,7 @@ export const taskService = {
   // Alt görevleri getir
   async getSubTasks(parentTaskId: string): Promise<Task[]> {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('parent_task_id', parentTaskId)
