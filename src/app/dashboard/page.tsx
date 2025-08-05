@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   BarChart3, 
   Users, 
@@ -23,7 +24,9 @@ import {
   Mail,
   Calendar,
   Shield,
-  Settings
+  Settings,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { DashboardStats, Project, Task } from '@/lib/types';
 import { dashboardService } from '@/lib/services/dashboard/api';
@@ -40,49 +43,55 @@ export default function DashboardPage() {
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { user, logout } = useAuthStore();
   const router = useRouter();
 
+  const loadDashboardData = async () => {
+    try {
+      setError(null);
+      setRefreshing(true);
+      
+      const [statsData, projectsResponse, tasksResponse] = await Promise.all([
+        dashboardService.getDashboardStats(),
+        projectService.getAllProjects(),
+        taskService.getAllTasks()
+      ]);
+
+      setStats(statsData);
+      // API artık array döndürüyor, PaginatedResponse değil
+      setRecentProjects(projectsResponse.filter(p => p.status === 'active').slice(0, 5));
+      setRecentTasks(tasksResponse.filter(t => t.status === 'in_progress').slice(0, 5));
+    } catch (error) {
+      console.error('Dashboard verileri yüklenirken hata:', error);
+      setError('Veriler yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+      
+      // Fallback olarak demo verileri kullan
+      const demoStats: DashboardStats = {
+        totalProjects: demoProjects.length,
+        activeProjects: demoProjects.filter(p => p.status === 'active').length,
+        completedProjects: demoProjects.filter(p => p.status === 'completed').length,
+        totalTasks: demoTasks.length,
+        completedTasks: demoTasks.filter(t => t.status === 'completed').length,
+        overdueTasks: demoTasks.filter(t => {
+          if (!t.dueDate) return false;
+          return new Date(t.dueDate) < new Date() && t.status !== 'completed';
+        }).length,
+        teamMembers: demoUsers.length,
+        totalHours: demoTasks.reduce((sum, task) => sum + (task.actualHours || 0), 0),
+      };
+      
+      setStats(demoStats);
+      setRecentProjects(demoProjects.filter(p => p.status === 'active').slice(0, 5));
+      setRecentTasks(demoTasks.filter(t => t.status === 'in_progress').slice(0, 5));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setError(null);
-        const [statsData, projectsResponse, tasksResponse] = await Promise.all([
-          dashboardService.getDashboardStats(),
-          projectService.getAllProjects(),
-          taskService.getAllTasks()
-        ]);
-
-        setStats(statsData);
-        // API artık array döndürüyor, PaginatedResponse değil
-        setRecentProjects(projectsResponse.filter(p => p.status === 'active').slice(0, 5));
-        setRecentTasks(tasksResponse.filter(t => t.status === 'in_progress').slice(0, 5));
-      } catch (error) {
-        console.error('Dashboard verileri yüklenirken hata:', error);
-        // Fallback olarak demo verileri kullan
-        const demoStats: DashboardStats = {
-          totalProjects: demoProjects.length,
-          activeProjects: demoProjects.filter(p => p.status === 'active').length,
-          completedProjects: demoProjects.filter(p => p.status === 'completed').length,
-          totalTasks: demoTasks.length,
-          completedTasks: demoTasks.filter(t => t.status === 'completed').length,
-          overdueTasks: demoTasks.filter(t => {
-            if (!t.dueDate) return false;
-            return new Date(t.dueDate) < new Date() && t.status !== 'completed';
-          }).length,
-          teamMembers: demoUsers.length,
-          totalHours: demoTasks.reduce((sum, task) => sum + (task.actualHours || 0), 0),
-        };
-        
-        setStats(demoStats);
-        setRecentProjects(demoProjects.filter(p => p.status === 'active').slice(0, 5));
-        setRecentTasks(demoTasks.filter(t => t.status === 'in_progress').slice(0, 5));
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDashboardData();
   }, []);
 
@@ -93,6 +102,10 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Çıkış yapılırken hata:', error);
     }
+  };
+
+  const handleRefresh = () => {
+    loadDashboardData();
   };
 
   const formatDate = (dateString: string) => {
@@ -112,25 +125,30 @@ export default function DashboardPage() {
       .slice(0, 2);
   };
 
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active': return 'default';
+      case 'completed': return 'secondary';
+      case 'on_hold': return 'outline';
+      case 'cancelled': return 'destructive';
+      default: return 'secondary';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Aktif';
+      case 'completed': return 'Tamamlandı';
+      case 'on_hold': return 'Beklemede';
+      case 'cancelled': return 'İptal';
+      default: return status;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div data-testid="loading-spinner" className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-red-500 text-xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold mb-2">Bağlantı Hatası</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
-            Tekrar Dene
-          </Button>
-        </div>
       </div>
     );
   }
@@ -146,6 +164,15 @@ export default function DashboardPage() {
               <p className="text-muted-foreground">Proje yönetimi genel bakış</p>
             </div>
             <div className="flex items-center space-x-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Yenile
+              </Button>
               <Button variant="outline" size="sm">
                 <Filter className="w-4 h-4 mr-2" />
                 Filtrele
@@ -165,6 +192,14 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* Error Alert */}
+        {error && (
+          <Alert className="mb-6 border-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         {/* User Profile Section */}
         {user && (
           <div className="mb-8">
@@ -319,35 +354,55 @@ export default function DashboardPage() {
                   Tümünü Gör
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recentProjects.map((project) => (
-                  <Card key={project.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{project.title}</CardTitle>
-                        <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                          {project.status === 'active' ? 'Aktif' : 'Tamamlandı'}
-                        </Badge>
-                      </div>
-                      <CardDescription>{project.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>İlerleme</span>
-                          <span>{project.progress}%</span>
+              {recentProjects.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recentProjects.map((project) => (
+                    <Card key={project.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{project.title}</CardTitle>
+                          <Badge variant={getStatusBadgeVariant(project.status)}>
+                            {getStatusText(project.status)}
+                          </Badge>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full" 
-                            style={{ width: `${project.progress}%` }}
-                          ></div>
+                        <CardDescription>{project.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>İlerleme</span>
+                            <span>{project.progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full" 
+                              style={{ width: `${project.progress}%` }}
+                            ></div>
+                          </div>
+                          {project.budget && (
+                            <div className="text-sm text-muted-foreground">
+                              Bütçe: ₺{project.budget.toLocaleString()}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Henüz proje bulunmuyor</p>
+                      <Button className="mt-2" size="sm">
+                        <Plus className="w-4 h-4 mr-2" />
+                        İlk Projeyi Oluştur
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Recent Tasks */}
@@ -358,43 +413,63 @@ export default function DashboardPage() {
                   Tümünü Gör
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recentTasks.map((task) => (
-                  <Card key={task.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{task.title}</CardTitle>
-                        <Badge 
-                          variant={
-                            task.priority === 'high' ? 'destructive' : 
-                            task.priority === 'medium' ? 'default' : 'secondary'
-                          }
-                        >
-                          {task.priority === 'high' ? 'Yüksek' : 
-                           task.priority === 'medium' ? 'Orta' : 'Düşük'}
-                        </Badge>
-                      </div>
-                      <CardDescription>{task.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Durum</span>
-                          <Badge variant="outline">
-                            {task.status === 'in_progress' ? 'Devam Ediyor' : 
-                             task.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
+              {recentTasks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recentTasks.map((task) => (
+                    <Card key={task.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{task.title}</CardTitle>
+                          <Badge 
+                            variant={
+                              task.priority === 'high' ? 'destructive' : 
+                              task.priority === 'medium' ? 'default' : 'secondary'
+                            }
+                          >
+                            {task.priority === 'high' ? 'Yüksek' : 
+                             task.priority === 'medium' ? 'Orta' : 'Düşük'}
                           </Badge>
                         </div>
-                        {task.dueDate && (
-                          <div className="text-sm text-muted-foreground">
-                            Son Tarih: {new Date(task.dueDate).toLocaleDateString('tr-TR')}
+                        <CardDescription>{task.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Durum</span>
+                            <Badge variant="outline">
+                              {task.status === 'in_progress' ? 'Devam Ediyor' : 
+                               task.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          {task.dueDate && (
+                            <div className="text-sm text-muted-foreground">
+                              Son Tarih: {new Date(task.dueDate).toLocaleDateString('tr-TR')}
+                            </div>
+                          )}
+                          {task.estimatedHours && (
+                            <div className="text-sm text-muted-foreground">
+                              Tahmini: {task.estimatedHours} saat
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Henüz görev bulunmuyor</p>
+                      <Button className="mt-2" size="sm">
+                        <Plus className="w-4 h-4 mr-2" />
+                        İlk Görevi Oluştur
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
