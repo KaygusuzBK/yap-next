@@ -1,9 +1,8 @@
 import { authService } from '@/lib/services/auth/api';
-import apiClient, { handleApiResponse, handleApiError } from '@/lib/services/api';
+import { LoginRequest, RegisterRequest } from '@/lib/types';
 
-// Mock the API client
+// Mock the API client and handlers
 jest.mock('@/lib/services/api', () => ({
-  __esModule: true,
   default: {
     post: jest.fn(),
     get: jest.fn(),
@@ -13,114 +12,187 @@ jest.mock('@/lib/services/api', () => ({
   handleApiError: jest.fn(),
 }));
 
-const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
-const mockHandleApiResponse = handleApiResponse as jest.MockedFunction<typeof handleApiResponse>;
-const mockHandleApiError = handleApiError as jest.MockedFunction<typeof handleApiError>;
+const mockApiClient = require('@/lib/services/api').default;
+const mockHandleApiResponse = require('@/lib/services/api').handleApiResponse;
+const mockHandleApiError = require('@/lib/services/api').handleApiError;
 
 describe('Auth Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock localStorage
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
-      },
-      writable: true,
-    });
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+    }
   });
 
   describe('login', () => {
     it('should login successfully', async () => {
-      const credentials = { email: 'test@example.com', password: 'password123' };
+      const credentials: LoginRequest = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
+
       const mockResponse = {
-        user: { id: '1', name: 'Test User', email: 'test@example.com' },
-        token: 'mock-token',
+        user: {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'member',
+          isActive: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          avatar: null,
+        },
+        token: 'jwt-token',
         tokenType: 'Bearer',
         expiresIn: 3600,
       };
 
-      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.post.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
       const result = await authService.login(credentials);
 
       expect(mockApiClient.post).toHaveBeenCalledWith('/auth/login', credentials);
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
       expect(result).toEqual(mockResponse);
-      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'mock-token');
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', mockResponse.token);
     });
 
-    it('should handle login error', async () => {
-      const credentials = { email: 'test@example.com', password: 'wrong-password' };
-      const error = new Error('Invalid credentials');
+    it('should use demo data when backend fails', async () => {
+      const credentials: LoginRequest = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
 
-      mockApiClient.post.mockRejectedValueOnce(error);
-      mockHandleApiError.mockImplementationOnce(() => {
-        throw error;
-      });
+      mockApiClient.post.mockRejectedValue(new Error('Network error'));
 
-      await expect(authService.login(credentials)).rejects.toThrow('Invalid credentials');
+      const result = await authService.login(credentials);
+
       expect(mockApiClient.post).toHaveBeenCalledWith('/auth/login', credentials);
+      expect(result).toHaveProperty('user');
+      expect(result).toHaveProperty('token');
+      expect(result.user.email).toBe(credentials.email);
+      expect(result.user.name).toBe('test'); // Email'den oluşturulan isim
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'demo-jwt-token-12345');
     });
   });
 
   describe('register', () => {
     it('should register successfully', async () => {
-      const userData = {
+      const userData: RegisterRequest = {
         name: 'Test User',
         email: 'test@example.com',
         password: 'password123',
-        role: 'member' as const,
+        role: 'member',
       };
+
       const mockResponse = {
-        user: { id: '1', name: 'Test User', email: 'test@example.com' },
-        token: 'mock-token',
+        user: {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'member',
+          isActive: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          avatar: null,
+        },
+        token: 'jwt-token',
         tokenType: 'Bearer',
         expiresIn: 3600,
       };
 
-      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.post.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
       const result = await authService.register(userData);
 
       expect(mockApiClient.post).toHaveBeenCalledWith('/auth/register', userData);
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
       expect(result).toEqual(mockResponse);
-      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'mock-token');
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', mockResponse.token);
+    });
+
+    it('should use demo data when backend fails', async () => {
+      const userData: RegisterRequest = {
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        role: 'member',
+      };
+
+      mockApiClient.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.register(userData);
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/register', userData);
+      expect(result).toHaveProperty('user');
+      expect(result).toHaveProperty('token');
+      expect(result.user.name).toBe(userData.name);
+      expect(result.user.email).toBe(userData.email);
+      expect(result.user.role).toBe(userData.role);
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'demo-jwt-token-12345');
     });
   });
 
   describe('refresh', () => {
     it('should refresh token successfully', async () => {
       const mockResponse = {
-        user: { id: '1', name: 'Test User', email: 'test@example.com' },
-        token: 'new-mock-token',
+        user: {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'member',
+          isActive: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          avatar: null,
+        },
+        token: 'new-jwt-token',
         tokenType: 'Bearer',
         expiresIn: 3600,
       };
 
-      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.post.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
       const result = await authService.refresh();
 
       expect(mockApiClient.post).toHaveBeenCalledWith('/auth/refresh');
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
       expect(result).toEqual(mockResponse);
-      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', 'new-mock-token');
+      expect(localStorage.setItem).toHaveBeenCalledWith('authToken', mockResponse.token);
+    });
+
+    it('should use existing token when backend fails', async () => {
+      localStorage.setItem('authToken', 'existing-token');
+      mockApiClient.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.refresh();
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/refresh');
+      expect(result).toHaveProperty('user');
+      expect(result).toHaveProperty('token');
+      expect(result.token).toBe('existing-token');
     });
   });
 
   describe('getProfile', () => {
-    it('should get user profile successfully', async () => {
-      const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' };
+    it('should get profile successfully', async () => {
+      const mockUser = {
+        id: '1',
+        name: 'Test User',
+        email: 'test@example.com',
+        role: 'member',
+        isActive: true,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+        avatar: null,
+      };
 
-      mockApiClient.get.mockResolvedValueOnce({ data: mockUser });
-      mockHandleApiResponse.mockReturnValueOnce(mockUser);
+      mockApiClient.get.mockResolvedValue({ data: mockUser });
+      mockHandleApiResponse.mockReturnValue(mockUser);
 
       const result = await authService.getProfile();
 
@@ -128,21 +200,42 @@ describe('Auth Service', () => {
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockUser });
       expect(result).toEqual(mockUser);
     });
+
+    it('should return demo user when backend fails', async () => {
+      mockApiClient.get.mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.getProfile();
+
+      expect(mockApiClient.get).toHaveBeenCalledWith('/auth/profile');
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('name');
+      expect(result).toHaveProperty('email');
+    });
   });
 
   describe('forgotPassword', () => {
-    it('should send forgot password request successfully', async () => {
+    it('should send forgot password email successfully', async () => {
       const email = 'test@example.com';
       const mockResponse = { message: 'Password reset email sent' };
 
-      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.post.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
       const result = await authService.forgotPassword(email);
 
       expect(mockApiClient.post).toHaveBeenCalledWith('/auth/forgot-password', { email });
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
       expect(result).toEqual(mockResponse);
+    });
+
+    it('should return demo message when backend fails', async () => {
+      const email = 'test@example.com';
+      mockApiClient.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.forgotPassword(email);
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/forgot-password', { email });
+      expect(result).toEqual({ message: 'Şifre sıfırlama e-postası gönderildi (demo)' });
     });
   });
 
@@ -152,8 +245,8 @@ describe('Auth Service', () => {
       const newPassword = 'newpassword123';
       const mockResponse = { message: 'Password reset successfully' };
 
-      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.post.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
       const result = await authService.resetPassword(token, newPassword);
 
@@ -161,21 +254,44 @@ describe('Auth Service', () => {
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
       expect(result).toEqual(mockResponse);
     });
+
+    it('should return demo message when backend fails', async () => {
+      const token = 'reset-token';
+      const newPassword = 'newpassword123';
+      mockApiClient.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.resetPassword(token, newPassword);
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/reset-password', { token, newPassword });
+      expect(result).toEqual({ message: 'Şifre başarıyla sıfırlandı (demo)' });
+    });
   });
 
   describe('changePassword', () => {
     it('should change password successfully', async () => {
-      const passwords = { currentPassword: 'oldpass', newPassword: 'newpass' };
+      const currentPassword = 'oldpass';
+      const newPassword = 'newpass';
       const mockResponse = { message: 'Password changed successfully' };
 
-      mockApiClient.put.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.put.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
-      const result = await authService.changePassword(passwords);
+      const result = await authService.changePassword(currentPassword, newPassword);
 
-      expect(mockApiClient.put).toHaveBeenCalledWith('/auth/change-password', passwords);
+      expect(mockApiClient.put).toHaveBeenCalledWith('/auth/change-password', { currentPassword, newPassword });
       expect(mockHandleApiResponse).toHaveBeenCalledWith({ data: mockResponse });
       expect(result).toEqual(mockResponse);
+    });
+
+    it('should return demo message when backend fails', async () => {
+      const currentPassword = 'oldpass';
+      const newPassword = 'newpass';
+      mockApiClient.put.mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.changePassword(currentPassword, newPassword);
+
+      expect(mockApiClient.put).toHaveBeenCalledWith('/auth/change-password', { currentPassword, newPassword });
+      expect(result).toEqual({ message: 'Şifre başarıyla değiştirildi (demo)' });
     });
   });
 
@@ -183,8 +299,8 @@ describe('Auth Service', () => {
     it('should logout successfully', async () => {
       const mockResponse = { message: 'Logged out successfully' };
 
-      mockApiClient.post.mockResolvedValueOnce({ data: mockResponse });
-      mockHandleApiResponse.mockReturnValueOnce(mockResponse);
+      mockApiClient.post.mockResolvedValue({ data: mockResponse });
+      mockHandleApiResponse.mockReturnValue(mockResponse);
 
       const result = await authService.logout();
 
@@ -195,38 +311,36 @@ describe('Auth Service', () => {
     });
 
     it('should clear token even if logout fails', async () => {
-      const error = new Error('Network error');
+      mockApiClient.post.mockRejectedValue(new Error('Network error'));
 
-      mockApiClient.post.mockRejectedValueOnce(error);
-      mockHandleApiError.mockImplementationOnce(() => {
-        throw error;
-      });
+      const result = await authService.logout();
 
-      await expect(authService.logout()).rejects.toThrow('Network error');
+      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/logout');
+      expect(result).toEqual({ message: 'Başarıyla çıkış yapıldı (demo)' });
       expect(localStorage.removeItem).toHaveBeenCalledWith('authToken');
     });
   });
 
   describe('isAuthenticated', () => {
     it('should return true when token exists', () => {
-      (localStorage.getItem as jest.Mock).mockReturnValueOnce('mock-token');
+      localStorage.setItem('authToken', 'test-token');
       expect(authService.isAuthenticated()).toBe(true);
     });
 
-    it('should return false when token does not exist', () => {
-      (localStorage.getItem as jest.Mock).mockReturnValueOnce(null);
+    it('should return false when no token exists', () => {
+      localStorage.removeItem('authToken');
       expect(authService.isAuthenticated()).toBe(false);
     });
   });
 
   describe('getToken', () => {
-    it('should return token when it exists', () => {
-      (localStorage.getItem as jest.Mock).mockReturnValueOnce('mock-token');
-      expect(authService.getToken()).toBe('mock-token');
+    it('should return token when exists', () => {
+      localStorage.setItem('authToken', 'test-token');
+      expect(authService.getToken()).toBe('test-token');
     });
 
-    it('should return null when token does not exist', () => {
-      (localStorage.getItem as jest.Mock).mockReturnValueOnce(null);
+    it('should return null when no token exists', () => {
+      localStorage.removeItem('authToken');
       expect(authService.getToken()).toBe(null);
     });
   });
