@@ -1,139 +1,218 @@
-import apiClient, { handleApiResponse, handleApiError } from '../api';
+import { db, supabase } from '@/lib/supabase';
 import { Project, ProjectStats, CreateProjectRequest, UpdateProjectRequest } from '@/lib/types';
 
 export const projectService = {
-  // Tüm projeleri getir (array döner, PaginatedResponse değil)
+  // Tüm projeleri getir
   async getAllProjects(): Promise<Project[]> {
     try {
-      const response = await apiClient.get<Project[]>('/projects');
-      return handleApiResponse(response);
+      const projects = await db.getProjects();
+      return projects.map((project: any) => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        budget: project.budget,
+        progress: project.progress,
+        ownerId: project.owner_id,
+        owner: project.owner,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }));
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
   // Projeyi ID ile getir
   async getProjectById(id: string): Promise<Project> {
     try {
-      const response = await apiClient.get<Project>(`/projects/${id}`);
-      return handleApiResponse(response);
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        budget: data.budget,
+        progress: data.progress,
+        ownerId: data.owner_id,
+        owner: data.owner,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
   // Yeni proje oluştur
   async createProject(project: CreateProjectRequest): Promise<Project> {
     try {
-      const response = await apiClient.post<Project>('/projects', project);
-      return handleApiResponse(response);
+      const projectData = {
+        title: project.title,
+        description: project.description,
+        status: project.status || 'active',
+        start_date: project.startDate,
+        end_date: project.endDate,
+        budget: project.budget,
+        progress: project.progress || 0,
+        owner_id: project.ownerId
+      };
+
+      const newProject = await db.createProject(projectData);
+      
+      return {
+        id: newProject.id,
+        title: newProject.title,
+        description: newProject.description,
+        status: newProject.status,
+        startDate: newProject.start_date,
+        endDate: newProject.end_date,
+        budget: newProject.budget,
+        progress: newProject.progress,
+        ownerId: newProject.owner_id,
+        owner: newProject.owner,
+        createdAt: newProject.created_at,
+        updatedAt: newProject.updated_at
+      };
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
-  // Proje güncelle (PATCH kullanılıyor)
+  // Proje güncelle
   async updateProject(id: string, updates: UpdateProjectRequest): Promise<Project> {
     try {
-      const response = await apiClient.patch<Project>(`/projects/${id}`, updates);
-      return handleApiResponse(response);
+      const updateData: any = {};
+      
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.startDate !== undefined) updateData.start_date = updates.startDate;
+      if (updates.endDate !== undefined) updateData.end_date = updates.endDate;
+      if (updates.budget !== undefined) updateData.budget = updates.budget;
+      if (updates.progress !== undefined) updateData.progress = updates.progress;
+
+      const updatedProject = await db.updateProject(id, updateData);
+      
+      return {
+        id: updatedProject.id,
+        title: updatedProject.title,
+        description: updatedProject.description,
+        status: updatedProject.status,
+        startDate: updatedProject.start_date,
+        endDate: updatedProject.end_date,
+        budget: updatedProject.budget,
+        progress: updatedProject.progress,
+        ownerId: updatedProject.owner_id,
+        owner: updatedProject.owner,
+        createdAt: updatedProject.created_at,
+        updatedAt: updatedProject.updated_at
+      };
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
   // Proje sil
   async deleteProject(id: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.delete<{ message: string }>(`/projects/${id}`);
-      return handleApiResponse(response);
+      await db.deleteProject(id);
+      return { message: 'Proje başarıyla silindi' };
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
   // Proje istatistikleri
   async getProjectStats(): Promise<ProjectStats> {
     try {
-      const response = await apiClient.get<ProjectStats>('/projects/stats');
-      return handleApiResponse(response);
+      const projects = await db.getProjects();
+      
+      const total = projects.length;
+      const active = projects.filter((p: any) => p.status === 'active').length;
+      const completed = projects.filter((p: any) => p.status === 'completed').length;
+      const cancelled = projects.filter((p: any) => p.status === 'cancelled').length;
+      
+      return {
+        totalProjects: total,
+        activeProjects: active,
+        completedProjects: completed,
+        cancelledProjects: cancelled,
+        completionRate: total > 0 ? (completed / total) * 100 : 0
+      };
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
   // Durum bazında projeleri getir
   async getProjectsByStatus(status: Project['status']): Promise<Project[]> {
     try {
-      const response = await apiClient.get<Project[]>(`/projects?status=${status}`);
-      return handleApiResponse(response);
+      const { data, error } = await db.supabase
+        .from('projects')
+        .select('*')
+        .eq('status', status)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map((project: any) => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        budget: project.budget,
+        progress: project.progress,
+        ownerId: project.owner_id,
+        owner: project.owner,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }));
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
   },
 
   // Sahip bazında projeleri getir
   async getProjectsByOwner(ownerId: string): Promise<Project[]> {
     try {
-      const response = await apiClient.get<Project[]>(`/projects?ownerId=${ownerId}`);
-      return handleApiResponse(response);
+      const { data, error } = await db.supabase
+        .from('projects')
+        .select('*')
+        .eq('owner_id', ownerId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map((project: any) => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        budget: project.budget,
+        progress: project.progress,
+        ownerId: project.owner_id,
+        owner: project.owner,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }));
     } catch (error) {
-      throw handleApiError(error as any);
+      throw error;
     }
-  },
-
-  // Ekip üyesi bazında projeleri getir
-  async getProjectsByTeamMember(memberId: string): Promise<Project[]> {
-    try {
-      const response = await apiClient.get<Project[]>(`/projects?memberId=${memberId}`);
-      return handleApiResponse(response);
-    } catch (error) {
-      throw handleApiError(error as any);
-    }
-  },
-
-  // Proje istatistiklerini getir (eski method - geriye uyumluluk için)
-  async getProjectStatsById(projectId: string): Promise<{
-    totalTasks: number;
-    completedTasks: number;
-    inProgressTasks: number;
-    overdueTasks: number;
-    totalHours: number;
-    progress: number;
-  }> {
-    try {
-      const response = await apiClient.get(`/projects/${projectId}/stats`);
-      return handleApiResponse(response);
-    } catch (error) {
-      throw handleApiError(error as any);
-    }
-  },
-
-  // Proje üyelerini getir
-  async getProjectMembers(projectId: string): Promise<any[]> {
-    try {
-      const response = await apiClient.get(`/projects/${projectId}/members`);
-      return handleApiResponse(response);
-    } catch (error) {
-      throw handleApiError(error as any);
-    }
-  },
-
-  // Projeye üye ekle
-  async addProjectMember(projectId: string, userId: string, role: string): Promise<void> {
-    try {
-      await apiClient.post(`/projects/${projectId}/members`, { userId, role });
-    } catch (error) {
-      throw handleApiError(error as any);
-    }
-  },
-
-  // Projeden üye çıkar
-  async removeProjectMember(projectId: string, userId: string): Promise<void> {
-    try {
-      await apiClient.delete(`/projects/${projectId}/members/${userId}`);
-    } catch (error) {
-      throw handleApiError(error as any);
-    }
-  },
+  }
 };
