@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import { 
   BarChart3, 
   Users, 
@@ -17,7 +19,11 @@ import {
   Plus,
   Filter,
   LogOut,
-  User
+  User,
+  Mail,
+  Calendar,
+  Shield,
+  Settings
 } from 'lucide-react';
 import { DashboardStats, Project, Task } from '@/lib/types';
 import { dashboardService } from '@/lib/services/dashboard/api';
@@ -89,6 +95,23 @@ export default function DashboardPage() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('tr-TR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -123,13 +146,6 @@ export default function DashboardPage() {
               <p className="text-muted-foreground">Proje yönetimi genel bakış</p>
             </div>
             <div className="flex items-center space-x-4">
-              {user && (
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <User className="w-4 h-4" />
-                  <span>{user.name}</span>
-                  <Badge variant="outline">{user.role}</Badge>
-                </div>
-              )}
               <Button variant="outline" size="sm">
                 <Filter className="w-4 h-4 mr-2" />
                 Filtrele
@@ -149,6 +165,87 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* User Profile Section */}
+        {user && (
+          <div className="mb-8">
+            <Card className="bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-3">
+                  <User className="w-6 h-6" />
+                  <span>Kullanıcı Profili</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start space-x-6">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                    <AvatarFallback className="text-lg font-semibold">
+                      {getUserInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Ad Soyad:</span>
+                          <span className="text-muted-foreground">{user.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">E-posta:</span>
+                          <span className="text-muted-foreground">{user.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Rol:</span>
+                          <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'manager' ? 'default' : 'secondary'}>
+                            {user.role === 'admin' ? 'Admin' : user.role === 'manager' ? 'Yönetici' : 'Üye'}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Kayıt Tarihi:</span>
+                          <span className="text-muted-foreground">{formatDate(user.createdAt)}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Activity className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Son Güncelleme:</span>
+                          <span className="text-muted-foreground">{formatDate(user.updatedAt)}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Durum:</span>
+                          <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                            {user.isActive ? 'Aktif' : 'Pasif'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Profili Düzenle
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Şifre Değiştir
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
