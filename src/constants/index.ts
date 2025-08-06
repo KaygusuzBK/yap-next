@@ -24,10 +24,24 @@ export const TASK_PRIORITIES = {
   URGENT: 'urgent'
 } as const
 
+export const PROJECT_PRIORITIES = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  URGENT: 'urgent'
+} as const
+
 export const USER_ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
   MEMBER: 'member'
+} as const
+
+export const PROJECT_MEMBER_ROLES = {
+  OWNER: 'owner',
+  MANAGER: 'manager',
+  MEMBER: 'member',
+  VIEWER: 'viewer'
 } as const
 
 export const PROJECT_STATUS_LABELS = {
@@ -53,8 +67,61 @@ export const PRIORITY_LABELS = {
   [TASK_PRIORITIES.URGENT]: 'Acil',
 } as const
 
+export const PRIORITY_COLORS = {
+  [TASK_PRIORITIES.LOW]: 'bg-green-100 text-green-800',
+  [TASK_PRIORITIES.MEDIUM]: 'bg-blue-100 text-blue-800',
+  [TASK_PRIORITIES.HIGH]: 'bg-orange-100 text-orange-800',
+  [TASK_PRIORITIES.URGENT]: 'bg-red-100 text-red-800',
+} as const
+
 export const ROLE_LABELS = {
   [USER_ROLES.ADMIN]: 'Admin',
   [USER_ROLES.MANAGER]: 'Yönetici',
   [USER_ROLES.MEMBER]: 'Üye'
+} as const
+
+export const PROJECT_MEMBER_ROLE_LABELS = {
+  [PROJECT_MEMBER_ROLES.OWNER]: 'Sahip',
+  [PROJECT_MEMBER_ROLES.MANAGER]: 'Yönetici',
+  [PROJECT_MEMBER_ROLES.MEMBER]: 'Üye',
+  [PROJECT_MEMBER_ROLES.VIEWER]: 'İzleyici'
+} as const
+
+export const NOTIFICATION_TYPES = {
+  INFO: 'info',
+  SUCCESS: 'success',
+  WARNING: 'warning',
+  ERROR: 'error'
+} as const
+
+export const NOTIFICATION_TYPE_COLORS = {
+  [NOTIFICATION_TYPES.INFO]: 'bg-blue-100 text-blue-800',
+  [NOTIFICATION_TYPES.SUCCESS]: 'bg-green-100 text-green-800',
+  [NOTIFICATION_TYPES.WARNING]: 'bg-yellow-100 text-yellow-800',
+  [NOTIFICATION_TYPES.ERROR]: 'bg-red-100 text-red-800',
+} as const
+
+export const THEMES = {
+  LIGHT: 'light',
+  DARK: 'dark',
+  AUTO: 'auto'
+} as const
+
+export const LANGUAGES = {
+  TR: 'tr',
+  EN: 'en'
+} as const
+
+export const RECURRING_PATTERNS = {
+  DAILY: 'daily',
+  WEEKLY: 'weekly',
+  MONTHLY: 'monthly',
+  YEARLY: 'yearly'
+} as const
+
+export const RECURRING_PATTERN_LABELS = {
+  [RECURRING_PATTERNS.DAILY]: 'Günlük',
+  [RECURRING_PATTERNS.WEEKLY]: 'Haftalık',
+  [RECURRING_PATTERNS.MONTHLY]: 'Aylık',
+  [RECURRING_PATTERNS.YEARLY]: 'Yıllık'
 } as const 

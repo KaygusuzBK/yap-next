@@ -31,6 +31,7 @@ import { useAuthStore } from '@/lib/services/auth/store';
 import { ProjectCard, TaskCard, StatsCard, LoadingSpinner, EmptyState } from '@/components';
 import { ROLE_LABELS, USER_ROLES } from '@/constants';
 import { formatDate, getUserInitials } from '@/utils/format';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -263,9 +264,11 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Son Projeler</h2>
-                <Button variant="outline" size="sm">
-                  Tümünü Gör
-                </Button>
+                <Link href="/dashboard/projects">
+                  <Button variant="outline" size="sm">
+                    Tümünü Gör
+                  </Button>
+                </Link>
               </div>
               {recentProjects.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -290,9 +293,11 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Son Görevler</h2>
-                <Button variant="outline" size="sm">
-                  Tümünü Gör
-                </Button>
+                <Link href="/dashboard/tasks">
+                  <Button variant="outline" size="sm">
+                    Tümünü Gör
+                  </Button>
+                </Link>
               </div>
               {recentTasks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -315,19 +320,33 @@ export default function DashboardPage() {
           </TabsContent>
 
           <TabsContent value="projects" className="space-y-6">
-            <EmptyState
-              icon={BarChart3}
-              title="Proje Yönetimi"
-              description="Proje detayları burada görüntülenecek"
-            />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">Proje Yönetimi</h3>
+              <p className="text-muted-foreground mb-4">
+                Tüm projelerinizi görüntülemek ve yönetmek için projeler sayfasına gidin
+              </p>
+              <Link href="/dashboard/projects">
+                <Button>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Projeleri Görüntüle
+                </Button>
+              </Link>
+            </div>
           </TabsContent>
 
           <TabsContent value="tasks" className="space-y-6">
-            <EmptyState
-              icon={CheckCircle}
-              title="Görev Yönetimi"
-              description="Görev detayları burada görüntülenecek"
-            />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">Görev Yönetimi</h3>
+              <p className="text-muted-foreground mb-4">
+                Tüm görevlerinizi görüntülemek ve yönetmek için görevler sayfasına gidin
+              </p>
+              <Link href="/dashboard/tasks">
+                <Button>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Görevleri Görüntüle
+                </Button>
+              </Link>
+            </div>
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">

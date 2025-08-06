@@ -16,7 +16,10 @@ export const projectService = {
         budget: project.budget,
         progress: project.progress,
         ownerId: project.owner_id,
-        owner: project.owner,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        isPublic: project.is_public || false,
         createdAt: project.created_at,
         updatedAt: project.updated_at
       }));
@@ -46,7 +49,10 @@ export const projectService = {
         budget: data.budget,
         progress: data.progress,
         ownerId: data.owner_id,
-        owner: data.owner,
+        priority: data.priority || 'medium',
+        tags: data.tags || [],
+        color: data.color || '#3b82f6',
+        isPublic: data.is_public || false,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -65,7 +71,11 @@ export const projectService = {
         start_date: project.startDate,
         end_date: project.endDate,
         budget: project.budget,
-        progress: project.progress || 0
+        progress: project.progress || 0,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        is_public: project.isPublic || false
       };
       const newProject = await db.createProject(projectData);
       return {
@@ -73,6 +83,10 @@ export const projectService = {
         startDate: newProject.start_date,
         endDate: newProject.end_date,
         ownerId: newProject.owner_id,
+        priority: newProject.priority || 'medium',
+        tags: newProject.tags || [],
+        color: newProject.color || '#3b82f6',
+        isPublic: newProject.is_public || false,
         createdAt: newProject.created_at,
         updatedAt: newProject.updated_at
       };
@@ -93,6 +107,10 @@ export const projectService = {
       if (updates.endDate !== undefined) updateData.end_date = updates.endDate;
       if (updates.budget !== undefined) updateData.budget = updates.budget;
       if (updates.progress !== undefined) updateData.progress = updates.progress;
+      if (updates.priority !== undefined) updateData.priority = updates.priority;
+      if (updates.tags !== undefined) updateData.tags = updates.tags;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.isPublic !== undefined) updateData.is_public = updates.isPublic;
 
       const updatedProject = await db.updateProject(id, updateData);
       
@@ -106,7 +124,10 @@ export const projectService = {
         budget: updatedProject.budget,
         progress: updatedProject.progress,
         ownerId: updatedProject.owner_id,
-        owner: updatedProject.owner,
+        priority: updatedProject.priority || 'medium',
+        tags: updatedProject.tags || [],
+        color: updatedProject.color || '#3b82f6',
+        isPublic: updatedProject.is_public || false,
         createdAt: updatedProject.created_at,
         updatedAt: updatedProject.updated_at
       };
@@ -161,6 +182,10 @@ export const projectService = {
         startDate: project.start_date,
         endDate: project.end_date,
         ownerId: project.owner_id,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        isPublic: project.is_public || false,
         createdAt: project.created_at,
         updatedAt: project.updated_at
       }));
@@ -183,6 +208,88 @@ export const projectService = {
         startDate: project.start_date,
         endDate: project.end_date,
         ownerId: project.owner_id,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        isPublic: project.is_public || false,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }));
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Öncelik bazında projeleri getir
+  async getProjectsByPriority(priority: Project['priority']): Promise<Project[]> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('priority', priority)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data.map((project: any) => ({
+        ...project,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        ownerId: project.owner_id,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        isPublic: project.is_public || false,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }));
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Tag bazında projeleri getir
+  async getProjectsByTag(tag: string): Promise<Project[]> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .contains('tags', [tag])
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data.map((project: any) => ({
+        ...project,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        ownerId: project.owner_id,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        isPublic: project.is_public || false,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }));
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Arama yap
+  async searchProjects(query: string): Promise<Project[]> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data.map((project: any) => ({
+        ...project,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        ownerId: project.owner_id,
+        priority: project.priority || 'medium',
+        tags: project.tags || [],
+        color: project.color || '#3b82f6',
+        isPublic: project.is_public || false,
         createdAt: project.created_at,
         updatedAt: project.updated_at
       }));

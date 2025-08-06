@@ -13,15 +13,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -48,15 +49,16 @@ export const taskService = {
         status: data.status,
         priority: data.priority,
         assigneeId: data.assignee_id,
-        assignee: data.assignee,
         projectId: data.project_id,
-        project: data.project,
         dueDate: data.due_date,
         estimatedHours: data.estimated_hours,
         actualHours: data.actual_hours,
         parentTaskId: data.parent_task_id,
-        parentTask: data.parent_task,
-        tags: data.tags,
+        tags: data.tags || [],
+        color: data.color || '#6b7280',
+        isRecurring: data.is_recurring || false,
+        recurringPattern: data.recurring_pattern,
+        recurringEndDate: data.recurring_end_date,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -78,7 +80,11 @@ export const taskService = {
         due_date: task.dueDate,
         estimated_hours: task.estimatedHours,
         parent_task_id: task.parentTaskId,
-        tags: task.tags || []
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        is_recurring: task.isRecurring || false,
+        recurring_pattern: task.recurringPattern,
+        recurring_end_date: task.recurringEndDate
       };
       const newTask = await db.createTask(taskData);
       return {
@@ -89,6 +95,11 @@ export const taskService = {
         assigneeId: newTask.assignee_id,
         projectId: newTask.project_id,
         parentTaskId: newTask.parent_task_id,
+        tags: newTask.tags || [],
+        color: newTask.color || '#6b7280',
+        isRecurring: newTask.is_recurring || false,
+        recurringPattern: newTask.recurring_pattern,
+        recurringEndDate: newTask.recurring_end_date,
         createdAt: newTask.created_at,
         updatedAt: newTask.updated_at
       };
@@ -111,6 +122,10 @@ export const taskService = {
       if (updates.estimatedHours !== undefined) updateData.estimated_hours = updates.estimatedHours;
       if (updates.actualHours !== undefined) updateData.actual_hours = updates.actualHours;
       if (updates.tags !== undefined) updateData.tags = updates.tags;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.isRecurring !== undefined) updateData.is_recurring = updates.isRecurring;
+      if (updates.recurringPattern !== undefined) updateData.recurring_pattern = updates.recurringPattern;
+      if (updates.recurringEndDate !== undefined) updateData.recurring_end_date = updates.recurringEndDate;
 
       const updatedTask = await db.updateTask(id, updateData);
       
@@ -121,15 +136,16 @@ export const taskService = {
         status: updatedTask.status,
         priority: updatedTask.priority,
         assigneeId: updatedTask.assignee_id,
-        assignee: updatedTask.assignee,
         projectId: updatedTask.project_id,
-        project: updatedTask.project,
         dueDate: updatedTask.due_date,
         estimatedHours: updatedTask.estimated_hours,
         actualHours: updatedTask.actual_hours,
         parentTaskId: updatedTask.parent_task_id,
-        parentTask: updatedTask.parent_task,
-        tags: updatedTask.tags,
+        tags: updatedTask.tags || [],
+        color: updatedTask.color || '#6b7280',
+        isRecurring: updatedTask.is_recurring || false,
+        recurringPattern: updatedTask.recurring_pattern,
+        recurringEndDate: updatedTask.recurring_end_date,
         createdAt: updatedTask.created_at,
         updatedAt: updatedTask.updated_at
       };
@@ -190,15 +206,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -225,15 +242,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -260,15 +278,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -295,15 +314,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -319,6 +339,7 @@ export const taskService = {
         .from('tasks')
         .select('*')
         .lt('due_date', new Date().toISOString())
+        .not('status', 'in', ['completed', 'cancelled'])
         .order('due_date', { ascending: true });
       
       if (error) throw error;
@@ -330,15 +351,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -365,15 +387,52 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at
+      }));
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Tekrarlayan görevleri getir
+  async getRecurringTasks(): Promise<Task[]> {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('is_recurring', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map((task: any) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assigneeId: task.assignee_id,
+        projectId: task.project_id,
+        dueDate: task.due_date,
+        estimatedHours: task.estimated_hours,
+        actualHours: task.actual_hours,
+        parentTaskId: task.parent_task_id,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -401,15 +460,16 @@ export const taskService = {
         status: data.status,
         priority: data.priority,
         assigneeId: data.assignee_id,
-        assignee: data.assignee,
         projectId: data.project_id,
-        project: data.project,
         dueDate: data.due_date,
         estimatedHours: data.estimated_hours,
         actualHours: data.actual_hours,
         parentTaskId: data.parent_task_id,
-        parentTask: data.parent_task,
-        tags: data.tags,
+        tags: data.tags || [],
+        color: data.color || '#6b7280',
+        isRecurring: data.is_recurring || false,
+        recurringPattern: data.recurring_pattern,
+        recurringEndDate: data.recurring_end_date,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -437,15 +497,16 @@ export const taskService = {
         status: data.status,
         priority: data.priority,
         assigneeId: data.assignee_id,
-        assignee: data.assignee,
         projectId: data.project_id,
-        project: data.project,
         dueDate: data.due_date,
         estimatedHours: data.estimated_hours,
         actualHours: data.actual_hours,
         parentTaskId: data.parent_task_id,
-        parentTask: data.parent_task,
-        tags: data.tags,
+        tags: data.tags || [],
+        color: data.color || '#6b7280',
+        isRecurring: data.is_recurring || false,
+        recurringPattern: data.recurring_pattern,
+        recurringEndDate: data.recurring_end_date,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -473,15 +534,16 @@ export const taskService = {
         status: data.status,
         priority: data.priority,
         assigneeId: data.assignee_id,
-        assignee: data.assignee,
         projectId: data.project_id,
-        project: data.project,
         dueDate: data.due_date,
         estimatedHours: data.estimated_hours,
         actualHours: data.actual_hours,
         parentTaskId: data.parent_task_id,
-        parentTask: data.parent_task,
-        tags: data.tags,
+        tags: data.tags || [],
+        color: data.color || '#6b7280',
+        isRecurring: data.is_recurring || false,
+        recurringPattern: data.recurring_pattern,
+        recurringEndDate: data.recurring_end_date,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -509,15 +571,16 @@ export const taskService = {
         status: data.status,
         priority: data.priority,
         assigneeId: data.assignee_id,
-        assignee: data.assignee,
         projectId: data.project_id,
-        project: data.project,
         dueDate: data.due_date,
         estimatedHours: data.estimated_hours,
         actualHours: data.actual_hours,
         parentTaskId: data.parent_task_id,
-        parentTask: data.parent_task,
-        tags: data.tags,
+        tags: data.tags || [],
+        color: data.color || '#6b7280',
+        isRecurring: data.is_recurring || false,
+        recurringPattern: data.recurring_pattern,
+        recurringEndDate: data.recurring_end_date,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -544,15 +607,16 @@ export const taskService = {
         status: task.status,
         priority: task.priority,
         assigneeId: task.assignee_id,
-        assignee: task.assignee,
         projectId: task.project_id,
-        project: task.project,
         dueDate: task.due_date,
         estimatedHours: task.estimated_hours,
         actualHours: task.actual_hours,
         parentTaskId: task.parent_task_id,
-        parentTask: task.parent_task,
-        tags: task.tags,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
         createdAt: task.created_at,
         updatedAt: task.updated_at
       }));
@@ -560,4 +624,40 @@ export const taskService = {
       throw error;
     }
   },
+
+  // Arama yap
+  async searchTasks(query: string): Promise<Task[]> {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map((task: any) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assigneeId: task.assignee_id,
+        projectId: task.project_id,
+        dueDate: task.due_date,
+        estimatedHours: task.estimated_hours,
+        actualHours: task.actual_hours,
+        parentTaskId: task.parent_task_id,
+        tags: task.tags || [],
+        color: task.color || '#6b7280',
+        isRecurring: task.is_recurring || false,
+        recurringPattern: task.recurring_pattern,
+        recurringEndDate: task.recurring_end_date,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at
+      }));
+    } catch (error) {
+      throw error;
+    }
+  }
 };

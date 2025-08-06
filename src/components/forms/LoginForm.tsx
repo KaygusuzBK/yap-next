@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -11,6 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuthStore } from '@/lib/services/auth/store'
+import { OAuthButtons } from './OAuthButtons'
+import { notify } from '@/lib/services/notifications/notificationService'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
@@ -42,6 +45,7 @@ export function LoginForm() {
       router.push('/dashboard')
     } catch (error) {
       console.error('Login error:', error)
+      // Error notification zaten auth store'da gösteriliyor
     } finally {
       setIsLoading(false)
     }
@@ -84,11 +88,19 @@ export function LoginForm() {
         )}
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox id="rememberMe" {...register('rememberMe')} />
-        <Label htmlFor="rememberMe" className="text-sm font-normal">
-          Beni hatırla
-        </Label>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Checkbox id="rememberMe" {...register('rememberMe')} />
+          <Label htmlFor="rememberMe" className="text-sm font-normal">
+            Beni hatırla
+          </Label>
+        </div>
+        <Link 
+          href="/forgot-password" 
+          className="text-sm text-blue-600 hover:text-blue-500"
+        >
+          Şifremi unuttum
+        </Link>
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
@@ -101,6 +113,12 @@ export function LoginForm() {
           'Giriş Yap'
         )}
       </Button>
+
+      <OAuthButtons 
+        onError={(error) => {
+          notify.error(error)
+        }}
+      />
     </form>
   )
 } 

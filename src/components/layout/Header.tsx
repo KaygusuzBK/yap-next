@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/services/auth/store'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { LogOut, User, Settings } from 'lucide-react'
+import { LogOut, User, Settings, BarChart3, CheckCircle } from 'lucide-react'
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuthStore()
@@ -33,9 +33,17 @@ export function Header() {
             Ana Sayfa
           </Link>
           {isAuthenticated && (
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
+            <>
+              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/dashboard/projects" className="text-muted-foreground hover:text-foreground transition-colors">
+                Projeler
+              </Link>
+              <Link href="/dashboard/tasks" className="text-muted-foreground hover:text-foreground transition-colors">
+                Görevler
+              </Link>
+            </>
           )}
         </nav>
 
@@ -60,9 +68,21 @@ export function Header() {
                   </div>
                 </div>
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
+                  <Link href="/dashboard" className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profil</span>
+                    <span>Dashboard</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/projects" className="cursor-pointer">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    <span>Projeler</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/tasks" className="cursor-pointer">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <span>Görevler</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

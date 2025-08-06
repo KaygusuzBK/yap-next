@@ -11,7 +11,7 @@ export interface User {
   updatedAt: string;
 }
 
-// Project Entity
+// Project Entity (Updated with new fields)
 export interface Project {
   id: string;
   title: string;
@@ -22,29 +22,39 @@ export interface Project {
   budget?: number;
   progress: number;
   ownerId: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[];
+  color: string;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
   // Relations
   owner?: User;
   tasks?: Task[];
   comments?: Comment[];
-  files?: File[];
+  files?: ProjectFile[];
+  members?: ProjectMember[];
+  activities?: ProjectActivity[];
 }
 
-// Task Entity
+// Task Entity (Updated with new fields)
 export interface Task {
   id: string;
   title: string;
   description?: string;
   status: 'todo' | 'in_progress' | 'completed' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  assigneeId: string;
+  assigneeId?: string;
   projectId: string;
   dueDate?: string;
   estimatedHours?: number;
   actualHours?: number;
   parentTaskId?: string;
   tags?: string[];
+  color: string;
+  isRecurring: boolean;
+  recurringPattern?: string;
+  recurringEndDate?: string;
   createdAt: string;
   updatedAt: string;
   // Relations
@@ -53,55 +63,146 @@ export interface Task {
   parentTask?: Task;
   subtasks?: Task[];
   comments?: Comment[];
-  files?: File[];
+  files?: ProjectFile[];
+  assignments?: TaskAssignment[];
+  timeLogs?: TaskTimeLog[];
 }
 
-// Comment Entity
+// Comment Entity (Updated with new fields)
 export interface Comment {
   id: string;
   content: string;
   authorId: string;
   taskId?: string;
   projectId?: string;
+  parentCommentId?: string;
+  isEdited: boolean;
+  editedAt?: string;
   createdAt: string;
   updatedAt: string;
   // Relations
   author?: User;
   task?: Task;
   project?: Project;
+  parentComment?: Comment;
+  replies?: Comment[];
 }
 
-// File Entity
-export interface File {
+// Project Member Entity (New)
+export interface ProjectMember {
+  id: string;
+  projectId: string;
+  userId: string;
+  role: 'owner' | 'manager' | 'member' | 'viewer';
+  permissions?: string[];
+  invitedBy?: string;
+  isActive: boolean;
+  joinedAt: string;
+  // Relations
+  project?: Project;
+  user?: User;
+  invitedByUser?: User;
+}
+
+// Task Assignment Entity (New)
+export interface TaskAssignment {
+  id: string;
+  taskId: string;
+  userId: string;
+  assignedAt: string;
+  assignedBy?: string;
+  isPrimary: boolean;
+  // Relations
+  task?: Task;
+  user?: User;
+  assignedByUser?: User;
+}
+
+// Project File Entity (Updated)
+export interface ProjectFile {
   id: string;
   filename: string;
   originalName: string;
   mimeType: string;
   size: number;
   url: string;
-  taskId?: string;
   projectId?: string;
+  taskId?: string;
   uploadedById: string;
+  isPublic: boolean;
   createdAt: string;
   // Relations
-  task?: Task;
   project?: Project;
+  task?: Task;
   uploadedBy?: User;
 }
 
-// Notification Entity
+// Task Time Log Entity (New)
+export interface TaskTimeLog {
+  id: string;
+  taskId: string;
+  userId: string;
+  startTime: string;
+  endTime?: string;
+  durationMinutes?: number;
+  description?: string;
+  createdAt: string;
+  // Relations
+  task?: Task;
+  user?: User;
+}
+
+// Project Activity Entity (New)
+export interface ProjectActivity {
+  id: string;
+  projectId: string;
+  taskId?: string;
+  userId: string;
+  activityType: string;
+  description: string;
+  metadata?: any;
+  createdAt: string;
+  // Relations
+  project?: Project;
+  task?: Task;
+  user?: User;
+}
+
+// User Preferences Entity (New)
+export interface UserPreferences {
+  id: string;
+  userId: string;
+  theme: 'light' | 'dark' | 'auto';
+  language: string;
+  timezone: string;
+  emailNotifications: {
+    projectUpdates: boolean;
+    taskAssignments: boolean;
+    dueDateReminders: boolean;
+  };
+  dashboardLayout?: any;
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  user?: User;
+}
+
+// Notification Entity (Updated)
 export interface Notification {
   id: string;
-  type: 'task_assigned' | 'comment_added' | 'task_completed' | 'project_updated' | 'deadline_approaching' | 'file_uploaded';
+  userId: string;
   title: string;
   message: string;
-  userId: string;
+  type: 'info' | 'success' | 'warning' | 'error';
   isRead: boolean;
-  relatedTaskId?: string;
-  relatedProjectId?: string;
+  projectId?: string;
+  taskId?: string;
+  actionUrl?: string;
   createdAt: string;
   // Relations
   user?: User;
+  project?: Project;
+  task?: Task;
 }
 
 // Dashboard Stats
@@ -144,6 +245,9 @@ export interface FilterOptions {
   search?: string;
   page?: number;
   limit?: number;
+  tags?: string[];
+  isPublic?: boolean;
+  isRecurring?: boolean;
 }
 
 // Sort Options
@@ -212,7 +316,7 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
-// Project Request/Response Types
+// Project Request/Response Types (Updated)
 export interface CreateProjectRequest {
   title: string;
   description?: string;
@@ -220,6 +324,10 @@ export interface CreateProjectRequest {
   endDate?: string;
   budget?: number;
   progress?: number;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[];
+  color?: string;
+  isPublic?: boolean;
 }
 
 export interface UpdateProjectRequest {
@@ -230,19 +338,27 @@ export interface UpdateProjectRequest {
   endDate?: string;
   budget?: number;
   progress?: number;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[];
+  color?: string;
+  isPublic?: boolean;
 }
 
-// Task Request/Response Types
+// Task Request/Response Types (Updated)
 export interface CreateTaskRequest {
   title: string;
   description?: string;
   projectId: string;
-  assigneeId: string;
+  assigneeId?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   dueDate?: string;
   estimatedHours?: number;
   parentTaskId?: string;
   tags?: string[];
+  color?: string;
+  isRecurring?: boolean;
+  recurringPattern?: string;
+  recurringEndDate?: string;
 }
 
 export interface UpdateTaskRequest {
@@ -255,13 +371,82 @@ export interface UpdateTaskRequest {
   estimatedHours?: number;
   actualHours?: number;
   tags?: string[];
+  color?: string;
+  isRecurring?: boolean;
+  recurringPattern?: string;
+  recurringEndDate?: string;
 }
 
-// Comment Request/Response Types
+// Comment Request/Response Types (Updated)
 export interface CreateCommentRequest {
   content: string;
   taskId?: string;
   projectId?: string;
+  parentCommentId?: string;
+}
+
+export interface UpdateCommentRequest {
+  content: string;
+}
+
+// Project Member Request/Response Types (New)
+export interface CreateProjectMemberRequest {
+  projectId: string;
+  userId: string;
+  role: 'manager' | 'member' | 'viewer';
+  permissions?: string[];
+}
+
+export interface UpdateProjectMemberRequest {
+  role?: 'manager' | 'member' | 'viewer';
+  permissions?: string[];
+  isActive?: boolean;
+}
+
+// Task Assignment Request/Response Types (New)
+export interface CreateTaskAssignmentRequest {
+  taskId: string;
+  userId: string;
+  isPrimary?: boolean;
+}
+
+// Time Log Request/Response Types (New)
+export interface CreateTimeLogRequest {
+  taskId: string;
+  description?: string;
+}
+
+export interface UpdateTimeLogRequest {
+  endTime?: string;
+  description?: string;
+}
+
+// User Preferences Request/Response Types (New)
+export interface UpdateUserPreferencesRequest {
+  theme?: 'light' | 'dark' | 'auto';
+  language?: string;
+  timezone?: string;
+  emailNotifications?: {
+    projectUpdates?: boolean;
+    taskAssignments?: boolean;
+    dueDateReminders?: boolean;
+  };
+  dashboardLayout?: any;
+}
+
+// Notification Request/Response Types (New)
+export interface CreateNotificationRequest {
+  userId: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  projectId?: string;
+  taskId?: string;
+  actionUrl?: string;
+}
+
+export interface UpdateNotificationRequest {
+  isRead?: boolean;
 }
 
 // Utility Types
@@ -307,6 +492,10 @@ export interface CreateProjectForm {
   endDate?: string;
   budget?: number;
   progress?: number;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[];
+  color?: string;
+  isPublic?: boolean;
 }
 
 export interface CreateTaskForm {
@@ -320,10 +509,15 @@ export interface CreateTaskForm {
   estimatedHours?: number;
   parentTaskId?: string;
   tags?: string[];
+  color?: string;
+  isRecurring?: boolean;
+  recurringPattern?: string;
+  recurringEndDate?: string;
 }
 
 export interface CreateCommentForm {
   content: string;
   taskId?: string;
   projectId?: string;
+  parentCommentId?: string;
 } 

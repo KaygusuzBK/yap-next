@@ -2,8 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Project } from '@/lib/types'
-import { Calendar, DollarSign, User } from 'lucide-react'
-import { PROJECT_STATUS_LABELS, PROJECT_STATUSES } from '@/constants'
+import { Calendar, DollarSign, User, Tag, Eye } from 'lucide-react'
+import { PROJECT_STATUS_LABELS, PROJECT_STATUSES, PRIORITY_LABELS, PRIORITY_COLORS } from '@/constants'
 import { formatDate, formatCurrency } from '@/utils/format'
 
 interface ProjectCardProps {
@@ -27,22 +27,38 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     }
   }
 
+  const getPriorityColor = (priority: string) => {
+    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || 'bg-gray-100 text-gray-800'
+  }
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-md transition-shadow"
       onClick={onClick}
+      style={{ borderLeftColor: project.color, borderLeftWidth: '4px' }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1">
             <CardTitle className="text-lg">{project.title}</CardTitle>
             <CardDescription className="line-clamp-2">
               {project.description || 'Açıklama yok'}
             </CardDescription>
           </div>
-          <Badge className={getStatusColor(project.status)}>
-            {PROJECT_STATUS_LABELS[project.status as keyof typeof PROJECT_STATUS_LABELS] || project.status}
-          </Badge>
+          <div className="flex flex-col gap-2 ml-4">
+            <Badge className={getStatusColor(project.status)}>
+              {PROJECT_STATUS_LABELS[project.status as keyof typeof PROJECT_STATUS_LABELS] || project.status}
+            </Badge>
+            <Badge className={getPriorityColor(project.priority)}>
+              {PRIORITY_LABELS[project.priority as keyof typeof PRIORITY_LABELS] || project.priority}
+            </Badge>
+            {project.isPublic && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                Public
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       
@@ -80,6 +96,24 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">Bütçe:</span>
             <span className="font-medium">{formatCurrency(project.budget)}</span>
+          </div>
+        )}
+
+        {project.tags && project.tags.length > 0 && (
+          <div className="flex items-center space-x-2 text-sm">
+            <Tag className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-wrap gap-1">
+              {project.tags.slice(0, 3).map((tag, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+              {project.tags.length > 3 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{project.tags.length - 3}
+                </Badge>
+              )}
+            </div>
           </div>
         )}
 

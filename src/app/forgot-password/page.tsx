@@ -1,12 +1,12 @@
-'use client';
+"use client"
 
 import Link from 'next/link';
-import { LoginForm } from '@/components/forms';
+import { ForgotPasswordForm } from '@/components/forms';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Shield, Zap, Users } from 'lucide-react';
+import { ArrowLeft, Shield, Zap, Mail } from 'lucide-react';
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
@@ -37,18 +37,21 @@ export default function LoginPage() {
           </Badge>
         </div>
 
-        {/* Login Card */}
+        {/* Forgot Password Card */}
         <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="text-center pb-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-blue-600" />
+            </div>
             <CardTitle className="text-2xl font-bold text-gray-900">
-              Hesabınıza Giriş Yapın
+              Şifrenizi mi Unuttunuz?
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Projelerinizi yönetmeye devam edin
+              E-posta adresinizi girin, size şifre sıfırlama bağlantısı göndereceğiz.
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-8">
-            <LoginForm />
+            <ForgotPasswordForm />
           </CardContent>
         </Card>
 
@@ -56,23 +59,23 @@ export default function LoginPage() {
         <div className="mt-8 grid grid-cols-1 gap-4">
           <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
             <Shield className="w-4 h-4 text-green-500" />
-            <span>256-bit SSL şifreleme</span>
+            <span>Güvenli şifre sıfırlama</span>
           </div>
           <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-            <Users className="w-4 h-4 text-blue-500" />
-            <span>10,000+ aktif kullanıcı</span>
+            <Mail className="w-4 h-4 text-blue-500" />
+            <span>Anında e-posta gönderimi</span>
           </div>
         </div>
 
-        {/* Register Link */}
+        {/* Login Link */}
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600">
-            Hesabınız yok mu?{' '}
+            Şifrenizi hatırladınız mı?{' '}
             <Link 
-              href="/register" 
+              href="/login" 
               className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
             >
-              Ücretsiz hesap oluşturun
+              Giriş sayfasına dön
             </Link>
           </p>
         </div>

@@ -2,8 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Task } from '@/lib/types'
-import { Calendar, Clock, Tag, User } from 'lucide-react'
-import { TASK_STATUS_LABELS, PRIORITY_LABELS, TASK_STATUSES, TASK_PRIORITIES } from '@/constants'
+import { Calendar, Clock, Tag, User, Repeat, AlertTriangle } from 'lucide-react'
+import { TASK_STATUS_LABELS, PRIORITY_LABELS, TASK_STATUSES, TASK_PRIORITIES, PRIORITY_COLORS, RECURRING_PATTERN_LABELS } from '@/constants'
 import { formatDate } from '@/utils/format'
 
 interface TaskCardProps {
@@ -30,21 +30,10 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   }
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case TASK_PRIORITIES.LOW:
-        return 'bg-green-100 text-green-800'
-      case TASK_PRIORITIES.MEDIUM:
-        return 'bg-yellow-100 text-yellow-800'
-      case TASK_PRIORITIES.HIGH:
-        return 'bg-orange-100 text-orange-800'
-      case TASK_PRIORITIES.URGENT:
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || 'bg-gray-100 text-gray-800'
   }
 
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed' && task.status !== 'cancelled'
 
   return (
     <Card 
@@ -52,6 +41,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         isOverdue ? 'border-red-200 bg-red-50/50' : ''
       }`}
       onClick={onClick}
+      style={{ borderLeftColor: task.color, borderLeftWidth: '4px' }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -68,6 +58,18 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             <Badge className={getPriorityColor(task.priority)}>
               {PRIORITY_LABELS[task.priority as keyof typeof PRIORITY_LABELS] || task.priority}
             </Badge>
+            {task.isRecurring && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Repeat className="h-3 w-3" />
+                {RECURRING_PATTERN_LABELS[task.recurringPattern as keyof typeof RECURRING_PATTERN_LABELS] || 'Tekrarlayan'}
+              </Badge>
+            )}
+            {isOverdue && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Gecikmiş
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -141,6 +143,14 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           <div className="flex items-center space-x-2 text-sm">
             <span className="text-muted-foreground">Proje:</span>
             <span className="font-medium">{task.project.title}</span>
+          </div>
+        )}
+
+        {task.isRecurring && task.recurringEndDate && (
+          <div className="flex items-center space-x-2 text-sm">
+            <Repeat className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Tekrarlama Bitiş:</span>
+            <span className="font-medium">{formatDate(task.recurringEndDate)}</span>
           </div>
         )}
       </CardContent>

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { authService } from './api';
+import { authService } from './authService';
 import { User, LoginRequest, RegisterRequest } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
+import { notify } from '@/lib/services/notifications/notificationService';
 
 interface AuthState {
   user: User | null;
@@ -11,6 +12,7 @@ interface AuthState {
 
   // Actions
   login: (credentials: LoginRequest) => Promise<void>;
+  loginWithOAuth: (provider: 'google' | 'github' | 'microsoft') => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
@@ -28,18 +30,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ loading: true, error: null });
       
-      const response = await authService.login(credentials);
+      const response = await authService.loginWithEmail(credentials);
       
       set({ 
         user: response.user, 
         isAuthenticated: true, 
         loading: false 
       });
+      
+      notify.success('Başarıyla giriş yaptınız!');
     } catch (error: any) {
+      const errorMessage = error.message || 'Giriş yapılırken hata oluştu';
       set({ 
-        error: error.message || 'Giriş yapılırken hata oluştu', 
+        error: errorMessage, 
         loading: false 
       });
+      notify.error(errorMessage);
+      throw error;
+    }
+  },
+
+  loginWithOAuth: async (provider: 'google' | 'github' | 'microsoft') => {
+    try {
+      set({ loading: true, error: null });
+      
+      await authService.loginWithOAuth(provider);
+      
+      notify.info(`${provider.charAt(0).toUpperCase() + provider.slice(1)} ile giriş başlatılıyor...`);
+      
+      // OAuth flow başlatıldı, kullanıcı provider'a yönlendirilecek
+      // Gerçek response auth callback'te alınacak
+    } catch (error: any) {
+      const errorMessage = error.message || 'OAuth girişi başarısız';
+      set({ 
+        error: errorMessage, 
+        loading: false 
+      });
+      notify.error(errorMessage);
       throw error;
     }
   },
@@ -48,18 +75,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ loading: true, error: null });
       
-      const response = await authService.register(userData);
+      const response = await authService.registerWithEmail(userData);
       
       set({ 
         user: response.user, 
         isAuthenticated: true, 
         loading: false 
       });
+      
+      notify.success('Hesabınız başarıyla oluşturuldu!');
     } catch (error: any) {
+      const errorMessage = error.message || 'Kayıt olurken hata oluştu';
       set({ 
-        error: error.message || 'Kayıt olurken hata oluştu', 
+        error: errorMessage, 
         loading: false 
       });
+      notify.error(errorMessage);
       throw error;
     }
   },
@@ -75,14 +106,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false, 
         loading: false 
       });
+      
+      notify.success('Başarıyla çıkış yaptınız');
     } catch (error: any) {
       // Logout hatası olsa bile state'i temizle
+      const errorMessage = error.message || 'Çıkış yapılırken hata oluştu';
       set({ 
         user: null, 
         isAuthenticated: false, 
         loading: false,
-        error: error.message || 'Çıkış yapılırken hata oluştu'
+        error: errorMessage
       });
+      notify.error(errorMessage);
     }
   },
 

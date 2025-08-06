@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuthStore } from '@/lib/services/auth/store'
+import { notify } from '@/lib/services/notifications/notificationService'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 const registerSchema = z.object({
@@ -48,6 +49,7 @@ export function RegisterForm() {
       router.push('/dashboard')
     } catch (error) {
       console.error('Register error:', error)
+      // Error notification zaten auth store'da gösteriliyor
     } finally {
       setIsLoading(false)
     }
