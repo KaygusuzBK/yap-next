@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import ThemeToggle from "@/components/theme/ThemeToggle";
+import Navbar from "@/components/layout/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +32,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthTree>{children}</AuthTree>
+        <AuthTree>
+          <Navbar />
+          {children}
+          <ThemeToggle />
+        </AuthTree>
         <Toaster richColors position="top-center" />
       </body>
     </html>
@@ -42,5 +49,9 @@ function AuthTree({ children }: { children: React.ReactNode }) {
 }
 
 function ClientAuthProvider({ children }: { children: React.ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <ThemeProvider>
+      <AuthProvider>{children}</AuthProvider>
+    </ThemeProvider>
+  );
 }

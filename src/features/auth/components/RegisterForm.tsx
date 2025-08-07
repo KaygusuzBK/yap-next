@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { getSupabase } from '@/lib/supabase';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import PasswordStrength from './PasswordStrength';
 
 const schema = z.object({
   name: z.string().min(2, 'İsim en az 2 karakter'),
@@ -73,6 +74,7 @@ export default function RegisterForm() {
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
               <FormMessage />
+              <PasswordStrength value={form.watch('password')} />
             </FormItem>
           )}
         />
