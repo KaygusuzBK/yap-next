@@ -38,7 +38,13 @@ export const useNotification = () => {
       error?: string;
     } = {}
   ) => {
-    return notify.promise(promise, messages);
+    // Varsayılan değerler ile eksik olanları tamamla
+    const safeMessages = {
+      loading: messages.loading ?? 'Yükleniyor...',
+      success: messages.success ?? 'Başarılı!',
+      error: messages.error ?? 'Bir hata oluştu!'
+    };
+    return notify.promise(promise, safeMessages);
   }, []);
 
   return {
@@ -51,4 +57,4 @@ export const useNotification = () => {
     dismissAll,
     showPromise,
   };
-}; 
+};

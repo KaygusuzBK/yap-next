@@ -48,4 +48,9 @@ export class GoogleAuthProvider {
       expiresIn: session.expires_in
     };
   }
+
+  // Google OAuth ile kayıt (giriş ile aynı işlem)
+  async signUp(): Promise<LoginResponse> {
+    return this.signIn();
+  }
 } 

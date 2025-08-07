@@ -131,7 +131,7 @@ export const authService = {
   // Şifre değiştirme
   async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
     // Önce mevcut şifreyi doğrula
-    const { data: { user } } = await auth.getCurrentUser();
+    const user = await auth.getCurrentUser();
     if (!user?.email) {
       throw new Error('Kullanıcı bulunamadı');
     }
@@ -142,10 +142,10 @@ export const authService = {
       throw new Error('Mevcut şifre hatalı');
     }
 
-    // Yeni şifreyi ayarla
+    // Şifreyi güncelle
     const { error } = await auth.updatePassword(newPassword);
     if (error) {
-      throw new Error('Şifre değiştirme başarısız');
+      throw new Error('Şifre güncellenemedi');
     }
 
     return { message: 'Şifre başarıyla değiştirildi' };

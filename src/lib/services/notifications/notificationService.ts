@@ -98,4 +98,5 @@ class NotificationService {
 }
 
 export const notify = new NotificationService();
-export { NotificationService }; 
+export { NotificationService };
+export type NotificationOptions = import('react-hot-toast').ToastOptions;

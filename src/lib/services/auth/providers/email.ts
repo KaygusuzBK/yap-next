@@ -184,7 +184,7 @@ export class EmailAuthProvider {
   async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
     try {
       // Önce mevcut şifreyi doğrula
-      const { data: { user } } = await auth.getCurrentUser();
+      const user = await auth.getCurrentUser();
       if (!user?.email) {
         throw new Error('Kullanıcı bulunamadı');
       }

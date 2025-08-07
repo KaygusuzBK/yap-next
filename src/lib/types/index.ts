@@ -288,7 +288,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  user: User;
+  user: User | null;
   token: string;
   tokenType: string;
   expiresIn: number;
@@ -520,4 +520,7 @@ export interface CreateCommentForm {
   taskId?: string;
   projectId?: string;
   parentCommentId?: string;
-} 
+}
+
+// Auth Provider Types
+export type AuthProviderType = 'email' | 'google' | 'github' | 'microsoft'; 

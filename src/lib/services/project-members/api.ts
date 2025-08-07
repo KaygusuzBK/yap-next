@@ -31,13 +31,21 @@ export const projectMemberService = {
           id: member.user.id,
           email: member.user.email,
           name: member.user.raw_user_meta_data?.name || '',
-          avatar: member.user.raw_user_meta_data?.avatar || ''
+          avatar: member.user.raw_user_meta_data?.avatar || '',
+          role: member.user.raw_user_meta_data?.role || 'member',
+          isActive: true,
+          createdAt: member.user.created_at || new Date().toISOString(),
+          updatedAt: member.user.updated_at || new Date().toISOString()
         } : undefined,
         invitedByUser: member.invited_by_user ? {
           id: member.invited_by_user.id,
           email: member.invited_by_user.email,
           name: member.invited_by_user.raw_user_meta_data?.name || '',
-          avatar: member.invited_by_user.raw_user_meta_data?.avatar || ''
+          avatar: member.invited_by_user.raw_user_meta_data?.avatar || '',
+          role: member.invited_by_user.raw_user_meta_data?.role || 'member',
+          isActive: true,
+          createdAt: member.invited_by_user.created_at || new Date().toISOString(),
+          updatedAt: member.invited_by_user.updated_at || new Date().toISOString()
         } : undefined
       }));
     } catch (error) {
@@ -234,7 +242,11 @@ export const projectMemberService = {
           id: data.user.id,
           email: data.user.email,
           name: data.user.raw_user_meta_data?.name || '',
-          avatar: data.user.raw_user_meta_data?.avatar || ''
+          avatar: data.user.raw_user_meta_data?.avatar || '',
+          role: data.user.raw_user_meta_data?.role || 'member',
+          isActive: true,
+          createdAt: data.user.created_at || new Date().toISOString(),
+          updatedAt: data.user.updated_at || new Date().toISOString()
         } : undefined
       };
     } catch (error) {

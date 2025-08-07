@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -8,7 +8,7 @@ import { authService } from '@/lib/services/auth/authService'
 import { notify } from '@/lib/services/notifications/notificationService'
 import { AlertCircle, Loader2, CheckCircle } from 'lucide-react'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,19 +17,7 @@ export default function VerifyEmailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  useEffect(() => {
-    // URL'den token'ı al
-    const tokenParam = searchParams.get('token')
-    
-    if (tokenParam) {
-      setToken(tokenParam)
-      verifyEmail(tokenParam)
-    } else {
-      setError('Geçersiz veya eksik doğrulama bağlantısı')
-    }
-  }, [searchParams])
-
-  const verifyEmail = async (emailToken: string) => {
+  const verifyEmail = useCallback(async (emailToken: string) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -48,7 +36,19 @@ export default function VerifyEmailPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    // URL'den token'ı al
+    const tokenParam = searchParams.get('token')
+    
+    if (tokenParam) {
+      setToken(tokenParam)
+      verifyEmail(tokenParam)
+    } else {
+      setError('Geçersiz veya eksik doğrulama bağlantısı')
+    }
+  }, [searchParams, verifyEmail])
 
   const resendVerification = async () => {
     const email = searchParams.get('email')
@@ -146,5 +146,23 @@ export default function VerifyEmailPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full space-y-8 p-8">
+          <div className="text-center">
+            <h2 className="mt-6 text-3xl font-bold text-gray-900">
+              Yükleniyor...
+            </h2>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   )
 } 

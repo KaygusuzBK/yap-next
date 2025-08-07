@@ -78,13 +78,12 @@ export class AuthService {
 
   // Çıkış (tüm provider'lar için)
   async logout(): Promise<{ message: string }> {
-    const { error } = await auth.signOut();
-    
-    if (error) {
+    try {
+      await auth.signOut();
+      return { message: 'Başarıyla çıkış yapıldı' };
+    } catch (error) {
       throw new Error('Çıkış yapılırken hata oluştu');
     }
-    
-    return { message: 'Başarıyla çıkış yapıldı' };
   }
 
   // Kullanıcı profili

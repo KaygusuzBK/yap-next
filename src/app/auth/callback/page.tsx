@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { authService } from '@/lib/services/auth/authService'
 import { useAuthStore } from '@/lib/services/auth/store'
@@ -8,7 +8,7 @@ import { notify } from '@/lib/services/notifications/notificationService'
 import { AlertCircle, Loader2, CheckCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -17,11 +17,7 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams()
   const { fetchCurrentUser } = useAuthStore()
 
-  useEffect(() => {
-    handleAuthCallback()
-  }, [])
-
-  const handleAuthCallback = async () => {
+  const handleAuthCallback = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -65,7 +61,11 @@ export default function AuthCallbackPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router, searchParams, fetchCurrentUser])
+
+  useEffect(() => {
+    handleAuthCallback()
+  }, [handleAuthCallback])
 
   if (isSuccess) {
     return (
@@ -77,7 +77,7 @@ export default function AuthCallbackPage() {
               Giriş Başarılı
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Hesabınızla başarıyla giriş yaptınız. Dashboard'a yönlendiriliyorsunuz...
+              Hesabınızla başarıyla giriş yaptınız. Dashboard&apos;a yönlendiriliyorsunuz...
             </p>
           </div>
         </div>
@@ -123,5 +123,23 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full space-y-8 p-8">
+          <div className="text-center">
+            <h2 className="mt-6 text-3xl font-bold text-gray-900">
+              Yükleniyor...
+            </h2>
+          </div>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   )
 } 
