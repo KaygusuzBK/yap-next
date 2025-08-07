@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import CommandMenu from "@/components/CommandMenu";
 import Navbar from "@/components/layout/Navbar";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
           <Navbar />
           {children}
           <ThemeToggle />
+          <CommandMenu />
         </AuthTree>
         <Toaster richColors position="top-center" />
       </body>
