@@ -8,15 +8,29 @@ Bu klasör, Supabase veritabanı şeması için SQL dosyalarını içerir.
 sql/
 ├── README.md                 # Bu dosya
 ├── database-relationships.md # 📊 Veritabanı ilişkileri ve ERD
-├── 01-extensions.sql         # PostgreSQL extensions
-├── 02-tables.sql            # Ana tablolar (projects, tasks, comments, project_members)
-├── 03-indexes.sql           # Performans için indexler
-├── 04-rls-policies.sql      # Row Level Security policies
-├── 05-functions.sql         # PostgreSQL functions ve triggers
-├── 06-views.sql             # Database views
-├── 07-sample-data.sql       # Test verileri
-├── 08-migrations.sql        # Gelecek güncellemeler için
-└── setup-complete.sql       # Tüm kurulumu tek seferde çalıştırmak için
+├── tables/                   # Ana tablolar (her tablo için ayrı dosya)
+│   ├── projects.sql          # Projeler tablosu
+│   ├── tasks.sql             # Görevler tablosu
+│   ├── comments.sql          # Yorumlar tablosu
+│   └── project_members.sql   # Proje üyeleri tablosu
+├── indexes/                  # Index tanımları (her tablo için ayrı dosya)
+│   ├── projects_indexes.sql  # Projeler için indexler
+│   ├── tasks_indexes.sql     # Görevler için indexler
+│   └── comments_indexes.sql  # Yorumlar için indexler
+├── policies/                 # RLS ve diğer güvenlik politikaları
+│   ├── projects_policies.sql # Projeler için politikalar
+│   ├── tasks_policies.sql    # Görevler için politikalar
+│   └── comments_policies.sql # Yorumlar için politikalar
+├── functions/                # Fonksiyonlar ve triggerlar
+│   ├── projects_functions.sql # Projeler için fonksiyonlar
+│   ├── tasks_functions.sql    # Görevler için fonksiyonlar
+│   └── comments_functions.sql # Yorumlar için fonksiyonlar
+├── views/                    # Sık kullanılan sorgular için view'lar
+│   ├── project_stats.sql     # Proje istatistikleri
+│   └── task_stats.sql        # Görev istatistikleri
+├── sample-data.sql          # Test verileri
+├── migrations.sql            # Migration scriptleri
+└── 01-extensions.sql         # Gerekli extension'lar
 ```
 
 ## 🚀 Kurulum Sırası
@@ -236,4 +250,4 @@ WHERE schemaname = 'public';
 SELECT indexname, tablename, indexdef 
 FROM pg_indexes 
 WHERE schemaname = 'public';
-``` 
+```
