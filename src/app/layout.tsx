@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,8 +28,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AuthTree>{children}</AuthTree>
       </body>
     </html>
   );
+}
+
+function AuthTree({ children }: { children: React.ReactNode }) {
+  // Client context tree for auth
+  return <ClientAuthProvider>{children}</ClientAuthProvider>;
+}
+
+function ClientAuthProvider({ children }: { children: React.ReactNode }) {
+  return <AuthProvider>{children}</AuthProvider>;
 }
