@@ -7,12 +7,14 @@ This folder contains SQL files to bootstrap the project database on Supabase.
 - 01_tables.sql: tables (profiles, projects) and timestamp triggers
 - 02_rls.sql: Row Level Security (RLS) policies for profiles and projects
 - 03_tasks.sql: tasks table + timestamp trigger + RLS (inherits project ownership)
+- 04_teams.sql: teams, team_members, team_invitations; projects -> team_id; team-based RLS for projects
 
 ## Apply order
 1) 00_functions.sql
 2) 01_tables.sql
 3) 02_rls.sql
 4) 03_tasks.sql
+5) 04_teams.sql
 
 ## How to apply
 
@@ -33,5 +35,5 @@ The script will apply files in the correct order and stop on errors.
 
 ## Notes
 - `profiles` is auto-created for each new auth user (trigger on `auth.users`).
-- RLS ensures users only access their own profile, projects and tasks.
+- RLS ensures users only access their own/profile team’s projects and tasks.
 - Requires `pgcrypto` (available by default on Supabase) for `gen_random_uuid()`.

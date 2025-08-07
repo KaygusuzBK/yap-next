@@ -14,6 +14,21 @@ begin
 end;
 $$;
 
+-- When a team is created, add the owner as a team member (role=owner)
+create or replace function public.handle_new_team()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.team_members (team_id, user_id, role)
+  values (new.id, new.owner_id, 'owner')
+  on conflict do nothing;
+  return new;
+end;
+$$;
+
 -- Handle new auth user -> create profile
 create or replace function public.handle_new_user()
 returns trigger

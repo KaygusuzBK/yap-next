@@ -20,5 +20,6 @@ run 00_functions.sql
 run 01_tables.sql
 run 02_rls.sql
 run 03_tasks.sql
+run 04_teams.sql
 
 echo "All SQL applied successfully."
