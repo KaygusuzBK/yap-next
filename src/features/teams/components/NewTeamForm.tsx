@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { createTeam } from '../api';
 import { toast } from 'sonner';

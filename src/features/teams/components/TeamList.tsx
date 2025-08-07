@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MoreVertical } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 
 export default function TeamList({ refreshKey }: { refreshKey?: number }) {
   const [items, setItems] = useState<Team[]>([]);
