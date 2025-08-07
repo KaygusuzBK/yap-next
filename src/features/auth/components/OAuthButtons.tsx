@@ -1,7 +1,7 @@
 "use client";
 
 import { getSupabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Github, Chrome } from 'lucide-react';
 
 export default function OAuthButtons() {

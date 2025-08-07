@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function MagicLink() {
