@@ -3,11 +3,12 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { getSupabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toast } from 'sonner';
 
 const schema = z.object({
   email: z.string().email('Geçerli bir e-posta girin'),
@@ -18,29 +19,53 @@ type FormValues = z.infer<typeof schema>;
 
 export default function LoginForm() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema)
-  });
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
 
   const onSubmit = async (values: FormValues) => {
-    setError(null);
     const supabase = getSupabase();
     const { error } = await supabase.auth.signInWithPassword(values);
     if (error) {
-      setError(error.message);
+      toast.error(error.message);
       return;
     }
+    toast.success('Giriş başarılı');
     router.push('/dashboard');
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <Input label="E-posta" type="email" {...register('email')} error={errors.email?.message} />
-      <Input label="Şifre" type="password" {...register('password')} error={errors.password?.message} />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" loading={isSubmitting} className="w-full">Giriş Yap</Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>E-posta</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="ornek@mail.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Şifre</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
+          {form.formState.isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+        </Button>
+      </form>
+    </Form>
   );
 }
 

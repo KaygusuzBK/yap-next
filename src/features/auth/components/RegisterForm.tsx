@@ -3,10 +3,11 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { getSupabase } from '@/lib/supabase';
-import { useState } from 'react';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toast } from 'sonner';
 
 const schema = z.object({
   name: z.string().min(2, 'İsim en az 2 karakter'),
@@ -17,15 +18,9 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function RegisterForm() {
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema)
-  });
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: '', email: '', password: '' } });
 
   const onSubmit = async (values: FormValues) => {
-    setStatus(null);
-    setError(null);
     const supabase = getSupabase();
     const { error } = await supabase.auth.signUp({
       email: values.email,
@@ -33,21 +28,59 @@ export default function RegisterForm() {
       options: { data: { name: values.name }, emailRedirectTo: `${window.location.origin}/login` }
     });
     if (error) {
-      setError(error.message);
+      toast.error(error.message);
       return;
     }
-    setStatus('Kayıt başarılı. Lütfen e-postanızı doğrulayın.');
+    toast.success('Kayıt başarılı. Lütfen e-postanızı doğrulayın.');
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <Input label="İsim" type="text" {...register('name')} error={errors.name?.message} />
-      <Input label="E-posta" type="email" {...register('email')} error={errors.email?.message} />
-      <Input label="Şifre" type="password" {...register('password')} error={errors.password?.message} />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {status && <p className="text-sm text-green-600">{status}</p>}
-      <Button type="submit" loading={isSubmitting} className="w-full">Kayıt Ol</Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>İsim</FormLabel>
+              <FormControl>
+                <Input type="text" placeholder="Ad Soyad" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>E-posta</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="ornek@mail.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Şifre</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
+          {form.formState.isSubmitting ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
+        </Button>
+      </form>
+    </Form>
   );
 }
 
