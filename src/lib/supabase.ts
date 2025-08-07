@@ -1,11 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let cachedClient: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // Throwing here helps catch misconfiguration early in both server and client builds
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+export function getSupabase(): SupabaseClient {
+  if (cachedClient) return cachedClient;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    // Fail lazily only when actually used at runtime
+    throw new Error('Supabase environment variables are not configured');
+  }
+
+  cachedClient = createClient(url, anonKey);
+  return cachedClient;
 }
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);

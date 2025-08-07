@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export default function RegisterPage() {
     setError(null);
     setMessage(null);
     setLoading(true);
+    const supabase = getSupabase();
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
