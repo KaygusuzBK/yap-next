@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import Input from '@/components/ui/input';
+import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { createTeam } from '../api';
 import { toast } from 'sonner';
@@ -25,7 +26,7 @@ export default function NewTeamForm({ onCreated }: { onCreated?: () => void }) {
   };
   return (
     <form onSubmit={submit} className="flex gap-2">
-      <Input placeholder="Takım adı" value={name} onChange={(e) => setName(e.target.value)} required />
+      <Input placeholder="Takım adı" value={name} onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)} required />
       <Button type="submit" disabled={loading}>{loading ? 'Oluşturuluyor...' : 'Oluştur'}</Button>
     </form>
   );

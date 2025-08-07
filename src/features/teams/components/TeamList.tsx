@@ -30,7 +30,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MoreVertical } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import Input from '@/components/ui/input';
+import type { ChangeEvent } from 'react';
 
 export default function TeamList({ refreshKey }: { refreshKey?: number }) {
   const [items, setItems] = useState<Team[]>([]);
@@ -122,7 +123,7 @@ function TeamMenu({ team, onRenamed, onDeleted }: { team: Team; onRenamed: (name
           <DialogHeader>
             <DialogTitle>Takım adını değiştir</DialogTitle>
           </DialogHeader>
-          <Input value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <Input value={newName} onChange={(e: ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenRename(false)}>Vazgeç</Button>
             <Button onClick={handleSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</Button>
