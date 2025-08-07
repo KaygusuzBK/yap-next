@@ -19,5 +19,6 @@ cd "$SCRIPT_DIR"
 run 00_functions.sql
 run 01_tables.sql
 run 02_rls.sql
+run 03_tasks.sql
 
 echo "All SQL applied successfully."

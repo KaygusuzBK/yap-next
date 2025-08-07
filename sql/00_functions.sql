@@ -1,4 +1,7 @@
--- Functions and helpers
+-- Functions and helpers (Supabase-ready)
+
+-- Ensure pgcrypto is available for gen_random_uuid()
+create extension if not exists "pgcrypto" with schema extensions;
 
 -- Timestamp update trigger
 create or replace function public.trigger_set_timestamp()

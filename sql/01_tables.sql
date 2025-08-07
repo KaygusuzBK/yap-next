@@ -7,6 +7,8 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+-- Re-create trigger safely (Postgres doesn't support IF NOT EXISTS for triggers)
+drop trigger if exists set_timestamp_profiles on public.profiles;
 create trigger set_timestamp_profiles
 before update on public.profiles
 for each row execute function public.trigger_set_timestamp();
@@ -21,6 +23,8 @@ create table if not exists public.projects (
   updated_at timestamptz not null default now()
 );
 
+-- Re-create trigger safely
+drop trigger if exists set_timestamp_projects on public.projects;
 create trigger set_timestamp_projects
 before update on public.projects
 for each row execute function public.trigger_set_timestamp();
