@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getProjectById, updateProject, deleteProject, type Project } from '@/features/projects/api';
 import { fetchTeams, type Team } from '@/features/teams/api';
+import TaskList from '@/features/tasks/components/TaskList';
+import NewTaskForm from '@/features/tasks/components/NewTaskForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +43,8 @@ import {
   Folder,
   Archive,
   CheckCircle,
-  Clock
+  Clock,
+  Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -57,6 +60,7 @@ export default function ProjectDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTaskForm, setShowTaskForm] = useState(false);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -430,23 +434,36 @@ export default function ProjectDetailPage() {
           </Card>
         </section>
 
-        {/* Placeholder for future features */}
-        <section className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Görevler</CardTitle>
-              <CardDescription>Proje görevlerini yönetin</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <div className="text-muted-foreground mb-2">Yakında</div>
-                <Button variant="outline" disabled>
-                  Görev Ekle
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Görevler Bölümü */}
+        <section>
+          {showTaskForm ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Yeni Görev Oluştur</CardTitle>
+                <CardDescription>Proje için yeni bir görev ekleyin</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <NewTaskForm
+                  projectId={projectId}
+                  onCreated={() => {
+                    setShowTaskForm(false);
+                    // Görev listesini yenilemek için key değiştir
+                    setProject({ ...project! });
+                  }}
+                  onCancel={() => setShowTaskForm(false)}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <TaskList
+              projectId={projectId}
+              onCreateNew={() => setShowTaskForm(true)}
+            />
+          )}
+        </section>
 
+        {/* Diğer Özellikler */}
+        <section className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Dosyalar</CardTitle>
