@@ -26,6 +26,7 @@ import {
 import type { ChangeEvent } from "react"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
 import { fetchProjects } from "@/features/projects/api"
+import { fetchTasksByProject, type Task } from "@/features/tasks/api"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -64,6 +65,16 @@ type ProjectStat = {
   status: string
   teamName: string | null
   createdAt: string
+}
+
+type TaskStat = {
+  id: string
+  title: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  due_date: string | null
+  project_title: string
+  project_id: string
+  days_remaining: number | null
 }
 
 const TeamRow = React.memo(function TeamRow({
@@ -167,6 +178,87 @@ const ProjectRow = React.memo(function ProjectRow({
         </div>
         <div className="text-xs text-muted-foreground">
           {project.teamName ? `Takım: ${project.teamName}` : 'Kişisel Proje'}
+        </div>
+      </button>
+    </div>
+  )
+})
+
+const TaskRow = React.memo(function TaskRow({
+  task,
+  onSelect,
+}: {
+  task: TaskStat
+  onSelect: (taskId: string) => void
+}) {
+  const getPriorityColor = (priority: TaskStat['priority']) => {
+    switch (priority) {
+      case 'low':
+        return 'text-green-600'
+      case 'medium':
+        return 'text-blue-600'
+      case 'high':
+        return 'text-orange-600'
+      case 'urgent':
+        return 'text-red-600'
+      default:
+        return 'text-gray-600'
+    }
+  }
+
+  const getPriorityText = (priority: TaskStat['priority']) => {
+    switch (priority) {
+      case 'low':
+        return 'Düşük'
+      case 'medium':
+        return 'Orta'
+      case 'high':
+        return 'Yüksek'
+      case 'urgent':
+        return 'Acil'
+      default:
+        return priority
+    }
+  }
+
+  const getDaysRemainingText = (days: number | null) => {
+    if (days === null) return 'Tarih yok'
+    if (days < 0) return `${Math.abs(days)} gün gecikmiş`
+    if (days === 0) return 'Bugün'
+    if (days === 1) return '1 gün kaldı'
+    return `${days} gün kaldı`
+  }
+
+  const getDaysRemainingColor = (days: number | null) => {
+    if (days === null) return 'text-gray-500'
+    if (days < 0) return 'text-red-600'
+    if (days <= 1) return 'text-orange-600'
+    if (days <= 3) return 'text-yellow-600'
+    return 'text-green-600'
+  }
+
+  return (
+    <div
+      className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm"
+      onClick={() => onSelect(task.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect(task.id)
+      }}
+    >
+      <button type="button" onClick={() => onSelect(task.id)} className="text-left flex-1">
+        <div className="font-medium line-clamp-1">{task.title}</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          Proje: {task.project_title}
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+            {getPriorityText(task.priority)}
+          </span>
+          <span className={`text-xs ${getDaysRemainingColor(task.days_remaining)}`}>
+            {getDaysRemainingText(task.days_remaining)}
+          </span>
         </div>
       </button>
     </div>
@@ -300,6 +392,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [loadingProjects, setLoadingProjects] = React.useState(false)
   const [projectError, setProjectError] = React.useState<string | null>(null)
   const [createProjectOpen, setCreateProjectOpen] = React.useState(false)
+  const [taskStats, setTaskStats] = React.useState<TaskStat[]>([])
+  const [loadingTasks, setLoadingTasks] = React.useState(false)
+  const [taskError, setTaskError] = React.useState<string | null>(null)
   const [renameOpen, setRenameOpen] = React.useState(false)
   const [renameValue, setRenameValue] = React.useState("")
   const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null)
@@ -400,13 +495,77 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, [])
 
+  const fetchTaskStats = React.useCallback(async () => {
+    try {
+      setLoadingTasks(true)
+      setTaskError(null)
+      
+      // Önce projeleri al
+      const projects = await fetchProjects()
+      
+      // Her proje için görevleri al
+      const allTasks: TaskStat[] = []
+      
+      for (const project of projects) {
+        try {
+          const tasks = await fetchTasksByProject(project.id)
+          
+          const projectTasks = tasks.map(task => {
+            const dueDate = task.due_date ? new Date(task.due_date) : null
+            const now = new Date()
+            const daysRemaining = dueDate 
+              ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+              : null
+            
+            return {
+              id: task.id,
+              title: task.title,
+              priority: task.priority,
+              due_date: task.due_date,
+              project_title: project.title,
+              project_id: project.id,
+              days_remaining: daysRemaining,
+            }
+          })
+          
+          allTasks.push(...projectTasks)
+        } catch (error) {
+          console.error(`Proje ${project.id} için görevler alınamadı:`, error)
+        }
+      }
+      
+      // Önceliğe ve kalan güne göre sırala
+      const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+      allTasks.sort((a, b) => {
+        // Önce önceliğe göre sırala
+        const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
+        if (priorityDiff !== 0) return priorityDiff
+        
+        // Sonra kalan güne göre sırala (null değerler en sona)
+        if (a.days_remaining === null && b.days_remaining === null) return 0
+        if (a.days_remaining === null) return 1
+        if (b.days_remaining === null) return -1
+        
+        return a.days_remaining - b.days_remaining
+      })
+      
+      setTaskStats(allTasks)
+    } catch (e) {
+      setTaskError(e instanceof Error ? e.message : "Görev verileri alınamadı")
+    } finally {
+      setLoadingTasks(false)
+    }
+  }, [])
+
   React.useEffect(() => {
     if (activeItem?.title === "Takımlar") {
       fetchTeamStats()
     } else if (activeItem?.title === "Projeler") {
       fetchProjectStats()
+    } else if (activeItem?.title === "Görevlerim") {
+      fetchTaskStats()
     }
-  }, [activeItem, fetchTeamStats, fetchProjectStats])
+  }, [activeItem, fetchTeamStats, fetchProjectStats, fetchTaskStats])
 
   const isTasksActive = activeItem?.title === "Görevlerim"
   const isTeamsActive = activeItem?.title === "Takımlar"
@@ -621,6 +780,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
                         />
                       ))}
+                    </div>
+                  )}
+                </div>
+              ) : isTasksActive ? (
+                <div className="p-4">
+                  {loadingTasks && (
+                    <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+                  )}
+                  {taskError && (
+                    <p className="text-sm text-red-600">{taskError}</p>
+                  )}
+                  {!loadingTasks && !taskError && taskStats.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Henüz görev yok.</p>
+                  )}
+                  {!loadingTasks && !taskError && (
+                    <div className="flex flex-col">
+                      {taskStats.slice(0, 10).map((task) => (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          onSelect={(id) => router.push(`/dashboard/tasks/${task.id}`)}
+                        />
+                      ))}
+                      {taskStats.length > 10 && (
+                        <div className="text-center p-2 text-xs text-muted-foreground">
+                          +{taskStats.length - 10} görev daha...
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

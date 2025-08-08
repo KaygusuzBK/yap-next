@@ -1,39 +1,137 @@
-# Database setup (Supabase)
+# SQL Uygulama Sırası
 
-This folder contains SQL files to bootstrap the project database on Supabase.
+Bu dosya, veritabanı şemasını doğru sırayla uygulamak için gereken adımları içerir.
 
-## Files
-- 00_functions.sql: helper functions and triggers (updated_at trigger, profile auto-create)
-- 01_tables.sql: tables (profiles, projects) and timestamp triggers
-- 02_rls.sql: Row Level Security (RLS) policies for profiles and projects
-- 03_tasks.sql: tasks table + timestamp trigger + RLS (inherits project ownership)
-- 04_teams.sql: teams, team_members, team_invitations; projects -> team_id; team-based RLS for projects
+## 🚀 Uygulama Sırası
 
-## Apply order
-1) 00_functions.sql
-2) 01_tables.sql
-3) 02_rls.sql
-4) 03_tasks.sql
-5) 04_teams.sql
+### 1. Temel Kurulum
+```bash
+# 1. İlk kurulum (sadece bir kez)
+psql "$DATABASE_URL" -f sql/00-initial-setup.sql
 
-## How to apply
+# 2. Temel fonksiyonlar
+psql "$DATABASE_URL" -f sql/00_functions.sql
 
-### Option A — Supabase SQL Editor (recommended)
-1. Open Supabase Dashboard → SQL Editor
-2. Paste and run each file in the order above
+# 3. Temel tablolar
+psql "$DATABASE_URL" -f sql/01_tables.sql
 
-### Option B — psql (local Postgres connection)
-1. Set your connection string (example):
+# 4. RLS politikaları
+psql "$DATABASE_URL" -f sql/02_rls.sql
+```
 
-   export DATABASE_URL="postgres://user:pass@host:5432/dbname"
+### 2. Takım Yönetimi
+```bash
+# 5. Takım yönetimi
+psql "$DATABASE_URL" -f sql/04_teams.sql
+```
 
-2. Run the helper script:
+### 3. Proje Yönetimi
+```bash
+# 6. Proje yönetimi
+psql "$DATABASE_URL" -f sql/05_projects.sql
+```
 
-   bash sql/apply.sh
+### 4. Görev Yönetimi
+```bash
+# 7. Görev yönetimi (ana yapılar)
+psql "$DATABASE_URL" -f sql/06_tasks_complete.sql
 
-The script will apply files in the correct order and stop on errors.
+# 8. Görev yönetimi (güncellemeler ve trigger'lar)
+psql "$DATABASE_URL" -f sql/10_task_management_complete.sql
+```
 
-## Notes
-- `profiles` is auto-created for each new auth user (trigger on `auth.users`).
-- RLS ensures users only access their own/profile team’s projects and tasks.
-- Requires `pgcrypto` (available by default on Supabase) for `gen_random_uuid()`.
+### 5. RLS Düzeltmeleri (Gerekirse)
+```bash
+# 9. RLS düzeltmeleri (sadece hata alırsanız)
+./sql/fix-rls.sh
+```
+
+## 📋 Detaylı Açıklama
+
+### Temel Kurulum (1-4)
+- Veritabanı bağlantısı ve temel ayarlar
+- Kullanıcı profilleri ve temel tablolar
+- Row Level Security (RLS) politikaları
+
+### Takım Yönetimi (5)
+- Takım oluşturma ve yönetimi
+- Takım üyeleri ve rolleri
+- Takım-proje ilişkileri
+
+### Proje Yönetimi (6)
+- Proje oluşturma ve yönetimi
+- Proje üyeleri ve izinler
+- Proje durumları ve kategoriler
+
+### Görev Yönetimi (7-8)
+- Görev oluşturma ve düzenleme
+- Görev atama sistemi
+- Görev yorumları ve dosyaları
+- Görev aktivite geçmişi
+- Otomatik trigger'lar ve fonksiyonlar
+
+## ⚠️ Önemli Notlar
+
+1. **Sıra Önemli**: Dosyaları belirtilen sırayla uygulayın
+2. **Hata Durumu**: Eğer RLS hatası alırsanız, `fix-rls.sh` scriptini çalıştırın
+3. **Yedekleme**: Önemli verileriniz varsa, uygulamadan önce yedek alın
+4. **Test**: Her adımdan sonra uygulamanızı test edin
+
+## 🔧 Hızlı Uygulama
+
+Tüm SQL dosyalarını tek seferde uygulamak için:
+
+```bash
+# Tüm dosyaları sırayla uygula
+./sql/apply.sh
+```
+
+## 🐛 Sorun Giderme
+
+### RLS Hatası
+```bash
+# Sonsuz döngü hatası alırsanız
+./sql/fix-rls.sh
+```
+
+### Bağlantı Hatası
+```bash
+# DATABASE_URL'i kontrol edin
+echo $DATABASE_URL
+```
+
+### Yetki Hatası
+```bash
+# Supabase Dashboard'dan SQL Editor'ü kullanın
+# Veya doğru yetkilere sahip kullanıcı ile bağlanın
+```
+
+## 📊 Veritabanı Yapısı
+
+Uygulama sonrası şu tablolar oluşacak:
+
+### Temel Tablolar
+- `profiles` - Kullanıcı profilleri
+- `teams` - Takımlar
+- `team_members` - Takım üyeleri
+- `projects` - Projeler
+- `project_members` - Proje üyeleri
+
+### Görev Tabloları
+- `project_tasks` - Ana görev tablosu
+- `task_assignments` - Görev atamaları
+- `task_comments` - Görev yorumları
+- `task_time_logs` - Zaman takibi
+- `task_files` - Görev dosyaları
+- `task_activities` - Aktivite geçmişi
+- `task_tags` - Görev etiketleri
+- `task_tag_relations` - Görev-etiket ilişkileri
+
+## 🎯 Sonraki Adımlar
+
+SQL uygulaması tamamlandıktan sonra:
+
+1. Frontend uygulamasını başlatın: `npm run dev`
+2. Görev oluşturma ve atama özelliklerini test edin
+3. Sidebar'da görev listesini kontrol edin
+4. Görev detay sayfasını test edin
