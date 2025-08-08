@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "../../../components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card"
 import { acceptTeamInvitation } from "@/features/teams/api"
 import { CheckCircle, XCircle, Clock, Users } from "lucide-react"
 import Logo from "@/components/Logo"

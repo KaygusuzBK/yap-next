@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import { Folder, ListTodo, Users, Plus, MoreVertical } from "lucide-react"
 import Logo from "@/components/Logo"
 import { getSupabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import Input from "@/components/ui/input"
+import { Button } from "./ui/button"
+import Input from "./ui/input"
 import NewTeamForm from "@/features/teams/components/NewTeamForm"
 import {
   DropdownMenu,
@@ -14,14 +14,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "./ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "./ui/dialog"
 import type { ChangeEvent } from "react"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
 import {
@@ -30,10 +30,10 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu"
+} from "./ui/context-menu"
 
 import { NavUser } from "@/components/nav-user"
-import { Label } from "@/components/ui/label"
+import { Label } from "./ui/label"
 import {
   Sidebar,
   SidebarContent,
@@ -46,8 +46,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Switch } from "@/components/ui/switch"
+} from "./ui/sidebar"
+import { Switch } from "./ui/switch"
 
 type TeamStat = {
   id: string
