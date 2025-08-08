@@ -24,9 +24,11 @@ export default function MagicLink() {
   return (
     <div className="space-y-2">
       <Input type="email" placeholder="ornek@mail.com" value={email} onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} />
-      <Button type="button" onClick={onSend} disabled={loading}>
-        {loading ? 'Gönderiliyor...' : 'Magic Link Gönder'}
-      </Button>
+      {email.trim().length > 0 && (
+        <Button type="button" onClick={onSend} disabled={loading}>
+          {loading ? 'Gönderiliyor...' : 'Magic Link Gönder'}
+        </Button>
+      )}
     </div>
   );
 }
