@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, 
@@ -44,13 +43,7 @@ export default function TaskDetailPage() {
   const [showAssignment, setShowAssignment] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; email: string; name?: string }>>([]);
 
-  useEffect(() => {
-    if (taskId) {
-      loadTask();
-    }
-  }, [taskId]);
-
-  const loadTask = async () => {
+  const loadTask = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -70,6 +63,16 @@ export default function TaskDetailPage() {
     } finally {
       setLoading(false);
     }
+  }, [taskId]);
+
+  useEffect(() => {
+    if (taskId) {
+      loadTask();
+    }
+  }, [taskId, loadTask]);
+
+  const handleAssignmentChange = () => {
+    loadTask(); // Görevi yeniden yükle
   };
 
   const getStatusIcon = (status: Task['status']) => {
@@ -149,10 +152,6 @@ export default function TaskDetailPage() {
     if (diffDays <= 1) return 'text-orange-600';
     if (diffDays <= 3) return 'text-yellow-600';
     return 'text-green-600';
-  };
-
-  const handleAssignmentChange = () => {
-    loadTask(); // Görevi yeniden yükle
   };
 
   if (loading) {

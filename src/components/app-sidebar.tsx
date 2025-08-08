@@ -26,7 +26,7 @@ import {
 import type { ChangeEvent } from "react"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
 import { fetchProjects } from "@/features/projects/api"
-import { fetchTasksByProject, type Task } from "@/features/tasks/api"
+import { fetchTasksByProject } from "@/features/tasks/api"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -800,7 +800,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         <TaskRow
                           key={task.id}
                           task={task}
-                          onSelect={(id) => router.push(`/dashboard/tasks/${task.id}`)}
+                          onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
                         />
                       ))}
                       {taskStats.length > 10 && (

@@ -108,16 +108,24 @@ echo $DATABASE_URL
 
 ## 📊 Veritabanı Yapısı
 
+### 🗂️ Veritabanı Şeması
+
+![Supabase Schema](./supabase-schema.svg)
+
+*Veritabanı şeması görseli - Tablolar ve ilişkiler*
+
+### 📋 Tablo Listesi
+
 Uygulama sonrası şu tablolar oluşacak:
 
-### Temel Tablolar
+#### 🔐 Temel Tablolar
 - `profiles` - Kullanıcı profilleri
 - `teams` - Takımlar
 - `team_members` - Takım üyeleri
 - `projects` - Projeler
 - `project_members` - Proje üyeleri
 
-### Görev Tabloları
+#### ✅ Görev Tabloları
 - `project_tasks` - Ana görev tablosu
 - `task_assignments` - Görev atamaları
 - `task_comments` - Görev yorumları
@@ -126,6 +134,22 @@ Uygulama sonrası şu tablolar oluşacak:
 - `task_activities` - Aktivite geçmişi
 - `task_tags` - Görev etiketleri
 - `task_tag_relations` - Görev-etiket ilişkileri
+
+### 🔗 İlişki Yapısı
+
+```
+auth.users
+    ↓ (1:1)
+profiles
+    ↓ (1:N)
+teams ← team_members → auth.users
+    ↓ (1:N)
+projects ← project_members → auth.users
+    ↓ (1:N)
+project_tasks ← task_assignments → auth.users
+    ↓ (1:N)
+task_comments, task_time_logs, task_files, task_activities
+```
 
 ## 🎯 Sonraki Adımlar
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,11 +26,7 @@ export default function TaskAssignment({
   const [loading, setLoading] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(true);
 
-  useEffect(() => {
-    loadProjectMembers();
-  }, [projectId]);
-
-  const loadProjectMembers = async () => {
+  const loadProjectMembers = useCallback(async () => {
     try {
       setLoadingMembers(true);
       const projectMembers = await getProjectMembers(projectId);
@@ -41,7 +37,11 @@ export default function TaskAssignment({
     } finally {
       setLoadingMembers(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    loadProjectMembers();
+  }, [projectId, loadProjectMembers]);
 
   const handleAssign = async () => {
     if (!selectedUserId) {

@@ -24,8 +24,6 @@ export default function Page() {
   const [teams, setTeams] = useState<Team[]>([])
   const [loadingProjects, setLoadingProjects] = useState(false)
   const [loadingTeams, setLoadingTeams] = useState(false)
-  const [_errorProjects, setErrorProjects] = useState<string | null>(null)
-  const [_errorTeams, setErrorTeams] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -43,8 +41,7 @@ export default function Page() {
         }
       } catch (e) {
         if (mounted) {
-          setErrorProjects(e instanceof Error ? e.message : "Bir hata oluştu")
-          setErrorTeams(e instanceof Error ? e.message : "Bir hata oluştu")
+          console.error("Veri yükleme hatası:", e)
         }
       } finally {
         if (mounted) {

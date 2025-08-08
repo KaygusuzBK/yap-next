@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { fetchTasksByProject, deleteTask, getProjectMembers, type Task } from '../api';
+import { fetchTasksByProject, deleteTask, type Task } from '../api';
 import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User, Edit, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import TaskEditForm from './TaskEditForm';
@@ -46,7 +46,7 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -58,11 +58,11 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     loadTasks();
-  }, [projectId]);
+  }, [projectId, loadTasks]);
 
   const handleDeleteTask = async () => {
     if (!deletingTask) return;
@@ -315,10 +315,10 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Görevi Sil</AlertDialogTitle>
-            <AlertDialogDescription>
-              "{deletingTask?.title}" görevini silmek istediğinizden emin misiniz? 
-              Bu işlem geri alınamaz ve görevle ilgili tüm veriler (yorumlar, dosyalar, zaman kayıtları) silinecektir.
-            </AlertDialogDescription>
+                      <AlertDialogDescription>
+            &quot;{deletingTask?.title}&quot; görevini silmek istediğinizden emin misiniz? 
+            Bu işlem geri alınamaz ve görevle ilgili tüm veriler (yorumlar, dosyalar, zaman kayıtları) silinecektir.
+          </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>İptal</AlertDialogCancel>

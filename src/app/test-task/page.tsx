@@ -167,7 +167,7 @@ export default function TestTaskPage() {
                 )}
               </Button>
               <Button type="button" variant="outline" onClick={() => router.push('/dashboard')}>
-                Dashboard'a Dön
+                Dashboard&apos;a Dön
               </Button>
             </div>
           </form>
@@ -179,11 +179,11 @@ export default function TestTaskPage() {
           <CardTitle>Test Talimatları</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>1. Önce bir proje oluşturun ve proje ID'sini kopyalayın</p>
-          <p>2. Proje ID'sini yukarıdaki forma yapıştırın</p>
+          <p>1. Önce bir proje oluşturun ve proje ID&apos;sini kopyalayın</p>
+          <p>2. Proje ID&apos;sini yukarıdaki forma yapıştırın</p>
           <p>3. Görev bilgilerini doldurun</p>
-          <p>4. "Görev Oluştur" butonuna tıklayın</p>
-          <p>5. Başarılı olursa görev ID'si gösterilecek</p>
+          <p>4. &quot;Görev Oluştur&quot; butonuna tıklayın</p>
+          <p>5. Başarılı olursa görev ID&apos;si gösterilecek</p>
         </CardContent>
       </Card>
     </main>

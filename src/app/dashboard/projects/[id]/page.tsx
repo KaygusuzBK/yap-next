@@ -43,8 +43,7 @@ import {
   Folder,
   Archive,
   CheckCircle,
-  Clock,
-  Plus
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
