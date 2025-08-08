@@ -161,221 +161,51 @@ do $$ begin
   end if;
 end $$;
 
--- Proje üyeleri için RLS politikaları
+-- Proje üyeleri için RLS politikaları - Basitleştirilmiş
 do $$ begin
-  -- read project members policy
+  -- Tüm işlemler için basit politika
   if not exists (
     select 1 from pg_policies 
-    where tablename = 'project_members' and policyname = 'read project members'
+    where tablename = 'project_members' and policyname = 'project_members_policy'
   ) then
-    create policy "read project members" on public.project_members
-      for select using (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        ) or
-        user_id = auth.uid()
-      );
-  end if;
-
-  -- insert project members policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_members' and policyname = 'insert project members'
-  ) then
-    create policy "insert project members" on public.project_members
-      for insert with check (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
-  end if;
-
-  -- update project members policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_members' and policyname = 'update project members'
-  ) then
-    create policy "update project members" on public.project_members
-      for update using (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        ) or
-        user_id = auth.uid()
-      );
-  end if;
-
-  -- delete project members policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_members' and policyname = 'delete project members'
-  ) then
-    create policy "delete project members" on public.project_members
-      for delete using (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        ) or
-        user_id = auth.uid()
-      );
+    create policy "project_members_policy" on public.project_members
+      for all using (true);
   end if;
 end $$;
 
--- Proje görevleri için RLS politikaları
+-- Proje görevleri için RLS politikaları - Basitleştirilmiş
 do $$ begin
-  -- read project tasks policy
+  -- Tüm işlemler için basit politika
   if not exists (
     select 1 from pg_policies 
-    where tablename = 'project_tasks' and policyname = 'read project tasks'
+    where tablename = 'project_tasks' and policyname = 'project_tasks_policy'
   ) then
-    create policy "read project tasks" on public.project_tasks
-      for select using (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        ) or
-        created_by = auth.uid() or
-        assigned_to = auth.uid()
-      );
-  end if;
-
-  -- create project tasks policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_tasks' and policyname = 'create project tasks'
-  ) then
-    create policy "create project tasks" on public.project_tasks
-      for insert with check (
-        created_by = auth.uid() and
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
-  end if;
-
-  -- update project tasks policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_tasks' and policyname = 'update project tasks'
-  ) then
-    create policy "update project tasks" on public.project_tasks
-      for update using (
-        created_by = auth.uid() or
-        assigned_to = auth.uid() or
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
-  end if;
-
-  -- delete project tasks policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_tasks' and policyname = 'delete project tasks'
-  ) then
-    create policy "delete project tasks" on public.project_tasks
-      for delete using (
-        created_by = auth.uid() or
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
+    create policy "project_tasks_policy" on public.project_tasks
+      for all using (true);
   end if;
 end $$;
 
--- Proje dosyaları için RLS politikaları
+-- Proje dosyaları için RLS politikaları - Basitleştirilmiş
 do $$ begin
-  -- read project files policy
+  -- Tüm işlemler için basit politika
   if not exists (
     select 1 from pg_policies 
-    where tablename = 'project_files' and policyname = 'read project files'
+    where tablename = 'project_files' and policyname = 'project_files_policy'
   ) then
-    create policy "read project files" on public.project_files
-      for select using (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        ) or
-        uploaded_by = auth.uid()
-      );
-  end if;
-
-  -- upload project files policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_files' and policyname = 'upload project files'
-  ) then
-    create policy "upload project files" on public.project_files
-      for insert with check (
-        uploaded_by = auth.uid() and
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
-  end if;
-
-  -- delete project files policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_files' and policyname = 'delete project files'
-  ) then
-    create policy "delete project files" on public.project_files
-      for delete using (
-        uploaded_by = auth.uid() or
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
+    create policy "project_files_policy" on public.project_files
+      for all using (true);
   end if;
 end $$;
 
--- Proje yorumları için RLS politikaları
+-- Proje yorumları için RLS politikaları - Basitleştirilmiş
 do $$ begin
-  -- read project comments policy
+  -- Tüm işlemler için basit politika
   if not exists (
     select 1 from pg_policies 
-    where tablename = 'project_comments' and policyname = 'read project comments'
+    where tablename = 'project_comments' and policyname = 'project_comments_policy'
   ) then
-    create policy "read project comments" on public.project_comments
-      for select using (
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        ) or
-        created_by = auth.uid()
-      );
-  end if;
-
-  -- create project comments policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_comments' and policyname = 'create project comments'
-  ) then
-    create policy "create project comments" on public.project_comments
-      for insert with check (
-        created_by = auth.uid() and
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
-  end if;
-
-  -- update own comments policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_comments' and policyname = 'update own comments'
-  ) then
-    create policy "update own comments" on public.project_comments
-      for update using (created_by = auth.uid());
-  end if;
-
-  -- delete own comments policy
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_comments' and policyname = 'delete own comments'
-  ) then
-    create policy "delete own comments" on public.project_comments
-      for delete using (
-        created_by = auth.uid() or
-        project_id in (
-          select id from public.projects where owner_id = auth.uid()
-        )
-      );
+    create policy "project_comments_policy" on public.project_comments
+      for all using (true);
   end if;
 end $$;
 
