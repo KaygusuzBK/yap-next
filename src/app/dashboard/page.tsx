@@ -53,18 +53,18 @@ export default function Page() {
             </BreadcrumbList>
           </Breadcrumb>
         </section>
-        <section className="space-y-2">
-          <h2 className="text-base font-semibold">Genel Bakış</h2>
-          <div className="text-sm text-muted-foreground">
-            {loadingProjects ? (
-              <span>Projeler yükleniyor...</span>
-            ) : errorProjects ? (
-              <span className="text-red-600">{errorProjects}</span>
-            ) : (
-              <span>Toplam proje: {projects.length}</span>
-            )}
-          </div>
-        </section>
+                    <section className="space-y-2">
+              <h2 className="text-base font-semibold">Genel Bakış</h2>
+              <div className="text-sm text-muted-foreground">
+                {loadingProjects ? (
+                  <span>Projeler yükleniyor...</span>
+                ) : errorProjects ? (
+                  <span className="text-red-600">{errorProjects}</span>
+                ) : (
+                  <span>Toplam proje: {projects.length}</span>
+                )}
+              </div>
+            </section>
 
         <section className="space-y-3" id="teams">
           <h1 className="text-lg font-semibold">Takımlar</h1>

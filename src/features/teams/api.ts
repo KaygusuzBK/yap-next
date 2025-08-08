@@ -12,13 +12,42 @@ export type Team = {
 
 export async function fetchTeams(): Promise<Team[]> {
   const supabase = getSupabase();
-  // Visible via RLS only if current user is a member
-  const { data, error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return [];
+  
+  // Kullanıcının sahibi olduğu takımları al
+  const { data: ownedTeams, error: ownedError } = await supabase
     .from('teams')
     .select('*')
+    .eq('owner_id', user.id)
     .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  
+  if (ownedError) throw ownedError;
+  
+  // Kullanıcının üyesi olduğu takımları al
+  const { data: memberTeams, error: memberError } = await supabase
+    .from('team_members')
+    .select(`
+      teams (*)
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  
+  if (memberError) throw memberError;
+  
+  // İki listeyi birleştir ve tekrarları kaldır
+  const allTeams = [
+    ...(ownedTeams || []),
+    ...(memberTeams?.map(mt => mt.teams).filter(Boolean) || [])
+  ];
+  
+  // Tekrarları kaldır (aynı takım hem sahip hem üye olabilir)
+  const uniqueTeams = allTeams.filter((team, index, self) => 
+    index === self.findIndex(t => t.id === team.id)
+  );
+  
+  return uniqueTeams;
 }
 
 export async function createTeam(input: { name: string }): Promise<Team> {
@@ -37,12 +66,43 @@ export async function createTeam(input: { name: string }): Promise<Team> {
 export async function inviteToTeam(input: { team_id: string; email: string; role?: string }) {
   const supabase = getSupabase();
   const token = crypto.randomUUID();
+  
+  // Önce kullanıcının bu takımın sahibi olup olmadığını kontrol et
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış');
+  
+  const { data: team, error: teamError } = await supabase
+    .from('teams')
+    .select('name, owner_id')
+    .eq('id', input.team_id)
+    .single();
+  
+  if (teamError) throw teamError;
+  if (!team) throw new Error('Takım bulunamadı');
+  
+  // Sadece takım sahibi davet gönderebilir
+  if (team.owner_id !== user.id) {
+    throw new Error('Bu işlem için yetkiniz yok. Sadece takım sahibi davet gönderebilir.');
+  }
+  
+  // Davet oluştur
   const { data, error } = await supabase
     .from('team_invitations')
     .insert({ team_id: input.team_id, email: input.email, role: input.role ?? 'member', token })
     .select('*')
     .single();
+  
   if (error) throw error;
+  
+  // E-posta gönderme (gerçek uygulamada burada e-posta servisi kullanılır)
+  const inviteUrl = `${window.location.origin}/invite/${token}`;
+  console.log('Davet linki:', inviteUrl);
+  console.log('Takım:', team?.name);
+  console.log('E-posta:', input.email);
+  
+  // TODO: Gerçek e-posta gönderme servisi entegrasyonu
+  // Örnek: SendGrid, Mailgun, AWS SES, vb.
+  
   return data;
 }
 
@@ -78,6 +138,147 @@ export async function setTeamPrimaryProject(input: { team_id: string; project_id
     .single();
   if (error) throw error;
   return data as Team;
+}
+
+// Davet kabul etme fonksiyonu
+export async function acceptTeamInvitation(token: string) {
+  const supabase = getSupabase();
+  
+  // 1. Davet bilgilerini al
+  const { data: invitation, error: inviteError } = await supabase
+    .from('team_invitations')
+    .select('*')
+    .eq('token', token)
+    .single();
+  
+  if (inviteError) throw inviteError;
+  if (!invitation) throw new Error('Davet bulunamadı');
+  
+  // 2. Davet süresi kontrolü
+  if (new Date() > new Date(invitation.expires_at)) {
+    throw new Error('Davet süresi dolmuş');
+  }
+  
+  // 3. Davet zaten kabul edilmiş mi kontrolü
+  if (invitation.accepted_at) {
+    throw new Error('Bu davet zaten kabul edilmiş');
+  }
+  
+  // 4. Mevcut kullanıcı bilgilerini al
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error('Kullanıcı bilgileri alınamadı');
+  
+  // 5. E-posta kontrolü
+  if (user.email !== invitation.email) {
+    throw new Error('Bu davet size ait değil');
+  }
+  
+  // 6. Zaten takım üyesi mi kontrolü
+  const { data: existingMember } = await supabase
+    .from('team_members')
+    .select('*')
+    .eq('team_id', invitation.team_id)
+    .eq('user_id', user.id)
+    .single();
+  
+  if (existingMember) {
+    throw new Error('Zaten bu takımın üyesisiniz');
+  }
+  
+  // 7. Transaction: Davet kabul et ve üye ekle
+  const { error: acceptError } = await supabase
+    .from('team_invitations')
+    .update({ accepted_at: new Date().toISOString() })
+    .eq('token', token);
+  
+  if (acceptError) throw acceptError;
+  
+  const { data: member, error: memberError } = await supabase
+    .from('team_members')
+    .insert({
+      team_id: invitation.team_id,
+      user_id: user.id,
+      role: invitation.role
+    })
+    .select('*')
+    .single();
+  
+  if (memberError) throw memberError;
+  
+  return member;
+}
+
+// Kullanıcının bekleyen davetlerini getir
+export async function getPendingInvitations() {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user?.email) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from('team_invitations')
+      .select(`
+        *,
+        teams (
+          id,
+          name,
+          owner_id
+        )
+      `)
+      .eq('email', user.email)
+      .is('accepted_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.warn('Davetler yüklenirken hata:', error);
+      return [];
+    }
+    
+      return data ?? [];
+  } catch (error) {
+    console.warn('Davetler yüklenirken hata:', error);
+    return [];
+  }
+}
+
+// Takım davetlerini getir (sadece takım sahibi için)
+export async function getTeamInvitations(teamId: string) {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return [];
+  
+  try {
+    // Önce kullanıcının bu takımın sahibi olup olmadığını kontrol et
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('owner_id')
+      .eq('id', teamId)
+      .single();
+    
+    if (teamError || !team) return [];
+    
+    // Sadece takım sahibi davetleri görebilir
+    if (team.owner_id !== user.id) return [];
+    
+    const { data, error } = await supabase
+      .from('team_invitations')
+      .select('*')
+      .eq('team_id', teamId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.warn('Takım davetleri yüklenirken hata:', error);
+      return [];
+    }
+    
+    return data ?? [];
+  } catch (error) {
+    console.warn('Takım davetleri yüklenirken hata:', error);
+    return [];
+  }
 }
 
 

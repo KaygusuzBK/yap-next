@@ -28,9 +28,7 @@ on public.tasks for select
 using (
   exists (
     select 1 from public.projects p
-    join public.team_members tm on tm.team_id = p.team_id
-    where p.id = tasks.project_id
-      and tm.user_id = auth.uid()
+    where p.id = tasks.project_id and p.owner_id = auth.uid()
   )
 );
 
@@ -40,9 +38,7 @@ on public.tasks for insert
 with check (
   exists (
     select 1 from public.projects p
-    join public.team_members tm on tm.team_id = p.team_id
-    where p.id = tasks.project_id
-      and tm.user_id = auth.uid()
+    where p.id = tasks.project_id and p.owner_id = auth.uid()
   )
 );
 
@@ -52,17 +48,13 @@ on public.tasks for update
 using (
   exists (
     select 1 from public.projects p
-    join public.team_members tm on tm.team_id = p.team_id
-    where p.id = tasks.project_id
-      and tm.user_id = auth.uid()
+    where p.id = tasks.project_id and p.owner_id = auth.uid()
   )
 )
 with check (
   exists (
     select 1 from public.projects p
-    join public.team_members tm on tm.team_id = p.team_id
-    where p.id = tasks.project_id
-      and tm.user_id = auth.uid()
+    where p.id = tasks.project_id and p.owner_id = auth.uid()
   )
 );
 
@@ -72,9 +64,7 @@ on public.tasks for delete
 using (
   exists (
     select 1 from public.projects p
-    join public.team_members tm on tm.team_id = p.team_id
-    where p.id = tasks.project_id
-      and tm.user_id = auth.uid()
+    where p.id = tasks.project_id and p.owner_id = auth.uid()
   )
 );
 

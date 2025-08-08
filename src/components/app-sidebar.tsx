@@ -23,7 +23,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { ChangeEvent } from "react"
-import { updateTeamName, deleteTeam, setTeamPrimaryProject } from "@/features/teams/api"
+import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 
 import { NavUser } from "@/components/nav-user"
 import { Label } from "@/components/ui/label"
@@ -54,16 +61,26 @@ const TeamRow = React.memo(function TeamRow({
   onOpenRename,
   onDelete,
   onAssignProject,
+  onAddMember,
   onSelect,
 }: {
   team: TeamStat
   onOpenRename: (teamId: string, currentName: string) => void
   onDelete: (teamId: string) => void
   onAssignProject: (teamId: string) => void
+  onAddMember: (teamId: string) => void
   onSelect: (teamId: string) => void
 }) {
   return (
-    <div className="border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2">
+    <div
+      className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm"
+      onClick={() => onSelect(team.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect(team.id)
+      }}
+    >
       <button type="button" onClick={() => onSelect(team.id)} className="text-left">
         <div className="font-medium">{team.name}</div>
         <div className="text-xs text-muted-foreground mt-1">Üye sayısı: {team.memberCount ?? "—"}</div>
@@ -76,6 +93,8 @@ const TeamRow = React.memo(function TeamRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onAddMember(team.id)}>Üye Ekle</DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onAssignProject(team.id)}>Proje Ata</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onOpenRename(team.id, team.name)}>İsmi Değiştir</DropdownMenuItem>
@@ -220,15 +239,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (found) setActiveItem(found)
   }, [])
 
-  React.useEffect(() => {
-    const onHashChange = () => {
-      const hash = window.location.hash
-      const found = data.navMain.find((i) => i.url.endsWith(hash))
-      if (found) setActiveItem(found)
-    }
-    window.addEventListener("hashchange", onHashChange)
-    return () => window.removeEventListener("hashchange", onHashChange)
-  }, [])
+  // URL hash değişikliklerini dinlemeye gerek yok artık
 
   const fetchTeamStats = React.useCallback(async () => {
     try {
@@ -292,10 +303,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setActiveItem(item)
       const shuffled = [...data.mails].sort(() => Math.random() - 0.5)
       setMails(shuffled.slice(0, Math.max(5, Math.floor(Math.random() * 10) + 1)))
-      router.push(item.url)
+      // URL'yi değiştirmiyoruz, sadece sidebar içeriğini değiştiriyoruz
       setOpen(true)
     },
-    [router, setOpen]
+    [setOpen]
   )
 
   const onOpenRename = React.useCallback((teamId: string, currentName: string) => {
@@ -316,6 +327,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [assignOpen, setAssignOpen] = React.useState(false)
   const [assignProjectId, setAssignProjectId] = React.useState<string | null>(null)
   const [teamProjects, setTeamProjects] = React.useState<Array<{ id: string; title: string }>>([])
+  const [addMemberOpen, setAddMemberOpen] = React.useState(false)
+  const [memberEmail, setMemberEmail] = React.useState("")
 
   const onAssignProject = React.useCallback(async (teamId: string) => {
     setSelectedTeamId(teamId)
@@ -330,12 +343,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setAssignOpen(true)
   }, [])
 
+  const onAddMember = React.useCallback((teamId: string) => {
+    setSelectedTeamId(teamId)
+    setAddMemberOpen(true)
+  }, [])
+
   return (
-    <Sidebar
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <Sidebar
       collapsible="icon"
       className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
       {...props}
-    >
+        >
       {/* This is the first sidebar */}
       {/* We disable collapsible and adjust width to icon. */}
       {/* This will make the sidebar appear as icons. */}
@@ -435,6 +455,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           onOpenRename={onOpenRename}
                           onDelete={onDeleteTeam}
                           onAssignProject={onAssignProject}
+                          onAddMember={onAddMember}
                           onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
                         />
                       ))}
@@ -539,6 +560,59 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Member Modal */}
+      <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Takıma üye ekle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="member-email">E-posta adresi</Label>
+              <Input
+                id="member-email"
+                type="email"
+                placeholder="ornek@email.com"
+                value={memberEmail}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setMemberEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setAddMemberOpen(false)
+              setMemberEmail("")
+            }}>Vazgeç</Button>
+            <Button disabled={!memberEmail.trim() || saving} onClick={async () => {
+              if (!selectedTeamId || !memberEmail.trim()) return
+              try {
+                setSaving(true)
+                await inviteToTeam({ 
+                  team_id: selectedTeamId, 
+                  email: memberEmail.trim(),
+                  role: "member"
+                })
+                setAddMemberOpen(false)
+                setMemberEmail("")
+                fetchTeamStats()
+              } catch (error) {
+                console.error("Üye ekleme hatası:", error)
+                alert("Üye eklenirken bir hata oluştu. Lütfen tekrar deneyin.")
+              } finally {
+                setSaving(false)
+              }
+            }}>{saving ? "Ekleniyor..." : "Ekle"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
+    </ContextMenuTrigger>
+    <ContextMenuContent>
+      <ContextMenuItem onClick={() => setCreateOpen(true)}>Takım Oluştur</ContextMenuItem>
+      <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => fetchTeamStats()}>Yenile</ContextMenuItem>
+    </ContextMenuContent>
+  </ContextMenu>
   )
 }

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { getSupabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
+import { getTeamInvitations } from "@/features/teams/api"
 
 type TeamRecord = {
   id: string
@@ -23,6 +24,17 @@ type ProjectRecord = {
   created_at: string
 }
 
+type InvitationRecord = {
+  id: string
+  team_id: string
+  email: string
+  role: string
+  token: string
+  accepted_at: string | null
+  expires_at: string
+  created_at: string
+}
+
 export default function TeamDetailPage() {
   const params = useParams() as { id?: string }
   const router = useRouter()
@@ -30,6 +42,7 @@ export default function TeamDetailPage() {
 
   const [team, setTeam] = useState<TeamRecord | null>(null)
   const [projects, setProjects] = useState<ProjectRecord[]>([])
+  const [invitations, setInvitations] = useState<InvitationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,9 +63,21 @@ export default function TeamDetailPage() {
         ])
         if (tErr) throw tErr
         if (pErr) throw pErr
+        
+        // Davetleri ayrı yükle (sadece takım sahibi için)
+        let teamInvitations: InvitationRecord[] = []
+        if (mounted && t) {
+          try {
+            teamInvitations = await getTeamInvitations(teamId)
+          } catch (inviteError) {
+            console.warn('Davetler yüklenirken hata:', inviteError)
+          }
+        }
+        
         if (mounted) {
           setTeam(t as TeamRecord)
           setProjects((p ?? []) as ProjectRecord[])
+          setInvitations(teamInvitations)
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Bir hata oluştu")
@@ -104,6 +129,38 @@ export default function TeamDetailPage() {
               </div>
             )}
           </section>
+
+          {invitations.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-base font-semibold">Davet Edilenler</h2>
+              <div className="grid gap-2">
+                {invitations.map((invitation) => (
+                  <div key={invitation.id} className="border rounded-md p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{invitation.email}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Rol: {invitation.role === 'member' ? 'Üye' : invitation.role}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Davet edildi: {new Date(invitation.created_at).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {invitation.accepted_at ? (
+                            <span className="text-green-600">Kabul edildi</span>
+                          ) : new Date(invitation.expires_at) < new Date() ? (
+                            <span className="text-red-600">Süresi dolmuş</span>
+                          ) : (
+                            <span className="text-yellow-600">Beklemede</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>
