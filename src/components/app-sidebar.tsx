@@ -462,13 +462,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setAddMemberOpen(true)
   }, [])
 
+  // Context menu fonksiyonlarını memoize et
+  const handleCreateTeam = React.useCallback(() => {
+    setCreateOpen(true)
+  }, [])
+
+  const handleRefreshTeams = React.useCallback(() => {
+    fetchTeamStats()
+  }, [fetchTeamStats])
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <Sidebar
-      collapsible="icon"
-      className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
-      {...props}
+          collapsible="icon"
+          className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
+          {...props}
         >
       {/* This is the first sidebar */}
       {/* We disable collapsible and adjust width to icon. */}
@@ -773,11 +782,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </Dialog>
     </Sidebar>
     </ContextMenuTrigger>
-    <ContextMenuContent>
-      <ContextMenuItem onClick={() => setCreateOpen(true)}>Takım Oluştur</ContextMenuItem>
-      <ContextMenuSeparator />
-              <ContextMenuItem onClick={() => fetchTeamStats()}>Yenile</ContextMenuItem>
-    </ContextMenuContent>
+    {isTeamsActive && (
+      <ContextMenuContent>
+        <ContextMenuItem onClick={handleCreateTeam}>Takım Oluştur</ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={handleRefreshTeams}>Yenile</ContextMenuItem>
+      </ContextMenuContent>
+    )}
   </ContextMenu>
   )
 }
