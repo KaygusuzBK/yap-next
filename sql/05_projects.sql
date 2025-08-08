@@ -13,6 +13,33 @@ create table if not exists public.projects (
   updated_at timestamptz default now() not null
 );
 
+-- Eksik sütunları ekle (eğer tablo zaten varsa)
+do $$ begin
+  -- team_id sütunu ekle
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'projects' and column_name = 'team_id'
+  ) then
+    alter table public.projects add column team_id uuid references public.teams(id) on delete set null;
+  end if;
+  
+  -- status sütunu ekle
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'projects' and column_name = 'status'
+  ) then
+    alter table public.projects add column status text default 'active' check (status in ('active', 'archived', 'completed'));
+  end if;
+  
+  -- updated_at sütunu ekle
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'projects' and column_name = 'updated_at'
+  ) then
+    alter table public.projects add column updated_at timestamptz default now() not null;
+  end if;
+end $$;
+
 -- Proje üyeleri tablosu (proje paylaşımı için)
 create table if not exists public.project_members (
   id uuid default gen_random_uuid() primary key,
@@ -82,164 +109,276 @@ alter table public.project_files enable row level security;
 alter table public.project_comments enable row level security;
 
 -- Projeler için RLS politikaları
-create policy "read own projects" on public.projects
-  for select using (
-    owner_id = auth.uid() or
-    id in (
-      select project_id from public.project_members where user_id = auth.uid()
-    ) or
-    team_id in (
-      select team_id from public.team_members where user_id = auth.uid()
-    )
-  );
+do $$ begin
+  -- read own projects policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'projects' and policyname = 'read own projects'
+  ) then
+    create policy "read own projects" on public.projects
+      for select using (
+        owner_id = auth.uid() or
+        id in (
+          select project_id from public.project_members where user_id = auth.uid()
+        ) or
+        team_id in (
+          select team_id from public.team_members where user_id = auth.uid()
+        )
+      );
+  end if;
 
-create policy "create projects" on public.projects
-  for insert with check (owner_id = auth.uid());
+  -- create projects policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'projects' and policyname = 'create projects'
+  ) then
+    create policy "create projects" on public.projects
+      for insert with check (owner_id = auth.uid());
+  end if;
 
-create policy "update own projects" on public.projects
-  for update using (
-    owner_id = auth.uid() or
-    id in (
-      select project_id from public.project_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  -- update own projects policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'projects' and policyname = 'update own projects'
+  ) then
+    create policy "update own projects" on public.projects
+      for update using (
+        owner_id = auth.uid() or
+        id in (
+          select project_id from public.project_members 
+          where user_id = auth.uid() and role in ('owner', 'admin')
+        )
+      );
+  end if;
 
-create policy "delete own projects" on public.projects
-  for delete using (owner_id = auth.uid());
+  -- delete own projects policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'projects' and policyname = 'delete own projects'
+  ) then
+    create policy "delete own projects" on public.projects
+      for delete using (owner_id = auth.uid());
+  end if;
+end $$;
 
 -- Proje üyeleri için RLS politikaları
-create policy "read project members" on public.project_members
-  for select using (
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+do $$ begin
+  -- read project members policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_members' and policyname = 'read project members'
+  ) then
+    create policy "read project members" on public.project_members
+      for select using (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "manage project members" on public.project_members
-  for all using (
-    project_id in (
-      select id from public.projects where owner_id = auth.uid()
-    ) or
-    project_id in (
-      select project_id from public.project_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  -- manage project members policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_members' and policyname = 'manage project members'
+  ) then
+    create policy "manage project members" on public.project_members
+      for all using (
+        project_id in (
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        project_id in (
+          select project_id from public.project_members 
+          where user_id = auth.uid() and role in ('owner', 'admin')
+        )
+      );
+  end if;
+end $$;
 
 -- Proje görevleri için RLS politikaları
-create policy "read project tasks" on public.project_tasks
-  for select using (
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+do $$ begin
+  -- read project tasks policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_tasks' and policyname = 'read project tasks'
+  ) then
+    create policy "read project tasks" on public.project_tasks
+      for select using (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "create project tasks" on public.project_tasks
-  for insert with check (
-    created_by = auth.uid() and
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+  -- create project tasks policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_tasks' and policyname = 'create project tasks'
+  ) then
+    create policy "create project tasks" on public.project_tasks
+      for insert with check (
+        created_by = auth.uid() and
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "update project tasks" on public.project_tasks
-  for update using (
-    created_by = auth.uid() or
-    assigned_to = auth.uid() or
-    project_id in (
-      select id from public.projects where owner_id = auth.uid()
-    ) or
-    project_id in (
-      select project_id from public.project_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  -- update project tasks policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_tasks' and policyname = 'update project tasks'
+  ) then
+    create policy "update project tasks" on public.project_tasks
+      for update using (
+        created_by = auth.uid() or
+        assigned_to = auth.uid() or
+        project_id in (
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        project_id in (
+          select project_id from public.project_members 
+          where user_id = auth.uid() and role in ('owner', 'admin')
+        )
+      );
+  end if;
 
-create policy "delete project tasks" on public.project_tasks
-  for delete using (
-    created_by = auth.uid() or
-    project_id in (
-      select id from public.projects where owner_id = auth.uid()
-    ) or
-    project_id in (
-      select project_id from public.project_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  -- delete project tasks policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_tasks' and policyname = 'delete project tasks'
+  ) then
+    create policy "delete project tasks" on public.project_tasks
+      for delete using (
+        created_by = auth.uid() or
+        project_id in (
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        project_id in (
+          select project_id from public.project_members 
+          where user_id = auth.uid() and role in ('owner', 'admin')
+        )
+      );
+  end if;
+end $$;
 
 -- Proje dosyaları için RLS politikaları
-create policy "read project files" on public.project_files
-  for select using (
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+do $$ begin
+  -- read project files policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_files' and policyname = 'read project files'
+  ) then
+    create policy "read project files" on public.project_files
+      for select using (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "upload project files" on public.project_files
-  for insert with check (
-    uploaded_by = auth.uid() and
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+  -- upload project files policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_files' and policyname = 'upload project files'
+  ) then
+    create policy "upload project files" on public.project_files
+      for insert with check (
+        uploaded_by = auth.uid() and
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "delete project files" on public.project_files
-  for delete using (
-    uploaded_by = auth.uid() or
-    project_id in (
-      select id from public.projects where owner_id = auth.uid()
-    ) or
-    project_id in (
-      select project_id from public.project_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  -- delete project files policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_files' and policyname = 'delete project files'
+  ) then
+    create policy "delete project files" on public.project_files
+      for delete using (
+        uploaded_by = auth.uid() or
+        project_id in (
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        project_id in (
+          select project_id from public.project_members 
+          where user_id = auth.uid() and role in ('owner', 'admin')
+        )
+      );
+  end if;
+end $$;
 
 -- Proje yorumları için RLS politikaları
-create policy "read project comments" on public.project_comments
-  for select using (
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+do $$ begin
+  -- read project comments policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_comments' and policyname = 'read project comments'
+  ) then
+    create policy "read project comments" on public.project_comments
+      for select using (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "create project comments" on public.project_comments
-  for insert with check (
-    created_by = auth.uid() and
-    project_id in (
-      select id from public.projects 
-      where owner_id = auth.uid() or
-      id in (select project_id from public.project_members where user_id = auth.uid())
-    )
-  );
+  -- create project comments policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_comments' and policyname = 'create project comments'
+  ) then
+    create policy "create project comments" on public.project_comments
+      for insert with check (
+        created_by = auth.uid() and
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or
+          id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
 
-create policy "update own comments" on public.project_comments
-  for update using (created_by = auth.uid());
+  -- update own comments policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_comments' and policyname = 'update own comments'
+  ) then
+    create policy "update own comments" on public.project_comments
+      for update using (created_by = auth.uid());
+  end if;
 
-create policy "delete own comments" on public.project_comments
-  for delete using (
-    created_by = auth.uid() or
-    project_id in (
-      select id from public.projects where owner_id = auth.uid()
-    ) or
-    project_id in (
-      select project_id from public.project_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  -- delete own comments policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_comments' and policyname = 'delete own comments'
+  ) then
+    create policy "delete own comments" on public.project_comments
+      for delete using (
+        created_by = auth.uid() or
+        project_id in (
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        project_id in (
+          select project_id from public.project_members 
+          where user_id = auth.uid() and role in ('owner', 'admin')
+        )
+      );
+  end if;
+end $$;
 
 -- Trigger fonksiyonları
 create or replace function public.handle_updated_at()
