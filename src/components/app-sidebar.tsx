@@ -708,7 +708,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <div className="flex items-center gap-2 p-2">
+          <div className="flex flex-col gap-2 p-2">
             <LanguageSwitcher />
             <ThemeToggle />
           </div>
