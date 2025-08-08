@@ -2,17 +2,17 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProjectById, updateProject, deleteProject, type Project } from '@/features/projects/api';
-import { fetchTeams, type Team } from '@/features/teams/api';
-import TaskList from '@/features/tasks/components/TaskList';
-import NewTaskForm from '@/features/tasks/components/NewTaskForm';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getProjectById, updateProject, deleteProject, type Project } from '../../../../features/projects/api';
+import { fetchTeams, type Team } from '../../../../features/teams/api';
+import TaskList from '../../../../features/tasks/components/TaskList';
+import NewTaskForm from '../../../../features/tasks/components/NewTaskForm';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Badge } from '../../../../components/ui/badge';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { Textarea } from '../../../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -23,7 +23,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle, 
   AlertDialogTrigger 
-} from '@/components/ui/alert-dialog';
+} from '../../../../components/ui/alert-dialog';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,7 +31,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+} from '../../../../components/ui/breadcrumb';
 import { 
   Edit, 
   Save, 

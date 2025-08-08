@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Badge } from '../../../../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { 
   ArrowLeft, 
   Clock, 
@@ -20,16 +20,16 @@ import {
   Plus,
   Loader2
 } from 'lucide-react';
-import { fetchTaskById, getProjectMembers, type Task } from '@/features/tasks/api';
+import { fetchTaskById, getProjectMembers, type Task } from '../../../../features/tasks/api';
 import { toast } from 'sonner';
-import TaskEditForm from '@/features/tasks/components/TaskEditForm';
-import TaskAssignment from '@/features/tasks/components/TaskAssignment';
+import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
+import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '../../../../components/ui/dialog';
 
 export default function TaskDetailPage() {
   const params = useParams();
