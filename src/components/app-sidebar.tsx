@@ -71,6 +71,7 @@ type TaskStat = {
   id: string
   title: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
+  status: 'todo' | 'in_progress' | 'review' | 'completed'
   due_date: string | null
   project_title: string
   project_id: string
@@ -239,7 +240,9 @@ const TaskRow = React.memo(function TaskRow({
 
   return (
     <div
-      className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm"
+      className={`hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm ${
+        task.status === 'completed' ? 'opacity-60 bg-muted/20' : ''
+      }`}
       onClick={() => onSelect(task.id)}
       role="button"
       tabIndex={0}
@@ -248,15 +251,25 @@ const TaskRow = React.memo(function TaskRow({
       }}
     >
       <button type="button" onClick={() => onSelect(task.id)} className="text-left flex-1">
-        <div className="font-medium line-clamp-1">{task.title}</div>
-        <div className="text-xs text-muted-foreground mt-1">
+        <div className={`font-medium line-clamp-1 ${
+          task.status === 'completed' ? 'line-through text-muted-foreground' : ''
+        }`}>
+          {task.title}
+        </div>
+        <div className={`text-xs mt-1 ${
+          task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+        }`}>
           Proje: {task.project_title}
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+          <span className={`text-xs font-medium ${getPriorityColor(task.priority)} ${
+            task.status === 'completed' ? 'opacity-70' : ''
+          }`}>
             {getPriorityText(task.priority)}
           </span>
-          <span className={`text-xs ${getDaysRemainingColor(task.days_remaining)}`}>
+          <span className={`text-xs ${getDaysRemainingColor(task.days_remaining)} ${
+            task.status === 'completed' ? 'opacity-70' : ''
+          }`}>
             {getDaysRemainingText(task.days_remaining)}
           </span>
         </div>
@@ -521,6 +534,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               id: task.id,
               title: task.title,
               priority: task.priority,
+              status: task.status,
               due_date: task.due_date,
               project_title: project.title,
               project_id: project.id,
@@ -534,14 +548,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         }
       }
       
-      // Önceliğe ve kalan güne göre sırala
+      // Önce tamamlanmamış görevleri üste, tamamlanmış görevleri alta taşı
+      // Sonra önceliğe ve kalan güne göre sırala
       const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
       allTasks.sort((a, b) => {
-        // Önce önceliğe göre sırala
+        // Önce tamamlanma durumuna göre sırala
+        if (a.status === 'completed' && b.status !== 'completed') return 1
+        if (a.status !== 'completed' && b.status === 'completed') return -1
+        
+        // Sonra önceliğe göre sırala
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
         if (priorityDiff !== 0) return priorityDiff
         
-        // Sonra kalan güne göre sırala (null değerler en sona)
+        // Son olarak kalan güne göre sırala (null değerler en sona)
         if (a.days_remaining === null && b.days_remaining === null) return 0
         if (a.days_remaining === null) return 1
         if (b.days_remaining === null) return -1

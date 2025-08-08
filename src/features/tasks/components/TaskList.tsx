@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchTasksByProject, deleteTask, type Task } from '../api';
-import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User, Edit, MoreVertical } from 'lucide-react';
+import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User, Edit, MoreVertical, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import TaskEditForm from './TaskEditForm';
 import {
@@ -38,6 +39,8 @@ interface TaskListProps {
   onCreateNew?: () => void;
 }
 
+type FilterStatus = 'all' | 'todo' | 'in_progress' | 'review' | 'completed';
+
 export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -45,6 +48,8 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
   const [error, setError] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+  const [showCompleted, setShowCompleted] = useState(true);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -147,6 +152,28 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
     return { total, completed, inProgress, review, todo };
   };
 
+  // Filtrelenmiş görevleri hesapla
+  const filteredTasks = tasks.filter(task => {
+    // Durum filtresi
+    if (statusFilter !== 'all' && task.status !== statusFilter) {
+      return false;
+    }
+    
+    // Tamamlanmış görevleri gizle/göster
+    if (!showCompleted && task.status === 'completed') {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // Görevleri sırala: tamamlanmamış görevler üstte, tamamlanmış görevler altta
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    return 0;
+  });
+
   const stats = getTaskStats();
 
   if (loading) {
@@ -216,20 +243,66 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
             </div>
           </div>
 
+          {/* Filtreler */}
+          <div className="flex items-center gap-4 mb-6 p-4 border rounded-lg bg-background">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filtreler:</span>
+            </div>
+            
+            <Select value={statusFilter} onValueChange={(value: FilterStatus) => setStatusFilter(value)}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm Durumlar</SelectItem>
+                <SelectItem value="todo">Yapılacak</SelectItem>
+                <SelectItem value="in_progress">Devam Ediyor</SelectItem>
+                <SelectItem value="review">İncelemede</SelectItem>
+                <SelectItem value="completed">Tamamlandı</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showCompleted"
+                checked={showCompleted}
+                onChange={(e) => setShowCompleted(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="showCompleted" className="text-sm">
+                Tamamlanmış görevleri göster
+              </label>
+            </div>
+
+            <div className="ml-auto text-sm text-muted-foreground">
+              {filteredTasks.length} görev gösteriliyor
+            </div>
+          </div>
+
           {/* Görev Listesi */}
-          {tasks.length === 0 ? (
+          {sortedTasks.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-muted-foreground mb-2">Henüz görev yok</div>
-              <Button onClick={onCreateNew} variant="outline">
-                İlk Görevi Oluştur
-              </Button>
+              <div className="text-muted-foreground mb-2">
+                {tasks.length === 0 ? 'Henüz görev yok' : 'Filtrelere uygun görev bulunamadı'}
+              </div>
+              {tasks.length === 0 && (
+                <Button onClick={onCreateNew} variant="outline">
+                  İlk Görevi Oluştur
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
-              {tasks.map((task) => (
+              {sortedTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  className={`flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer ${
+                    task.status === 'completed' 
+                      ? 'opacity-60 bg-muted/30 border-dashed' 
+                      : 'bg-background'
+                  }`}
                   onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
                 >
                   <div className="flex-1">
@@ -238,24 +311,34 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
                         {getStatusIcon(task.status)}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium">{task.title}</h3>
+                        <h3 className={`font-medium ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+                          {task.title}
+                        </h3>
                         {task.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          <p className={`text-sm mt-1 line-clamp-2 ${
+                            task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                          }`}>
                             {task.description}
                           </p>
                         )}
                         <div className="flex items-center gap-4 mt-2">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className={`flex items-center gap-1 text-xs ${
+                            task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                          }`}>
                             {getStatusText(task.status)}
                           </div>
                           {getPriorityBadge(task.priority)}
                           {task.due_date && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <div className={`flex items-center gap-1 text-xs ${
+                              task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                            }`}>
                               <Calendar className="h-3 w-3" />
                               {formatDate(task.due_date)}
                             </div>
                           )}
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className={`flex items-center gap-1 text-xs ${
+                            task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                          }`}>
                             <User className="h-3 w-3" />
                             {task.assigned_to ? 'Atanmış' : 'Atanmamış'}
                           </div>
@@ -315,10 +398,10 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Görevi Sil</AlertDialogTitle>
-                      <AlertDialogDescription>
-            &quot;{deletingTask?.title}&quot; görevini silmek istediğinizden emin misiniz? 
-            Bu işlem geri alınamaz ve görevle ilgili tüm veriler (yorumlar, dosyalar, zaman kayıtları) silinecektir.
-          </AlertDialogDescription>
+            <AlertDialogDescription>
+              &quot;{deletingTask?.title}&quot; görevini silmek istediğinizden emin misiniz? 
+              Bu işlem geri alınamaz ve görevle ilgili tüm veriler (yorumlar, dosyalar, zaman kayıtları) silinecektir.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>İptal</AlertDialogCancel>
