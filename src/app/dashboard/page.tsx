@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react"
 import NewTeamForm from "@/features/teams/components/NewTeamForm"
 import TeamList from "@/features/teams/components/TeamList"
+import NewProjectForm from "@/features/projects/components/NewProjectForm"
+import ProjectList from "@/features/projects/components/ProjectList"
 import { fetchProjects, type Project } from "@/features/projects/api"
+import { fetchTeams, type Team } from "@/features/teams/api"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,24 +15,42 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Folder, Users, Calendar, TrendingUp } from "lucide-react"
 
 export default function Page() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [projects, setProjects] = useState<Project[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [loadingProjects, setLoadingProjects] = useState(false)
-  const [errorProjects, setErrorProjects] = useState<string | null>(null)
+  const [loadingTeams, setLoadingTeams] = useState(false)
+  const [_errorProjects, setErrorProjects] = useState<string | null>(null)
+  const [_errorTeams, setErrorTeams] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
         setLoadingProjects(true)
-        const data = await fetchProjects()
-        if (mounted) setProjects(data)
+        setLoadingTeams(true)
+        const [projectsData, teamsData] = await Promise.all([
+          fetchProjects(),
+          fetchTeams()
+        ])
+        if (mounted) {
+          setProjects(projectsData)
+          setTeams(teamsData)
+        }
       } catch (e) {
-        setErrorProjects(e instanceof Error ? e.message : "Bir hata oluştu")
+        if (mounted) {
+          setErrorProjects(e instanceof Error ? e.message : "Bir hata oluştu")
+          setErrorTeams(e instanceof Error ? e.message : "Bir hata oluştu")
+        }
       } finally {
-        setLoadingProjects(false)
+        if (mounted) {
+          setLoadingProjects(false)
+          setLoadingTeams(false)
+        }
       }
     })()
     return () => {
@@ -53,18 +74,75 @@ export default function Page() {
             </BreadcrumbList>
           </Breadcrumb>
         </section>
-                    <section className="space-y-2">
-              <h2 className="text-base font-semibold">Genel Bakış</h2>
-              <div className="text-sm text-muted-foreground">
-                {loadingProjects ? (
-                  <span>Projeler yükleniyor...</span>
-                ) : errorProjects ? (
-                  <span className="text-red-600">{errorProjects}</span>
-                ) : (
-                  <span>Toplam proje: {projects.length}</span>
-                )}
-              </div>
-            </section>
+                    <section className="space-y-4">
+          <h2 className="text-lg font-semibold">Genel Bakış</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Toplam Proje</CardTitle>
+                <Folder className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingProjects ? "..." : projects.length}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {loadingProjects ? "Yükleniyor..." : "Aktif projeler"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Toplam Takım</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingTeams ? "..." : teams.length}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {loadingTeams ? "Yükleniyor..." : "Üye olduğunuz takımlar"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Aktif Projeler</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingProjects ? "..." : projects.filter(p => p.status === 'active').length}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Devam eden projeler
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Bu Ay</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingProjects ? "..." : projects.filter(p => {
+                    const created = new Date(p.created_at)
+                    const now = new Date()
+                    return created.getMonth() === now.getMonth() && 
+                           created.getFullYear() === now.getFullYear()
+                  }).length}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Bu ay oluşturulan
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
 
         <section className="space-y-3" id="teams">
           <h1 className="text-lg font-semibold">Takımlar</h1>
@@ -73,28 +151,9 @@ export default function Page() {
         </section>
 
         <section className="space-y-3" id="projects">
-          <h2 className="text-base font-semibold">Projeler</h2>
-          <div className="grid gap-2">
-            {loadingProjects && (
-              <p className="text-sm text-muted-foreground">Yükleniyor...</p>
-            )}
-            {errorProjects && (
-              <p className="text-sm text-red-600">{errorProjects}</p>
-            )}
-            {!loadingProjects && !errorProjects && projects.length === 0 && (
-              <p className="text-sm text-muted-foreground">Henüz proje yok.</p>
-            )}
-            {!loadingProjects &&
-              !errorProjects &&
-              projects.map((p) => (
-                <div key={p.id} className="border rounded-md p-3">
-                  <div className="font-medium">{p.title}</div>
-                  {p.description && (
-                    <div className="text-sm text-muted-foreground">{p.description}</div>
-                  )}
-                </div>
-              ))}
-          </div>
+          <h2 className="text-lg font-semibold">Projeler</h2>
+          <NewProjectForm onCreated={() => setRefreshKey((k) => k + 1)} />
+          <ProjectList refreshKey={refreshKey} />
         </section>
       </div>
     </main>
