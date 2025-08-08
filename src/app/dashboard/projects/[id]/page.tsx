@@ -46,8 +46,10 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useI18n } from '@/i18n/I18nProvider';
 
 export default function ProjectDetailPage() {
+  const { t, locale } = useI18n();
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
@@ -78,14 +80,14 @@ export default function ProjectDetailPage() {
         setSelectedTeamId(projectData.team_id || 'personal');
         setStatus(projectData.status);
       } else {
-        setError('Proje bulunamadı');
+        setError(t('project.notFound'));
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Proje yüklenirken bir hata oluştu');
+      setError(error instanceof Error ? error.message : t('project.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, t]);
 
   const loadTeams = useCallback(async () => {
     try {
@@ -116,9 +118,9 @@ export default function ProjectDetailPage() {
       
       setProject(updatedProject);
       setEditing(false);
-      toast.success('Proje başarıyla güncellendi');
+      toast.success(t('project.updated'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Proje güncellenirken bir hata oluştu');
+      toast.error(error instanceof Error ? error.message : t('project.updateError'));
     } finally {
       setSaving(false);
     }
@@ -130,10 +132,10 @@ export default function ProjectDetailPage() {
     try {
       setDeleting(true);
       await deleteProject(project.id);
-      toast.success('Proje başarıyla silindi');
+      toast.success(t('project.deleted'));
       router.push('/dashboard');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Proje silinirken bir hata oluştu');
+      toast.error(error instanceof Error ? error.message : t('project.deleteError'));
     } finally {
       setDeleting(false);
     }
@@ -142,18 +144,19 @@ export default function ProjectDetailPage() {
   const getStatusBadge = (status: Project['status']) => {
     switch (status) {
       case 'active':
-        return <Badge variant="default" className="flex items-center gap-1"><Clock className="h-3 w-3" />Aktif</Badge>;
+        return <Badge variant="default" className="flex items-center gap-1"><Clock className="h-3 w-3" />{t('project.status.active')}</Badge>;
       case 'archived':
-        return <Badge variant="secondary" className="flex items-center gap-1"><Archive className="h-3 w-3" />Arşivlenmiş</Badge>;
+        return <Badge variant="secondary" className="flex items-center gap-1"><Archive className="h-3 w-3" />{t('project.status.archived')}</Badge>;
       case 'completed':
-        return <Badge variant="outline" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" />Tamamlandı</Badge>;
+        return <Badge variant="outline" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" />{t('project.status.completed')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR', {
+    const loc = locale === 'tr' ? 'tr-TR' : 'en-US'
+    return new Date(dateString).toLocaleDateString(loc, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -167,7 +170,7 @@ export default function ProjectDetailPage() {
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-muted-foreground">Proje yükleniyor...</p>
+          <p className="text-muted-foreground">{t('project.loading')}</p>
         </div>
       </div>
     );
@@ -177,10 +180,10 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Proje bulunamadı'}</p>
+          <p className="text-red-600 mb-4">{error || t('project.notFound')}</p>
           <Button onClick={() => router.push('/dashboard')} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard&apos;a Dön
+            {t('project.backToDashboard')}
           </Button>
         </div>
       </div>
@@ -195,7 +198,7 @@ export default function ProjectDetailPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                <BreadcrumbLink href="/dashboard">{t('dashboard.breadcrumb.dashboard')}</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -228,42 +231,41 @@ export default function ProjectDetailPage() {
               <>
                 <Button onClick={handleSave} disabled={saving}>
                   <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </Button>
                 <Button variant="outline" onClick={() => setEditing(false)}>
                   <X className="h-4 w-4 mr-2" />
-                  İptal
+                  {t('common.cancel')}
                 </Button>
               </>
             ) : (
               <>
                 <Button onClick={() => setEditing(true)}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Düzenle
+                  {t('common.edit')}
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Sil
+                      {t('common.delete')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Projeyi Sil</AlertDialogTitle>
+                      <AlertDialogTitle>{t('project.deleteTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        &quot;{project.title}&quot; projesini silmek istediğinizden emin misiniz? 
-                        Bu işlem geri alınamaz ve projeye ait tüm veriler silinecektir.
+                        {t('project.deleteConfirm',).replace('{title}', project.title)}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>İptal</AlertDialogCancel>
+                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
                         disabled={deleting}
                         className="bg-red-600 hover:bg-red-700"
                       >
-                        {deleting ? 'Siliniyor...' : 'Sil'}
+                        {deleting ? t('common.deleting') : t('common.delete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -277,40 +279,40 @@ export default function ProjectDetailPage() {
         <section className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Proje Bilgileri</CardTitle>
+              <CardTitle>{t('project.details.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {editing ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="title">Proje Başlığı</Label>
+                    <Label htmlFor="title">{t('project.details.fields.title')}</Label>
                     <Input
                       id="title"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Proje başlığını girin"
+                      placeholder={t('project.details.placeholders.title')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Açıklama</Label>
+                    <Label htmlFor="description">{t('project.details.fields.description')}</Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Proje açıklamasını girin"
+                      placeholder={t('project.details.placeholders.description')}
                       rows={3}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="team">Takım</Label>
+                    <Label htmlFor="team">{t('project.details.fields.team')}</Label>
                     <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Takım seçin (opsiyonel)" />
+                        <SelectValue placeholder={t('project.details.placeholders.team')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="personal">Kişisel Proje</SelectItem>
+                        <SelectItem value="personal">{t('project.details.personalProject')}</SelectItem>
                         {teams.map((team) => (
                           <SelectItem key={team.id} value={team.id}>
                             <div className="flex items-center gap-2">
@@ -324,15 +326,15 @@ export default function ProjectDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="status">Durum</Label>
+                    <Label htmlFor="status">{t('project.details.fields.status')}</Label>
                     <Select value={status} onValueChange={(value: 'active' | 'archived' | 'completed') => setStatus(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Aktif</SelectItem>
-                        <SelectItem value="archived">Arşivlenmiş</SelectItem>
-                        <SelectItem value="completed">Tamamlandı</SelectItem>
+                        <SelectItem value="active">{t('project.status.active')}</SelectItem>
+                        <SelectItem value="archived">{t('project.status.archived')}</SelectItem>
+                        <SelectItem value="completed">{t('project.status.completed')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -340,43 +342,43 @@ export default function ProjectDetailPage() {
               ) : (
                 <>
                   <div>
-                    <Label className="text-sm font-medium">Başlık</Label>
+                    <Label className="text-sm font-medium">{t('project.details.fields.title')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">{project.title}</p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Açıklama</Label>
+                    <Label className="text-sm font-medium">{t('project.details.fields.description')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {project.description || 'Açıklama yok'}
+                      {project.description || t('project.details.emptyDescription')}
                     </p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Takım</Label>
+                    <Label className="text-sm font-medium">{t('project.details.fields.team')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       {project.team_id ? 
-                        teams.find(t => t.id === project.team_id)?.name || 'Bilinmeyen takım' : 
-                        'Kişisel proje'
+                        teams.find(t => t.id === project.team_id)?.name || t('project.details.unknownTeam') : 
+                        t('project.details.personalProject')
                       }
                     </p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Durum</Label>
+                    <Label className="text-sm font-medium">{t('project.details.fields.status')}</Label>
                     <div className="mt-1">
                       {getStatusBadge(project.status)}
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Oluşturulma Tarihi</Label>
+                    <Label className="text-sm font-medium">{t('project.details.createdAt')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       {formatDate(project.created_at)}
                     </p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Son Güncelleme</Label>
+                    <Label className="text-sm font-medium">{t('project.details.updatedAt')}</Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       {formatDate(project.updated_at)}
                     </p>
@@ -388,42 +390,42 @@ export default function ProjectDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Proje İstatistikleri</CardTitle>
-              <CardDescription>Proje hakkında genel bilgiler</CardDescription>
+              <CardTitle>{t('project.stats.title')}</CardTitle>
+              <CardDescription>{t('project.stats.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Proje Tipi</span>
+                  <span className="text-sm font-medium">{t('project.stats.projectType')}</span>
                   <div className="flex items-center gap-1">
                     {project.team_id ? (
                       <>
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Takım Projesi</span>
+                        <span className="text-sm text-muted-foreground">{t('project.stats.teamProject')}</span>
                       </>
                     ) : (
                       <>
                         <Folder className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Kişisel Proje</span>
+                        <span className="text-sm text-muted-foreground">{t('project.details.personalProject')}</span>
                       </>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Durum</span>
+                  <span className="text-sm font-medium">{t('project.details.fields.status')}</span>
                   {getStatusBadge(project.status)}
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Oluşturulma</span>
+                  <span className="text-sm font-medium">{t('project.stats.created')}</span>
                   <span className="text-sm text-muted-foreground">
                     {new Date(project.created_at).toLocaleDateString('tr-TR')}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Son Güncelleme</span>
+                  <span className="text-sm font-medium">{t('project.stats.updated')}</span>
                   <span className="text-sm text-muted-foreground">
                     {new Date(project.updated_at).toLocaleDateString('tr-TR')}
                   </span>
@@ -438,8 +440,8 @@ export default function ProjectDetailPage() {
           {showTaskForm ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Yeni Görev Oluştur</CardTitle>
-                <CardDescription>Proje için yeni bir görev ekleyin</CardDescription>
+              <CardTitle className="text-lg">{t('project.tasks.createTitle')}</CardTitle>
+              <CardDescription>{t('project.tasks.createDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <NewTaskForm
@@ -469,26 +471,26 @@ export default function ProjectDetailPage() {
               <CardDescription>Proje dosyalarını yönetin</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <div className="text-muted-foreground mb-2">Yakında</div>
-                <Button variant="outline" disabled>
-                  Dosya Yükle
-                </Button>
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-2">{t('common.soon')}</div>
+                  <Button variant="outline" disabled>
+                    {t('project.files.upload')}
+                  </Button>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Yorumlar</CardTitle>
-              <CardDescription>Proje yorumlarını görüntüleyin</CardDescription>
+              <CardTitle className="text-lg">{t('project.comments.title')}</CardTitle>
+              <CardDescription>{t('project.comments.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <div className="text-muted-foreground mb-2">Yakında</div>
-                <Button variant="outline" disabled>
-                  Yorum Ekle
-                </Button>
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-2">{t('common.soon')}</div>
+                  <Button variant="outline" disabled>
+                    {t('project.comments.add')}
+                  </Button>
               </div>
             </CardContent>
           </Card>

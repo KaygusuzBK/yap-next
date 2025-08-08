@@ -30,8 +30,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../../components/ui/dialog';
+import { useI18n } from '@/i18n/I18nProvider';
 
 export default function TaskDetailPage() {
+  const { t, locale } = useI18n();
   const params = useParams();
   const router = useRouter();
   const taskId = params.id as string;
@@ -93,13 +95,13 @@ export default function TaskDetailPage() {
   const getStatusText = (status: Task['status']) => {
     switch (status) {
       case 'todo':
-        return 'Yapılacak';
+        return t('taskStatus.todo') || 'Todo';
       case 'in_progress':
-        return 'Devam Ediyor';
+        return t('taskStatus.in_progress') || 'In Progress';
       case 'review':
-        return 'İncelemede';
+        return t('taskStatus.review') || 'Review';
       case 'completed':
-        return 'Tamamlandı';
+        return t('taskStatus.completed') || 'Completed';
       default:
         return status;
     }
@@ -121,7 +123,8 @@ export default function TaskDetailPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR', {
+    const loc = locale === 'tr' ? 'tr-TR' : 'en-US'
+    return new Date(dateString).toLocaleDateString(loc, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -136,10 +139,10 @@ export default function TaskDetailPage() {
     const diffTime = due.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays < 0) return `${Math.abs(diffDays)} gün gecikmiş`;
-    if (diffDays === 0) return 'Bugün';
-    if (diffDays === 1) return '1 gün kaldı';
-    return `${diffDays} gün kaldı`;
+    if (diffDays < 0) return `${Math.abs(diffDays)} ${t('task.date.late')}`;
+    if (diffDays === 0) return t('task.date.today');
+    if (diffDays === 1) return t('task.date.oneDay');
+    return `${diffDays} ${t('task.date.daysLeft')}`;
   };
 
   const getDaysRemainingColor = (dueDate: string) => {
@@ -159,7 +162,7 @@ export default function TaskDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Görev yükleniyor...</span>
+          <span>{t('task.loading')}</span>
         </div>
       </div>
     );
@@ -170,13 +173,13 @@ export default function TaskDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Görev Bulunamadı</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('task.notFoundTitle')}</h2>
           <p className="text-muted-foreground mb-4">
-            {error || 'Aradığınız görev mevcut değil veya erişim izniniz yok.'}
+            {error || t('task.notFoundDesc')}
           </p>
           <Button onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Geri Dön
+            {t('task.back')}
           </Button>
         </div>
       </div>
@@ -189,17 +192,17 @@ export default function TaskDetailPage() {
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Geri
+          {t('task.back')}
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{task.title}</h1>
           <p className="text-muted-foreground">
-            Proje: {task.project_title || 'Bilinmeyen Proje'}
+            {`Proje: ${task.project_title || 'Bilinmeyen Proje'}`}
           </p>
         </div>
         <Button onClick={() => setEditing(true)}>
           <Edit className="h-4 w-4 mr-2" />
-          Düzenle
+          {t('task.edit')}
         </Button>
       </div>
 
@@ -211,13 +214,13 @@ export default function TaskDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {getStatusIcon(task.status)}
-                Görev Detayları
+                {t('task.details.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {task.description && (
                 <div>
-                  <h3 className="font-medium mb-2">Açıklama</h3>
+                  <h3 className="font-medium mb-2">{t('task.details.description')}</h3>
                   <p className="text-muted-foreground whitespace-pre-wrap">
                     {task.description}
                   </p>
@@ -226,21 +229,21 @@ export default function TaskDetailPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-medium mb-2">Durum</h3>
+                  <h3 className="font-medium mb-2">{t('task.details.status')}</h3>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(task.status)}
                     <span>{getStatusText(task.status)}</span>
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-medium mb-2">Öncelik</h3>
+                  <h3 className="font-medium mb-2">{t('task.details.priority')}</h3>
                   {getPriorityBadge(task.priority)}
                 </div>
               </div>
 
               {task.due_date && (
                 <div>
-                  <h3 className="font-medium mb-2">Bitiş Tarihi</h3>
+                  <h3 className="font-medium mb-2">{t('task.details.dueDate')}</h3>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>{formatDate(task.due_date)}</span>
@@ -252,17 +255,17 @@ export default function TaskDetailPage() {
               )}
 
               <div>
-                <h3 className="font-medium mb-2">Atanan Kişi</h3>
+                <h3 className="font-medium mb-2">{t('task.details.assignee')}</h3>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
                     {task.assigned_to ? (
                       (() => {
                         const member = projectMembers.find(m => m.id === task.assigned_to);
-                        return member ? member.name || member.email : 'Bilinmeyen kullanıcı';
+                        return member ? member.name || member.email : t('task.details.unknownUser');
                       })()
                     ) : (
-                      'Atanmamış'
+                      t('task.details.unassigned')
                     )}
                   </span>
                 </div>
@@ -275,7 +278,7 @@ export default function TaskDetailPage() {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="comments" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Yorumlar
+                {t('task.tabs.comments')}
               </TabsTrigger>
               <TabsTrigger value="files" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -294,15 +297,15 @@ export default function TaskDetailPage() {
                     Yorumlar
                     <Button size="sm">
                       <Plus className="h-4 w-4 mr-2" />
-                      Yorum Ekle
+                      {t('task.comments.add')}
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8 text-muted-foreground">
                     <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Henüz yorum yok</p>
-                    <p className="text-sm">İlk yorumu siz ekleyin!</p>
+                    <p>{t('task.comments.empty')}</p>
+                    <p className="text-sm">{t('task.comments.first')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -312,18 +315,18 @@ export default function TaskDetailPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    Dosyalar
+                {t('task.tabs.files')}
                     <Button size="sm">
                       <Plus className="h-4 w-4 mr-2" />
-                      Dosya Ekle
+                      {t('task.files.add')}
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Henüz dosya yok</p>
-                    <p className="text-sm">İlk dosyayı siz ekleyin!</p>
+                    <p>{t('task.files.empty')}</p>
+                    <p className="text-sm">{t('task.files.first')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -332,13 +335,13 @@ export default function TaskDetailPage() {
             <TabsContent value="history" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Görev Geçmişi</CardTitle>
+                  <CardTitle>{t('task.history.title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8 text-muted-foreground">
                     <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Henüz aktivite yok</p>
-                    <p className="text-sm">Görev üzerinde değişiklik yapıldığında burada görünecek</p>
+                    <p>{t('task.history.empty')}</p>
+                    <p className="text-sm">{t('task.history.info')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -351,7 +354,7 @@ export default function TaskDetailPage() {
           {/* Hızlı İşlemler */}
           <Card>
             <CardHeader>
-              <CardTitle>Hızlı İşlemler</CardTitle>
+              <CardTitle>{t('task.quick.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
@@ -360,15 +363,15 @@ export default function TaskDetailPage() {
                 onClick={() => setShowAssignment(true)}
               >
                 <User className="h-4 w-4 mr-2" />
-                Kişi Ata
+                {t('task.quick.assign')}
               </Button>
               <Button variant="outline" className="w-full justify-start">
                 <Clock className="h-4 w-4 mr-2" />
-                Zaman Kaydet
+                {t('task.quick.logTime')}
               </Button>
               <Button variant="outline" className="w-full justify-start">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Yorum Ekle
+                {t('task.quick.addComment')}
               </Button>
             </CardContent>
           </Card>
@@ -400,7 +403,7 @@ export default function TaskDetailPage() {
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Görevi Düzenle</DialogTitle>
+            <DialogTitle>{t('task.edit')}</DialogTitle>
           </DialogHeader>
           {task && (
             <TaskEditForm
@@ -420,7 +423,7 @@ export default function TaskDetailPage() {
       <Dialog open={showAssignment} onOpenChange={setShowAssignment}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Görev Ataması</DialogTitle>
+            <DialogTitle>{t('task.quick.assign')}</DialogTitle>
           </DialogHeader>
           {task && (
             <TaskAssignment

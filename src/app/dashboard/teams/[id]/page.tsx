@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { getSupabase } from "../../../../lib/supabase"
 import { Button } from "../../../../components/ui/button"
 import { getTeamInvitations } from "../../../../features/teams/api"
+import { useI18n } from "@/i18n/I18nProvider"
 
 type TeamRecord = {
   id: string
@@ -35,6 +36,7 @@ type InvitationRecord = {
 }
 
 export default function TeamDetailPage() {
+  const { t } = useI18n()
   const params = useParams() as { id?: string }
   const router = useRouter()
   const teamId = params?.id ?? ""
@@ -92,28 +94,28 @@ export default function TeamDetailPage() {
   return (
     <div className="w-full space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" onClick={() => router.push("/dashboard#teams")}>← Geri</Button>
-        <span className="text-sm text-muted-foreground">Takım Detayı</span>
+        <Button variant="ghost" onClick={() => router.push("/dashboard#teams")}>{t('team.back')}</Button>
+        <span className="text-sm text-muted-foreground">{t('team.detail')}</span>
       </div>
       {loading ? (
-        <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+        <p className="text-sm text-muted-foreground">{t('team.loading')}</p>
       ) : error ? (
         <p className="text-sm text-red-600">{error}</p>
       ) : !team ? (
-        <p className="text-sm text-muted-foreground">Takım bulunamadı.</p>
+        <p className="text-sm text-muted-foreground">{t('team.notFound')}</p>
       ) : (
         <>
           <section className="space-y-1">
             <h1 className="text-xl font-semibold">{team.name}</h1>
             <div className="text-sm text-muted-foreground">
-              Ana proje: {team.primary_project_id ? "Seçili" : "—"}
+              {t('team.mainProject.label')} {team.primary_project_id ? t('team.mainProject.selected') : t('team.mainProject.none')}
             </div>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-semibold">Projeler</h2>
+            <h2 className="text-base font-semibold">{t('team.projects.title')}</h2>
             {projects.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Bu takıma ait proje yok.</p>
+              <p className="text-sm text-muted-foreground">{t('team.projects.empty')}</p>
             ) : (
               <div className="grid gap-2">
                 {projects.map((p) => (
@@ -131,7 +133,7 @@ export default function TeamDetailPage() {
 
           {invitations.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-base font-semibold">Davet Edilenler</h2>
+              <h2 className="text-base font-semibold">{t('team.invited.title')}</h2>
               <div className="grid gap-2">
                 {invitations.map((invitation) => (
                   <div key={invitation.id} className="border rounded-md p-3">
@@ -139,18 +141,18 @@ export default function TeamDetailPage() {
                       <div>
                         <div className="font-medium">{invitation.email}</div>
                         <div className="text-sm text-muted-foreground">
-                          Rol: {invitation.role === 'member' ? 'Üye' : invitation.role}
+                          {t('team.invited.role')} {invitation.role === 'member' ? 'Üye' : invitation.role}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          Davet edildi: {new Date(invitation.created_at).toLocaleString()}
+                          {t('team.invited.invitedAt')} {new Date(invitation.created_at).toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {invitation.accepted_at ? (
-                            <span className="text-green-600">Kabul edildi</span>
+                            <span className="text-green-600">{t('team.invited.accepted')}</span>
                           ) : new Date(invitation.expires_at) < new Date() ? (
-                            <span className="text-red-600">Süresi dolmuş</span>
+                            <span className="text-red-600">{t('team.invited.expired')}</span>
                           ) : (
-                            <span className="text-yellow-600">Beklemede</span>
+                            <span className="text-yellow-600">{t('team.invited.pending')}</span>
                           )}
                         </div>
                       </div>
