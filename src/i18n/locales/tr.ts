@@ -7,6 +7,25 @@ export const tr = {
     signOut: "Çıkış",
     back: "Geri",
     startNow: "Hemen Başla",
+    loading: "Yükleniyor...",
+  },
+  dashboard: {
+    breadcrumb: { home: "Ana Sayfa", dashboard: "Dashboard" },
+    overview: {
+      title: "Genel Bakış",
+      totalProjects: "Toplam Proje",
+      totalProjectsDesc: "Aktif projeler",
+      totalTeams: "Toplam Takım",
+      totalTeamsDesc: "Üye olduğunuz takımlar",
+      activeProjects: "Aktif Projeler",
+      activeProjectsDesc: "Devam eden projeler",
+      thisMonth: "Bu Ay",
+      thisMonthDesc: "Bu ay oluşturulan",
+    },
+    sections: {
+      teams: "Takımlar",
+      projects: "Projeler",
+    },
   },
   landing: {
     hero: {

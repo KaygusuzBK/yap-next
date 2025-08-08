@@ -7,6 +7,7 @@ import NewProjectForm from "@/features/projects/components/NewProjectForm"
 import ProjectList from "@/features/projects/components/ProjectList"
 import { fetchProjects, type Project } from "@/features/projects/api"
 import { fetchTeams, type Team } from "@/features/teams/api"
+import { useI18n } from "@/i18n/I18nProvider"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Folder, Users, Calendar, TrendingUp } from "lucide-react"
 
 export default function Page() {
+  const { t } = useI18n()
   const [refreshKey, setRefreshKey] = useState(0)
   const [projects, setProjects] = useState<Project[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -62,21 +64,21 @@ export default function Page() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Ana Sayfa</BreadcrumbLink>
+                <BreadcrumbLink href="/">{t('dashboard.breadcrumb.home')}</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                <BreadcrumbPage>{t('dashboard.breadcrumb.dashboard')}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </section>
                     <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Genel Bakış</h2>
+          <h2 className="text-lg font-semibold">{t('dashboard.overview.title')}</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Toplam Proje</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalProjects')}</CardTitle>
                 <Folder className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -84,14 +86,14 @@ export default function Page() {
                   {loadingProjects ? "..." : projects.length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {loadingProjects ? "Yükleniyor..." : "Aktif projeler"}
+                  {loadingProjects ? t('common.loading') : t('dashboard.overview.totalProjectsDesc')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Toplam Takım</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalTeams')}</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -99,14 +101,14 @@ export default function Page() {
                   {loadingTeams ? "..." : teams.length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {loadingTeams ? "Yükleniyor..." : "Üye olduğunuz takımlar"}
+                  {loadingTeams ? t('common.loading') : t('dashboard.overview.totalTeamsDesc')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Aktif Projeler</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.overview.activeProjects')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -114,14 +116,14 @@ export default function Page() {
                   {loadingProjects ? "..." : projects.filter(p => p.status === 'active').length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Devam eden projeler
+                  {t('dashboard.overview.activeProjectsDesc')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Bu Ay</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.overview.thisMonth')}</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -134,7 +136,7 @@ export default function Page() {
                   }).length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Bu ay oluşturulan
+                  {t('dashboard.overview.thisMonthDesc')}
                 </p>
               </CardContent>
             </Card>
@@ -142,13 +144,13 @@ export default function Page() {
         </section>
 
         <section className="space-y-3" id="teams">
-          <h1 className="text-lg font-semibold">Takımlar</h1>
+          <h1 className="text-lg font-semibold">{t('dashboard.sections.teams')}</h1>
           <NewTeamForm onCreated={() => setRefreshKey((k) => k + 1)} />
           <TeamList refreshKey={refreshKey} />
         </section>
 
         <section className="space-y-3" id="projects">
-          <h2 className="text-lg font-semibold">Projeler</h2>
+          <h2 className="text-lg font-semibold">{t('dashboard.sections.projects')}</h2>
           <NewProjectForm onCreated={() => setRefreshKey((k) => k + 1)} />
           <ProjectList refreshKey={refreshKey} />
         </section>

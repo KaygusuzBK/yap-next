@@ -7,6 +7,25 @@ export const en = {
     signOut: "Sign out",
     back: "Back",
     startNow: "Start Now",
+    loading: "Loading...",
+  },
+  dashboard: {
+    breadcrumb: { home: "Home", dashboard: "Dashboard" },
+    overview: {
+      title: "Overview",
+      totalProjects: "Total Projects",
+      totalProjectsDesc: "Active projects",
+      totalTeams: "Total Teams",
+      totalTeamsDesc: "Teams you are in",
+      activeProjects: "Active Projects",
+      activeProjectsDesc: "Ongoing projects",
+      thisMonth: "This Month",
+      thisMonthDesc: "Created this month",
+    },
+    sections: {
+      teams: "Teams",
+      projects: "Projects",
+    },
   },
   landing: {
     hero: {
