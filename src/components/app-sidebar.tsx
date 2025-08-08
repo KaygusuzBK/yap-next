@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Folder, ListTodo, Users, Plus, MoreVertical } from "lucide-react"
 import Logo from "@/components/Logo"
 import { getSupabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
+import { Button } from "./ui/button"
 import Input from "@/components/ui/input"
 import NewTeamForm from "@/features/teams/components/NewTeamForm"
 import {

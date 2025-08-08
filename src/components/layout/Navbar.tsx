@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { usePathname } from 'next/navigation';
 import Logo from '@/components/Logo';
 
