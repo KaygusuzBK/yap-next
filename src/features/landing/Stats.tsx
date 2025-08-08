@@ -1,13 +1,16 @@
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
 
-const stats = [
-  { label: "Takım", value: "12+" },
-  { label: "Projeler", value: "48" },
-  { label: "Görevler", value: "1.2K" },
-  { label: "Memnuniyet", value: "98%" },
-];
+import { Card, CardContent } from "@/components/ui/card";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function Stats() {
+  const { t } = useI18n();
+  const stats = [
+    { label: t("landing.stats.team"), value: "12+" },
+    { label: t("landing.stats.projects"), value: "48" },
+    { label: t("landing.stats.tasks"), value: "1.2K" },
+    { label: t("landing.stats.satisfaction"), value: "98%" },
+  ];
   return (
     <section className="mx-auto max-w-6xl px-4 py-10">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

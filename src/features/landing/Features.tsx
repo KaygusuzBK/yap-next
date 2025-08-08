@@ -1,25 +1,16 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Rocket, Sparkles } from "lucide-react";
-
-const items = [
-  {
-    icon: Shield,
-    title: "Güvenli RLS",
-    desc: "Supabase RLS politikaları ile veri güvenliği ve erişim kontrolü.",
-  },
-  {
-    icon: Rocket,
-    title: "Hızlı Başlangıç",
-    desc: "Next.js App Router + shadcn UI ile hazır altyapı.",
-  },
-  {
-    icon: Sparkles,
-    title: "Modern Tasarım",
-    desc: "Monokrom tema, gradientler ve ince animasyonlarla modern görünüm.",
-  },
-];
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function Features() {
+  const { t } = useI18n();
+  const items = [
+    { icon: Shield, title: t("landing.features.items.0.title"), desc: t("landing.features.items.0.desc") },
+    { icon: Rocket, title: t("landing.features.items.1.title"), desc: t("landing.features.items.1.desc") },
+    { icon: Sparkles, title: t("landing.features.items.2.title"), desc: t("landing.features.items.2.desc") },
+  ];
   return (
     <section className="mx-auto max-w-5xl px-4 py-14">
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

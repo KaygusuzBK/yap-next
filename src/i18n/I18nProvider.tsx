@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { en } from "./locales/en";
 import { tr } from "./locales/tr";
 
@@ -19,7 +19,15 @@ const dictionaries: Record<Locale, Dictionary> = { en, tr };
 const I18nContext = createContext<I18nContextType | null>(null);
 
 function getFromPath(dict: Dictionary, path: string): string | undefined {
-  return path.split(".").reduce<any>((obj, key) => (obj && key in obj ? (obj as any)[key] : undefined), dict);
+  const result = path
+    .split(".")
+    .reduce<unknown>((obj, key) => {
+      if (obj && typeof obj === "object" && key in (obj as Record<string, unknown>)) {
+        return (obj as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, dict);
+  return typeof result === "string" ? result : undefined;
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
@@ -35,13 +43,13 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const setLocale = (next: Locale) => {
+  const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
     try {
       window.localStorage.setItem("locale", next);
       document.documentElement.lang = next;
     } catch {}
-  };
+  }, []);
 
   const t = useMemo(() => {
     return (path: string) => {
@@ -53,7 +61,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     };
   }, [locale]);
 
-  const value = useMemo<I18nContextType>(() => ({ locale, setLocale, t }), [locale]);
+  const value = useMemo<I18nContextType>(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
