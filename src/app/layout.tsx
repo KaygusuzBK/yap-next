@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import CommandMenu from "@/components/CommandMenu";
 import Navbar from "@/components/layout/Navbar";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import AppFrame from "@/components/layout/AppFrame";
 
 const geistSans = Geist({
@@ -54,7 +55,9 @@ function AuthTree({ children }: { children: React.ReactNode }) {
 function ClientAuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <AuthProvider>{children}</AuthProvider>
+      <I18nProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </I18nProvider>
     </ThemeProvider>
   );
 }
