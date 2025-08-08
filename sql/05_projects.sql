@@ -389,20 +389,41 @@ end;
 $$ language plpgsql;
 
 -- Trigger'ları oluştur
-create trigger handle_projects_updated_at
-  before update on public.projects
-  for each row
-  execute function public.handle_updated_at();
+do $$ begin
+  if not exists (
+    select 1 from pg_trigger 
+    where tgname = 'handle_projects_updated_at' and tgrelid = 'public.projects'::regclass
+  ) then
+    create trigger handle_projects_updated_at
+      before update on public.projects
+      for each row
+      execute function public.handle_updated_at();
+  end if;
+end $$;
 
-create trigger handle_project_tasks_updated_at
-  before update on public.project_tasks
-  for each row
-  execute function public.handle_updated_at();
+do $$ begin
+  if not exists (
+    select 1 from pg_trigger 
+    where tgname = 'handle_project_tasks_updated_at' and tgrelid = 'public.project_tasks'::regclass
+  ) then
+    create trigger handle_project_tasks_updated_at
+      before update on public.project_tasks
+      for each row
+      execute function public.handle_updated_at();
+  end if;
+end $$;
 
-create trigger handle_project_comments_updated_at
-  before update on public.project_comments
-  for each row
-  execute function public.handle_updated_at();
+do $$ begin
+  if not exists (
+    select 1 from pg_trigger 
+    where tgname = 'handle_project_comments_updated_at' and tgrelid = 'public.project_comments'::regclass
+  ) then
+    create trigger handle_project_comments_updated_at
+      before update on public.project_comments
+      for each row
+      execute function public.handle_updated_at();
+  end if;
+end $$;
 
 -- Proje oluşturulduğunda otomatik olarak sahibini üye yap
 create or replace function public.handle_new_project()
@@ -414,10 +435,17 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger handle_new_project_trigger
-  after insert on public.projects
-  for each row
-  execute function public.handle_new_project();
+do $$ begin
+  if not exists (
+    select 1 from pg_trigger 
+    where tgname = 'handle_new_project_trigger' and tgrelid = 'public.projects'::regclass
+  ) then
+    create trigger handle_new_project_trigger
+      after insert on public.projects
+      for each row
+      execute function public.handle_new_project();
+  end if;
+end $$;
 
 -- Yardımcı fonksiyonlar
 create or replace function public.get_user_projects(user_uuid uuid)
