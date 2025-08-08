@@ -1,7 +1,29 @@
 "use client"
 
 import * as React from "react"
-import { ArchiveX, Command, File, Inbox, Send, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Folder, ListTodo, Users, Plus, MoreVertical } from "lucide-react"
+import Logo from "@/components/Logo"
+import { getSupabase } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
+import Input from "@/components/ui/input"
+import NewTeamForm from "@/features/teams/components/NewTeamForm"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import type { ChangeEvent } from "react"
+import { updateTeamName, deleteTeam, setTeamPrimaryProject } from "@/features/teams/api"
 
 import { NavUser } from "@/components/nav-user"
 import { Label } from "@/components/ui/label"
@@ -20,6 +42,51 @@ import {
 } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
 
+type TeamStat = {
+  id: string
+  name: string
+  memberCount: number | null
+  projectTitle: string | null
+}
+
+const TeamRow = React.memo(function TeamRow({
+  team,
+  onOpenRename,
+  onDelete,
+  onAssignProject,
+  onSelect,
+}: {
+  team: TeamStat
+  onOpenRename: (teamId: string, currentName: string) => void
+  onDelete: (teamId: string) => void
+  onAssignProject: (teamId: string) => void
+  onSelect: (teamId: string) => void
+}) {
+  return (
+    <div className="border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2">
+      <button type="button" onClick={() => onSelect(team.id)} className="text-left">
+        <div className="font-medium">{team.name}</div>
+        <div className="text-xs text-muted-foreground mt-1">Üye sayısı: {team.memberCount ?? "—"}</div>
+        <div className="text-xs text-muted-foreground">Proje: {team.projectTitle ?? "—"}</div>
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" variant="ghost" className="shrink-0">
+            <MoreVertical className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onAssignProject(team.id)}>Proje Ata</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onOpenRename(team.id, team.name)}>İsmi Değiştir</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-red-600" onClick={() => onDelete(team.id)}>Sil</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+})
+
 // This is sample data
 const data = {
   user: {
@@ -29,33 +96,21 @@ const data = {
   },
   navMain: [
     {
-      title: "Inbox",
-      url: "#",
-      icon: Inbox,
+      title: "Görevlerim",
+      url: "/dashboard#tasks",
+      icon: ListTodo,
       isActive: true,
     },
     {
-      title: "Drafts",
-      url: "#",
-      icon: File,
+      title: "Projeler",
+      url: "/dashboard#projects",
+      icon: Folder,
       isActive: false,
     },
     {
-      title: "Sent",
-      url: "#",
-      icon: Send,
-      isActive: false,
-    },
-    {
-      title: "Junk",
-      url: "#",
-      icon: ArchiveX,
-      isActive: false,
-    },
-    {
-      title: "Trash",
-      url: "#",
-      icon: Trash2,
+      title: "Takımlar",
+      url: "/dashboard#teams",
+      icon: Users,
       isActive: false,
     },
   ],
@@ -149,6 +204,131 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [activeItem, setActiveItem] = React.useState(data.navMain[0])
   const [mails, setMails] = React.useState(data.mails)
   const { setOpen } = useSidebar()
+  const router = useRouter()
+  const [teamStats, setTeamStats] = React.useState<TeamStat[]>([])
+  const [loadingTeams, setLoadingTeams] = React.useState(false)
+  const [teamError, setTeamError] = React.useState<string | null>(null)
+  const [createOpen, setCreateOpen] = React.useState(false)
+  const [renameOpen, setRenameOpen] = React.useState(false)
+  const [renameValue, setRenameValue] = React.useState("")
+  const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null)
+  const [saving, setSaving] = React.useState(false)
+
+  React.useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : ""
+    const found = data.navMain.find((i) => i.url.endsWith(hash))
+    if (found) setActiveItem(found)
+  }, [])
+
+  React.useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash
+      const found = data.navMain.find((i) => i.url.endsWith(hash))
+      if (found) setActiveItem(found)
+    }
+    window.addEventListener("hashchange", onHashChange)
+    return () => window.removeEventListener("hashchange", onHashChange)
+  }, [])
+
+  const fetchTeamStats = React.useCallback(async () => {
+    try {
+      setLoadingTeams(true)
+      setTeamError(null)
+      const supabase = getSupabase()
+      const { data: teams, error: tErr } = await supabase
+        .from("teams")
+        .select("id,name")
+        .order("created_at", { ascending: false })
+      if (tErr) throw tErr
+      const teamIds = (teams ?? []).map((t) => t.id)
+      if (teamIds.length === 0) {
+        setTeamStats([])
+        return
+      }
+      const [{ data: projects }, { data: members }] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("id,title,team_id")
+          .in("team_id", teamIds),
+        supabase
+          .from("team_members")
+          .select("team_id")
+          .in("team_id", teamIds),
+      ])
+      const teamIdToProjectTitle = new Map<string, string>()
+      ;(projects ?? []).forEach((p) => {
+        if (!teamIdToProjectTitle.has(p.team_id)) {
+          teamIdToProjectTitle.set(p.team_id, p.title)
+        }
+      })
+      const teamIdToCount = new Map<string, number>()
+      ;(members ?? []).forEach((m) => {
+        teamIdToCount.set(m.team_id, (teamIdToCount.get(m.team_id) ?? 0) + 1)
+      })
+      const stats = (teams ?? []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        memberCount: teamIdToCount.get(t.id) ?? null,
+        projectTitle: teamIdToProjectTitle.get(t.id) ?? null,
+      }))
+      setTeamStats(stats)
+    } catch (e) {
+      setTeamError(e instanceof Error ? e.message : "Takım verileri alınamadı")
+    } finally {
+      setLoadingTeams(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (activeItem?.title !== "Takımlar") return
+    fetchTeamStats()
+  }, [activeItem, fetchTeamStats])
+
+  const isTasksActive = activeItem?.title === "Görevlerim"
+  const isTeamsActive = activeItem?.title === "Takımlar"
+
+  const handleNavClick = React.useCallback(
+    (item: (typeof data.navMain)[number]) => {
+      setActiveItem(item)
+      const shuffled = [...data.mails].sort(() => Math.random() - 0.5)
+      setMails(shuffled.slice(0, Math.max(5, Math.floor(Math.random() * 10) + 1)))
+      router.push(item.url)
+      setOpen(true)
+    },
+    [router, setOpen]
+  )
+
+  const onOpenRename = React.useCallback((teamId: string, currentName: string) => {
+    setSelectedTeamId(teamId)
+    setRenameValue(currentName)
+    setRenameOpen(true)
+  }, [])
+
+  const onDeleteTeam = React.useCallback(
+    async (teamId: string) => {
+      if (!confirm("Takımı silmek istediğinize emin misiniz?")) return
+      await deleteTeam(teamId)
+      fetchTeamStats()
+    },
+    [fetchTeamStats]
+  )
+
+  const [assignOpen, setAssignOpen] = React.useState(false)
+  const [assignProjectId, setAssignProjectId] = React.useState<string | null>(null)
+  const [teamProjects, setTeamProjects] = React.useState<Array<{ id: string; title: string }>>([])
+
+  const onAssignProject = React.useCallback(async (teamId: string) => {
+    setSelectedTeamId(teamId)
+    setAssignProjectId(null)
+    const supabase = getSupabase()
+    const { data } = await supabase
+      .from("projects")
+      .select("id,title")
+      .eq("team_id", teamId)
+      .order("created_at", { ascending: false })
+    setTeamProjects(data ?? [])
+    setAssignOpen(true)
+  }, [])
 
   return (
     <Sidebar
@@ -168,12 +348,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
                 <a href="#">
-                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                    <Command className="size-4" />
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
+                    <Logo size={16} className="scale-180" withLink={false} />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">Acme Inc</span>
-                    <span className="truncate text-xs">Enterprise</span>
+                    <span className="truncate font-medium">YAP</span>
+                    <span className="truncate text-xs">Proje Yönetimi</span>
                   </div>
                 </a>
               </SidebarMenuButton>
@@ -191,17 +371,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         children: item.title,
                         hidden: false,
                       }}
-                      onClick={() => {
-                        setActiveItem(item)
-                        const mail = data.mails.sort(() => Math.random() - 0.5)
-                        setMails(
-                          mail.slice(
-                            0,
-                            Math.max(5, Math.floor(Math.random() * 10) + 1)
-                          )
-                        )
-                        setOpen(true)
-                      }}
+                      onClick={() => handleNavClick(item)}
                       isActive={activeItem?.title === item.title}
                       className="px-2.5 md:px-2"
                     >
@@ -227,36 +397,148 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="text-foreground text-base font-medium">
               {activeItem?.title}
             </div>
-            <Label className="flex items-center gap-2 text-sm">
-              <span>Unreads</span>
-              <Switch className="shadow-none" />
-            </Label>
+            {isTasksActive && (
+              <Label className="flex items-center gap-2 text-sm">
+                <span>Yapılanlar</span>
+                <Switch className="shadow-none" />
+              </Label>
+            )}
+            {isTeamsActive && (
+              <Button size="icon" variant="ghost" onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4" />
+                <span className="sr-only">Takım oluştur</span>
+              </Button>
+            )}
           </div>
           <SidebarInput placeholder="Type to search..." />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="px-0">
             <SidebarGroupContent>
-              {mails.map((mail) => (
-                <a
-                  href="#"
-                  key={mail.email}
-                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-col items-start gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0"
-                >
-                  <div className="flex w-full items-center gap-2">
-                    <span>{mail.name}</span>{" "}
-                    <span className="ml-auto text-xs">{mail.date}</span>
-                  </div>
-                  <span className="font-medium">{mail.subject}</span>
-                  <span className="line-clamp-2 w-[260px] text-xs whitespace-break-spaces">
-                    {mail.teaser}
-                  </span>
-                </a>
-              ))}
+              {isTeamsActive ? (
+                <div className="p-4">
+                  {loadingTeams && (
+                    <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+                  )}
+                  {teamError && (
+                    <p className="text-sm text-red-600">{teamError}</p>
+                  )}
+                  {!loadingTeams && !teamError && teamStats.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Henüz takım yok.</p>
+                  )}
+                  {!loadingTeams && !teamError && (
+                    <div className="flex flex-col">
+                      {teamStats.map((t) => (
+                        <TeamRow
+                          key={t.id}
+                          team={t}
+                          onOpenRename={onOpenRename}
+                          onDelete={onDeleteTeam}
+                          onAssignProject={onAssignProject}
+                          onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                mails.map((mail) => (
+                  <a
+                    href="#"
+                    key={mail.email}
+                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-col items-start gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0"
+                  >
+                    <div className="flex w-full items-center gap-2">
+                      <span>{mail.name}</span>{" "}
+                      <span className="ml-auto text-xs">{mail.date}</span>
+                    </div>
+                    <span className="font-medium">{mail.subject}</span>
+                    <span className="line-clamp-2 w-[260px] text-xs whitespace-break-spaces">
+                      {mail.teaser}
+                    </span>
+                  </a>
+                ))
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
+      {/* Takım detayı sayfasına yönlendiriliyor */}
+      {/* Create Team Modal */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni Takım</DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">
+            <NewTeamForm onCreated={() => { setCreateOpen(false); fetchTeamStats() }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Project Modal */}
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Projeyi ata</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {teamProjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Bu takıma ait proje bulunamadı.</p>
+            ) : (
+              <div className="grid gap-2">
+                {teamProjects.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="assign-project"
+                      value={p.id}
+                      checked={assignProjectId === p.id}
+                      onChange={() => setAssignProjectId(p.id)}
+                    />
+                    <span>{p.title}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>Vazgeç</Button>
+            <Button disabled={!assignProjectId || !selectedTeamId} onClick={async () => {
+              if (!selectedTeamId || !assignProjectId) return
+              await setTeamPrimaryProject({ team_id: selectedTeamId, project_id: assignProjectId })
+              setAssignOpen(false)
+              fetchTeamStats()
+            }}>Ata</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Team Modal */}
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Takım adını değiştir</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input value={renameValue} onChange={(e: ChangeEvent<HTMLInputElement>) => setRenameValue(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>Vazgeç</Button>
+            <Button disabled={saving || !renameValue.trim()} onClick={async () => {
+              if (!selectedTeamId) return
+              try {
+                setSaving(true)
+                await updateTeamName({ team_id: selectedTeamId, name: renameValue.trim() })
+                setRenameOpen(false)
+                fetchTeamStats()
+              } finally {
+                setSaving(false)
+              }
+            }}>{saving ? "Kaydediliyor..." : "Kaydet"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   )
 }

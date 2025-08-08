@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import CommandMenu from "@/components/CommandMenu";
 import Navbar from "@/components/layout/Navbar";
+import AppFrame from "@/components/layout/AppFrame";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,7 @@ export default function RootLayout({
       >
         <AuthTree>
           <Navbar />
-          {children}
+          <AppFrame>{children}</AppFrame>
           <ThemeToggle />
           <CommandMenu />
         </AuthTree>

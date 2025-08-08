@@ -68,3 +68,16 @@ export async function deleteTeam(team_id: string) {
 }
 
 
+export async function setTeamPrimaryProject(input: { team_id: string; project_id: string | null }) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('teams')
+    .update({ primary_project_id: input.project_id })
+    .eq('id', input.team_id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as Team;
+}
+
+
