@@ -171,27 +171,50 @@ do $$ begin
     create policy "read project members" on public.project_members
       for select using (
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        user_id = auth.uid()
+      );
+  end if;
+
+  -- insert project members policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_members' and policyname = 'insert project members'
+  ) then
+    create policy "insert project members" on public.project_members
+      for insert with check (
+        project_id in (
+          select id from public.projects where owner_id = auth.uid()
         )
       );
   end if;
 
-  -- manage project members policy
+  -- update project members policy
   if not exists (
     select 1 from pg_policies 
-    where tablename = 'project_members' and policyname = 'manage project members'
+    where tablename = 'project_members' and policyname = 'update project members'
   ) then
-    create policy "manage project members" on public.project_members
-      for all using (
+    create policy "update project members" on public.project_members
+      for update using (
         project_id in (
           select id from public.projects where owner_id = auth.uid()
         ) or
+        user_id = auth.uid()
+      );
+  end if;
+
+  -- delete project members policy
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'project_members' and policyname = 'delete project members'
+  ) then
+    create policy "delete project members" on public.project_members
+      for delete using (
         project_id in (
-          select project_id from public.project_members 
-          where user_id = auth.uid() and role in ('owner', 'admin')
-        )
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        user_id = auth.uid()
       );
   end if;
 end $$;
@@ -206,10 +229,10 @@ do $$ begin
     create policy "read project tasks" on public.project_tasks
       for select using (
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
-        )
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        created_by = auth.uid() or
+        assigned_to = auth.uid()
       );
   end if;
 
@@ -222,9 +245,7 @@ do $$ begin
       for insert with check (
         created_by = auth.uid() and
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
+          select id from public.projects where owner_id = auth.uid()
         )
       );
   end if;
@@ -240,10 +261,6 @@ do $$ begin
         assigned_to = auth.uid() or
         project_id in (
           select id from public.projects where owner_id = auth.uid()
-        ) or
-        project_id in (
-          select project_id from public.project_members 
-          where user_id = auth.uid() and role in ('owner', 'admin')
         )
       );
   end if;
@@ -258,10 +275,6 @@ do $$ begin
         created_by = auth.uid() or
         project_id in (
           select id from public.projects where owner_id = auth.uid()
-        ) or
-        project_id in (
-          select project_id from public.project_members 
-          where user_id = auth.uid() and role in ('owner', 'admin')
         )
       );
   end if;
@@ -277,10 +290,9 @@ do $$ begin
     create policy "read project files" on public.project_files
       for select using (
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
-        )
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        uploaded_by = auth.uid()
       );
   end if;
 
@@ -293,9 +305,7 @@ do $$ begin
       for insert with check (
         uploaded_by = auth.uid() and
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
+          select id from public.projects where owner_id = auth.uid()
         )
       );
   end if;
@@ -310,10 +320,6 @@ do $$ begin
         uploaded_by = auth.uid() or
         project_id in (
           select id from public.projects where owner_id = auth.uid()
-        ) or
-        project_id in (
-          select project_id from public.project_members 
-          where user_id = auth.uid() and role in ('owner', 'admin')
         )
       );
   end if;
@@ -329,10 +335,9 @@ do $$ begin
     create policy "read project comments" on public.project_comments
       for select using (
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
-        )
+          select id from public.projects where owner_id = auth.uid()
+        ) or
+        created_by = auth.uid()
       );
   end if;
 
@@ -345,9 +350,7 @@ do $$ begin
       for insert with check (
         created_by = auth.uid() and
         project_id in (
-          select id from public.projects 
-          where owner_id = auth.uid() or
-          id in (select project_id from public.project_members where user_id = auth.uid())
+          select id from public.projects where owner_id = auth.uid()
         )
       );
   end if;
@@ -371,10 +374,6 @@ do $$ begin
         created_by = auth.uid() or
         project_id in (
           select id from public.projects where owner_id = auth.uid()
-        ) or
-        project_id in (
-          select project_id from public.project_members 
-          where user_id = auth.uid() and role in ('owner', 'admin')
         )
       );
   end if;
