@@ -17,7 +17,6 @@ export default function InvitePage() {
   
   const [status, setStatus] = useState<InvitationStatus>('loading')
   const [message, setMessage] = useState("")
-  const [teamName, setTeamName] = useState("")
 
   useEffect(() => {
     if (!token) {
@@ -29,7 +28,7 @@ export default function InvitePage() {
     const acceptInvite = async () => {
       try {
         setStatus('loading')
-        const result = await acceptTeamInvitation(token)
+        await acceptTeamInvitation(token)
         setStatus('success')
         setMessage('Takıma başarıyla katıldınız!')
         // Takım adını almak için ek sorgu yapabiliriz
@@ -87,7 +86,7 @@ export default function InvitePage() {
       case 'loading':
         return 'Davet bilgileri kontrol ediliyor...'
       case 'success':
-        return 'Artık takımın üyesisiniz. Dashboard\'a yönlendiriliyorsunuz...'
+        return 'Artık takımın üyesisiniz. Dashboard&apos;a yönlendiriliyorsunuz...'
       case 'error':
         return message
       case 'expired':
@@ -148,7 +147,7 @@ export default function InvitePage() {
               className="flex-1"
               variant={status === 'success' ? 'default' : 'outline'}
             >
-              Dashboard'a Git
+              Dashboard&apos;a Git
             </Button>
             
             {status === 'error' || status === 'expired' && (

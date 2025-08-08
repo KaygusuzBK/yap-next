@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
 import { getSupabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { getTeamInvitations } from "@/features/teams/api"

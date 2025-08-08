@@ -60,7 +60,7 @@ export default function PendingInvitations() {
     }
   }
 
-  const handleDecline = async (token: string) => {
+  const handleDecline = async () => {
     // TODO: Davet reddetme API'si eklenebilir
     toast.info('Davet reddetme özelliği yakında eklenecek')
   }
@@ -170,7 +170,7 @@ export default function PendingInvitations() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleDecline(invitation.token)}
+                onClick={() => handleDecline()}
                 disabled={processing === invitation.token}
               >
                 <XCircle className="h-4 w-4 mr-2" />
