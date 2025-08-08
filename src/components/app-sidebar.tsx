@@ -36,6 +36,8 @@ import {
 } from "@/components/ui/context-menu"
 
 import { NavUser } from "@/components/nav-user"
+import ThemeToggle from "@/components/theme/ThemeToggle"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
 import { Label } from "@/components/ui/label"
 import {
   Sidebar,
@@ -706,6 +708,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
+          <div className="flex items-center gap-2 p-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
           <NavUser user={data.user} />
         </SidebarFooter>
       </Sidebar>
