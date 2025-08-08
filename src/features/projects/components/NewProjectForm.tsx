@@ -21,7 +21,7 @@ type Team = {
 export default function NewProjectForm({ onCreated }: { onCreated?: () => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('personal');
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(true);
@@ -54,12 +54,12 @@ export default function NewProjectForm({ onCreated }: { onCreated?: () => void }
       await createProject({ 
         title: title.trim(), 
         description: description.trim() || null,
-        team_id: selectedTeamId || null
+        team_id: selectedTeamId === 'personal' ? null : selectedTeamId
       });
       toast.success('Proje başarıyla oluşturuldu!');
       setTitle('');
       setDescription('');
-      setSelectedTeamId('');
+      setSelectedTeamId('personal');
       onCreated?.();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Proje oluşturulurken bir hata oluştu');
@@ -110,11 +110,11 @@ export default function NewProjectForm({ onCreated }: { onCreated?: () => void }
                 <SelectValue placeholder="Takım seçin (opsiyonel)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Kişisel Proje</SelectItem>
+                <SelectItem value="personal">Kişisel Proje</SelectItem>
                 {loadingTeams ? (
-                  <SelectItem value="" disabled>Takımlar yükleniyor...</SelectItem>
+                  <SelectItem value="loading" disabled>Takımlar yükleniyor...</SelectItem>
                 ) : teams.length === 0 ? (
-                  <SelectItem value="" disabled>Takım bulunamadı</SelectItem>
+                  <SelectItem value="no-teams" disabled>Takım bulunamadı</SelectItem>
                 ) : (
                   teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>

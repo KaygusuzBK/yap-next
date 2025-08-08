@@ -2,12 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Folder, ListTodo, Users, Plus, MoreVertical } from "lucide-react"
+import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle } from "lucide-react"
 import Logo from "@/components/Logo"
 import { getSupabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import Input from "@/components/ui/input"
 import NewTeamForm from "@/features/teams/components/NewTeamForm"
+import NewProjectForm from "@/features/projects/components/NewProjectForm"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import type { ChangeEvent } from "react"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
+import { fetchProjects } from "@/features/projects/api"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -54,6 +56,14 @@ type TeamStat = {
   name: string
   memberCount: number | null
   projectTitle: string | null
+}
+
+type ProjectStat = {
+  id: string
+  title: string
+  status: string
+  teamName: string | null
+  createdAt: string
 }
 
 const TeamRow = React.memo(function TeamRow({
@@ -102,6 +112,63 @@ const TeamRow = React.memo(function TeamRow({
           <DropdownMenuItem className="text-red-600" onClick={() => onDelete(team.id)}>Sil</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+  )
+})
+
+const ProjectRow = React.memo(function ProjectRow({
+  project,
+  onSelect,
+}: {
+  project: ProjectStat
+  onSelect: (projectId: string) => void
+}) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Calendar className="h-3 w-3 text-blue-500" />
+      case 'completed':
+        return <CheckCircle className="h-3 w-3 text-green-500" />
+      case 'archived':
+        return <Folder className="h-3 w-3 text-gray-500" />
+      default:
+        return <Calendar className="h-3 w-3" />
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Aktif'
+      case 'completed':
+        return 'Tamamlandı'
+      case 'archived':
+        return 'Arşivlenmiş'
+      default:
+        return status
+    }
+  }
+
+  return (
+    <div
+      className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm"
+      onClick={() => onSelect(project.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect(project.id)
+      }}
+    >
+      <button type="button" onClick={() => onSelect(project.id)} className="text-left">
+        <div className="font-medium">{project.title}</div>
+        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+          {getStatusIcon(project.status)}
+          {getStatusText(project.status)}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {project.teamName ? `Takım: ${project.teamName}` : 'Kişisel Proje'}
+        </div>
+      </button>
     </div>
   )
 })
@@ -228,6 +295,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [loadingTeams, setLoadingTeams] = React.useState(false)
   const [teamError, setTeamError] = React.useState<string | null>(null)
   const [createOpen, setCreateOpen] = React.useState(false)
+  
+  const [projectStats, setProjectStats] = React.useState<ProjectStat[]>([])
+  const [loadingProjects, setLoadingProjects] = React.useState(false)
+  const [projectError, setProjectError] = React.useState<string | null>(null)
+  const [createProjectOpen, setCreateProjectOpen] = React.useState(false)
   const [renameOpen, setRenameOpen] = React.useState(false)
   const [renameValue, setRenameValue] = React.useState("")
   const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null)
@@ -290,13 +362,55 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, [])
 
+  const fetchProjectStats = React.useCallback(async () => {
+    try {
+      setLoadingProjects(true)
+      setProjectError(null)
+      const projects = await fetchProjects()
+      
+      // Takım isimlerini al
+      const supabase = getSupabase()
+      const teamIds = projects.filter(p => p.team_id).map(p => p.team_id!)
+      const teamNames = new Map<string, string>()
+      
+      if (teamIds.length > 0) {
+        const { data: teams } = await supabase
+          .from("teams")
+          .select("id,name")
+          .in("id", teamIds)
+        
+        teams?.forEach(team => {
+          teamNames.set(team.id, team.name)
+        })
+      }
+      
+      const stats = projects.map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        teamName: p.team_id ? teamNames.get(p.team_id) || null : null,
+        createdAt: p.created_at,
+      }))
+      
+      setProjectStats(stats)
+    } catch (e) {
+      setProjectError(e instanceof Error ? e.message : "Proje verileri alınamadı")
+    } finally {
+      setLoadingProjects(false)
+    }
+  }, [])
+
   React.useEffect(() => {
-    if (activeItem?.title !== "Takımlar") return
-    fetchTeamStats()
-  }, [activeItem, fetchTeamStats])
+    if (activeItem?.title === "Takımlar") {
+      fetchTeamStats()
+    } else if (activeItem?.title === "Projeler") {
+      fetchProjectStats()
+    }
+  }, [activeItem, fetchTeamStats, fetchProjectStats])
 
   const isTasksActive = activeItem?.title === "Görevlerim"
   const isTeamsActive = activeItem?.title === "Takımlar"
+  const isProjectsActive = activeItem?.title === "Projeler"
 
   const handleNavClick = React.useCallback(
     (item: (typeof data.navMain)[number]) => {
@@ -424,9 +538,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </Label>
             )}
             {isTeamsActive && (
-              <Button size="icon" variant="ghost" onClick={() => setCreateOpen(true)}>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                onClick={() => setCreateOpen(true)}
+                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+              >
                 <Plus className="size-4" />
                 <span className="sr-only">Takım oluştur</span>
+              </Button>
+            )}
+            {isProjectsActive && (
+              <Button 
+                size="icon" 
+                variant="outline" 
+                onClick={() => setCreateProjectOpen(true)}
+                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+              >
+                <Plus className="size-4" />
+                <span className="sr-only">Proje oluştur</span>
               </Button>
             )}
           </div>
@@ -457,6 +587,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           onAssignProject={onAssignProject}
                           onAddMember={onAddMember}
                           onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : isProjectsActive ? (
+                <div className="p-4">
+                  {loadingProjects && (
+                    <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+                  )}
+                  {projectError && (
+                    <p className="text-sm text-red-600">{projectError}</p>
+                  )}
+                  {!loadingProjects && !projectError && projectStats.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Henüz proje yok.</p>
+                  )}
+                  {!loadingProjects && !projectError && (
+                    <div className="flex flex-col">
+                      {projectStats.map((p) => (
+                        <ProjectRow
+                          key={p.id}
+                          project={p}
+                          onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
                         />
                       ))}
                     </div>
@@ -493,6 +646,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </DialogHeader>
           <div className="pt-2">
             <NewTeamForm onCreated={() => { setCreateOpen(false); fetchTeamStats() }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Project Modal */}
+      <Dialog open={createProjectOpen} onOpenChange={setCreateProjectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni Proje</DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">
+            <NewProjectForm onCreated={() => { setCreateProjectOpen(false); fetchProjectStats() }} />
           </div>
         </DialogContent>
       </Dialog>

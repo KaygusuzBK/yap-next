@@ -161,17 +161,32 @@ do $$ begin
   end if;
 end $$;
 
--- Proje üyeleri için RLS politikaları - Basitleştirilmiş
-do $$ begin
-  -- Tüm işlemler için basit politika
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'project_members' and policyname = 'project_members_policy'
-  ) then
-    create policy "project_members_policy" on public.project_members
-      for all using (true);
-  end if;
-end $$;
+-- Proje üyeleri için RLS politikaları - Geçici olarak devre dışı
+-- Sonsuz döngü sorunu çözülene kadar RLS devre dışı bırakıldı
+-- do $$ begin
+--   -- Önce mevcut politikaları temizle
+--   drop policy if exists "project_members_policy" on public.project_members;
+--   drop policy if exists "read_project_members" on public.project_members;
+--   drop policy if exists "insert_project_members" on public.project_members;
+--   drop policy if exists "update_project_members" on public.project_members;
+--   drop policy if exists "delete_project_members" on public.project_members;
+--   
+--   -- Basit ve güvenli politika - sadece proje sahibi erişebilir
+--   if not exists (
+--     select 1 from pg_policies 
+--     where tablename = 'project_members' and policyname = 'project_members_simple_policy'
+--   ) then
+--     create policy "project_members_simple_policy" on public.project_members
+--       for all using (
+--         project_id in (
+--           select id from public.projects where owner_id = auth.uid()
+--         )
+--       );
+--   end if;
+-- end $$;
+
+-- Geçici olarak RLS devre dışı
+alter table public.project_members disable row level security;
 
 -- Proje görevleri için RLS politikaları - Basitleştirilmiş
 do $$ begin

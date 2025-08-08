@@ -61,7 +61,7 @@ export default function ProjectDetailPage() {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('personal');
   const [status, setStatus] = useState<'active' | 'archived' | 'completed'>('active');
 
   const loadProject = useCallback(async () => {
@@ -72,7 +72,7 @@ export default function ProjectDetailPage() {
         setProject(projectData);
         setTitle(projectData.title);
         setDescription(projectData.description || '');
-        setSelectedTeamId(projectData.team_id || '');
+        setSelectedTeamId(projectData.team_id || 'personal');
         setStatus(projectData.status);
       } else {
         setError('Proje bulunamadı');
@@ -107,7 +107,7 @@ export default function ProjectDetailPage() {
         id: project.id,
         title: title.trim(),
         description: description.trim() || null,
-        team_id: selectedTeamId || null,
+        team_id: selectedTeamId === 'personal' ? null : selectedTeamId,
         status
       });
       
@@ -307,7 +307,7 @@ export default function ProjectDetailPage() {
                         <SelectValue placeholder="Takım seçin (opsiyonel)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Kişisel Proje</SelectItem>
+                        <SelectItem value="personal">Kişisel Proje</SelectItem>
                         {teams.map((team) => (
                           <SelectItem key={team.id} value={team.id}>
                             <div className="flex items-center gap-2">
