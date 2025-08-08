@@ -11,12 +11,12 @@ export default function ThemeToggle({ className }: { className?: string }) {
   return (
     <Button
       variant="outline"
-      size="icon"
+      size="sm"
       aria-label="Tema değiştirme"
       onClick={toggle}
-      className={cn(className)}
+      className={cn("h-8 w-8 p-0 justify-center", className)}
     >
-      {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </Button>
   );
 }
