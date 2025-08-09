@@ -246,16 +246,16 @@ const TaskRow = React.memo(function TaskRow({
     return 'text-green-600'
   }
 
-  const statusBorder = React.useMemo(() => {
+  const statusColor = React.useMemo(() => {
     switch (task.status) {
       case 'in_progress':
-        return 'border-l-2 border-blue-500'
+        return 'bg-blue-500'
       case 'completed':
-        return 'border-l-2 border-green-500'
-      case 'review':
-        return 'border-l-2 border-yellow-500'
+        return 'bg-green-500'
+      case 'review':  
+        return 'bg-yellow-500'
       default:
-        return 'border-l-2 border-transparent'
+        return 'bg-transparent'
     }
   }, [task.status])
 
@@ -324,9 +324,10 @@ const TaskRow = React.memo(function TaskRow({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className={`text-left flex-1 transform transition-transform ${statusBorder}`}
+        className={`relative text-left flex-1 transform transition-transform pl-3`}
         style={{ transform: dragX !== 0 ? `translateX(${dragX}px)` : undefined }}
       >
+        <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1.5 rounded ${statusColor}`} />
         <div className={`font-medium line-clamp-1 ${
           task.status === 'completed' ? 'line-through text-muted-foreground' : ''
         }`}>
