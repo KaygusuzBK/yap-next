@@ -20,7 +20,7 @@ export type Task = {
 export type TaskComment = {
   id: string;
   task_id: string;
-  user_id: string;
+  created_by: string;
   content: string;
   created_at: string;
   author_name?: string | null;
@@ -336,19 +336,32 @@ export async function fetchComments(taskId: string): Promise<TaskComment[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('task_comments')
-    .select(`id, task_id, user_id, content, created_at, profiles:profiles(full_name,email)`) // assumes FK profiles.id = user_id
+    .select(`id, task_id, created_by, content, created_at`)
     .eq('task_id', taskId)
     .order('created_at', { ascending: true });
   if (error) throw error;
-  type Row = { id: string; task_id: string; user_id: string; content: string; created_at: string; profiles?: { full_name?: string | null; email?: string | null } | null }
-  return ((data as Row[]) ?? []).map((row) => ({
+  type Row = { id: string; task_id: string; created_by: string; content: string; created_at: string }
+  const rows: Row[] = (data as Row[]) ?? []
+  const uniqueUserIds = Array.from(new Set(rows.map(r => r.created_by)))
+  let idToProfile: Record<string, { full_name?: string | null; email?: string | null }> = {}
+  if (uniqueUserIds.length > 0) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', uniqueUserIds)
+    if (profs) {
+      type Prof = { id: string; full_name?: string | null; email?: string | null }
+      idToProfile = Object.fromEntries((profs as Prof[]).map((p) => [p.id, { full_name: p.full_name, email: p.email }]))
+    }
+  }
+  return rows.map((row) => ({
     id: row.id,
     task_id: row.task_id,
-    user_id: row.user_id,
+    created_by: row.created_by,
     content: row.content,
     created_at: row.created_at,
-    author_name: row.profiles?.full_name ?? null,
-    author_email: row.profiles?.email ?? null,
+    author_name: idToProfile[row.created_by]?.full_name ?? null,
+    author_email: idToProfile[row.created_by]?.email ?? null,
   }))
 }
 
@@ -358,20 +371,29 @@ export async function addComment(taskId: string, content: string): Promise<TaskC
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
   const { data, error } = await supabase
     .from('task_comments')
-    .insert({ task_id: taskId, user_id: user.id, content })
-    .select(`id, task_id, user_id, content, created_at, profiles:profiles(full_name,email)`) // return joined info
+    .insert({ task_id: taskId, created_by: user.id, content })
+    .select(`id, task_id, created_by, content, created_at`)
     .single();
   if (error) throw error;
-  type Row = { id: string; task_id: string; user_id: string; content: string; created_at: string; profiles?: { full_name?: string | null; email?: string | null } | null }
+  type Row = { id: string; task_id: string; created_by: string; content: string; created_at: string }
   const row = data as Row
+  // fetch profile for author
+  let authorName: string | null = null
+  let authorEmail: string | null = null
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', row.created_by)
+    .single()
+  if (prof) { authorName = prof.full_name ?? null; authorEmail = prof.email ?? null }
   return {
     id: row.id,
     task_id: row.task_id,
-    user_id: row.user_id,
+    created_by: row.created_by,
     content: row.content,
     created_at: row.created_at,
-    author_name: row.profiles?.full_name ?? null,
-    author_email: row.profiles?.email ?? null,
+    author_name: authorName,
+    author_email: authorEmail,
   }
 }
 
