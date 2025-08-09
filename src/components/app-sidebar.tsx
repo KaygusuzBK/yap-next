@@ -310,6 +310,12 @@ const TaskRow = React.memo(function TaskRow({
     if (status === 'review') return 'completed'
     return null
   }
+  function getPrevStatus(status: TaskStat['status']): TaskStat['status'] | null {
+    if (status === 'completed') return 'review'
+    if (status === 'review') return 'in_progress'
+    if (status === 'in_progress') return 'todo'
+    return null
+  }
 
   return (
     <div
@@ -336,14 +342,17 @@ const TaskRow = React.memo(function TaskRow({
         {/* Status indicator */}
         <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1.5 rounded ${statusColor}`} />
 
-        {/* Swipe overlay (only left swipe) */}
-        {dragX < 0 && (
+        {/* Swipe overlay (left=next, right=prev) */}
+        {dragX !== 0 && (
           <div
-            className={`absolute inset-0 z-0 ${
-              getNextStatus(task.status) === 'in_progress' ? 'bg-blue-100 dark:bg-blue-900/30' :
-              getNextStatus(task.status) === 'review' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
-              getNextStatus(task.status) === 'completed' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-transparent'
-            }`}
+            className={`absolute inset-0 z-0 ${(() => {
+              const target = dragX < 0 ? getNextStatus(task.status) : getPrevStatus(task.status)
+              if (target === 'in_progress') return 'bg-blue-100 dark:bg-blue-900/30'
+              if (target === 'review') return 'bg-yellow-100 dark:bg-yellow-900/30'
+              if (target === 'completed') return 'bg-green-100 dark:bg-green-900/30'
+              if (target === 'todo') return 'bg-zinc-100 dark:bg-zinc-800/40'
+              return 'bg-transparent'
+            })()}`}
             style={{ opacity: Math.min(Math.abs(dragX) / 120, 0.85) }}
           />
         )}
@@ -391,6 +400,15 @@ const TaskRow = React.memo(function TaskRow({
             'text-green-700'
           }`}>
             {getNextStatus(task.status) === 'in_progress' ? 'Devam ediyor' : getNextStatus(task.status) === 'review' ? 'İncelemede' : 'Tamamlandı'}
+          </span>
+        )}
+        {dragX > 40 && getPrevStatus(task.status) && (
+          <span className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold drop-shadow-sm ${
+            getPrevStatus(task.status) === 'in_progress' ? 'text-blue-700' :
+            getPrevStatus(task.status) === 'review' ? 'text-yellow-700' :
+            getPrevStatus(task.status) === 'todo' ? 'text-zinc-700 dark:text-zinc-300' : ''
+          }`}>
+            {getPrevStatus(task.status) === 'in_progress' ? 'Devam ediyor' : getPrevStatus(task.status) === 'review' ? 'İncelemede' : 'Yapılacak'}
           </span>
         )}
       </button>
