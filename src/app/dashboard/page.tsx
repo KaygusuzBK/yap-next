@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { fetchProjects, type Project } from "@/features/projects/api"
 import { fetchTeams, type Team } from "@/features/teams/api"
-import { fetchMyTasks, type Task } from "@/features/tasks/api"
+import { fetchMyTasks, updateTask, type Task } from "@/features/tasks/api"
+import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
 import {
   Breadcrumb,
@@ -30,6 +31,8 @@ export default function Page() {
   const [myTasks, setMyTasks] = useState<Task[]>([])
   const [loadingTasks, setLoadingTasks] = useState(false)
   const [showCompletedBoard, setShowCompletedBoard] = useState(false)
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null)
+  const [dragOverStatus, setDragOverStatus] = useState<"todo" | "in_progress" | "review" | "completed" | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -67,8 +70,16 @@ export default function Page() {
         if (mounted) setLoadingTasks(false)
       }
     })()
+    const supabase = getSupabase()
+    const channel = supabase
+      .channel('board_project_tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => {
+        fetchMyTasks().then(setMyTasks).catch(() => {})
+      })
+      .subscribe()
     return () => {
       mounted = false
+      channel.unsubscribe()
     }
   }, [])
 
@@ -181,7 +192,28 @@ export default function Page() {
               ] as const).map((col) => {
                 const columnTasks = myTasks.filter(t => t.status === col.key && (showCompletedBoard || t.status !== 'completed'))
                 return (
-                  <Card key={col.key}>
+                  <Card
+                    key={col.key}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverStatus(col.key) }}
+                    onDragLeave={() => setDragOverStatus(prev => (prev === col.key ? null : prev))}
+                    onDrop={async () => {
+                      if (!dragTaskId) return
+                      const task = myTasks.find(t => t.id === dragTaskId)
+                      if (!task || task.status === col.key) { setDragOverStatus(null); setDragTaskId(null); return }
+                      const prevStatus = task.status
+                      // optimistic
+                      setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: col.key } : t))
+                      setDragOverStatus(null)
+                      setDragTaskId(null)
+                      try {
+                        await updateTask({ id: task.id, status: col.key })
+                      } catch {
+                        // revert
+                        setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
+                      }
+                    }}
+                    className={dragOverStatus === col.key ? 'ring-2 ring-primary' : undefined}
+                  >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">{col.title}</CardTitle>
                       <Badge variant={col.key === 'completed' ? 'secondary' : 'outline'}>{loadingTasks ? '...' : columnTasks.length}</Badge>
@@ -193,9 +225,14 @@ export default function Page() {
                         <div className="text-sm text-muted-foreground">Kayıt yok</div>
                       ) : (
                         <div className="space-y-2">
-                          {columnTasks.slice(0, 5).map(task => (
-                            <Link key={task.id} href={`/dashboard/tasks/${task.id}`} className="block">
-                              <div className="rounded-md border p-2 hover:bg-muted/50 transition-colors">
+                          {columnTasks.slice(0, 50).map(task => (
+                            <div
+                              key={task.id}
+                              draggable
+                              onDragStart={() => setDragTaskId(task.id)}
+                              className="rounded-md border p-2 hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing"
+                              onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
+                            >
                                 <div className="text-sm font-medium truncate">{task.title}</div>
                                 <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                                   {task.project_title && <span className="truncate">{task.project_title}</span>}
@@ -204,8 +241,7 @@ export default function Page() {
                                     {task.priority}
                                   </span>
                                 </div>
-                              </div>
-                            </Link>
+                            </div>
                           ))}
                           {columnTasks.length > 5 && (
                             <div className="text-xs text-muted-foreground">+{columnTasks.length - 5} daha</div>
