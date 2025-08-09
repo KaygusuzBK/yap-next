@@ -736,6 +736,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, [activeItem, fetchTeamStats, fetchProjectStats, fetchTaskStats])
 
+  // Realtime: refresh tasks in sidebar when project_tasks change anywhere
+  React.useEffect(() => {
+    const supabase = getSupabase()
+    const channel = supabase
+      .channel('sidebar-task-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => {
+        fetchTaskStats()
+      })
+      .subscribe()
+
+    const onFocus = () => fetchTaskStats()
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      try { supabase.removeChannel(channel) } catch {}
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [fetchTaskStats])
+
   const isTasksActive = activeItem?.title === "Görevlerim"
   const isTeamsActive = activeItem?.title === "Takımlar"
   const isProjectsActive = activeItem?.title === "Projeler"
