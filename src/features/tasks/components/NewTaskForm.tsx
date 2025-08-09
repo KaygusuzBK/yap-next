@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createTask } from '../api';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface NewTaskFormProps {
   projectId: string;
@@ -127,9 +128,12 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <input id="notifySlack" type="checkbox" className="rounded" checked={notifySlack} onChange={(e) => setNotifySlack(e.target.checked)} />
-        <Label htmlFor="notifySlack">Slack’e mesaj yolla</Label>
+      <div className="flex items-center justify-between rounded-md border p-3">
+        <div className="space-y-0.5">
+          <div className="text-sm font-medium">Slack’e mesaj yolla</div>
+          <div className="text-xs text-muted-foreground">Görev oluşturulunca seçili Slack kanalına bildirim gönder.</div>
+        </div>
+        <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
       </div>
 
       <div className="flex items-center gap-2 pt-4">

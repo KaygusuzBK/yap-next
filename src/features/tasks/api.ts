@@ -109,10 +109,20 @@ export async function createTask(input: {
     try {
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || ''
       const url = baseUrl ? `${baseUrl}/dashboard/tasks/${task.id}` : undefined
+      // Fetch project title for Slack message
+      let project_title: string | undefined
+      try {
+        const { data: proj } = await supabase
+          .from('projects')
+          .select('title')
+          .eq('id', task.project_id)
+          .single()
+        project_title = proj?.title
+      } catch {}
       await fetch('/api/slack/task-created', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, priority: task.priority, status: task.status, due_date: task.due_date, url } })
+        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, project_title, priority: task.priority, status: task.status, due_date: task.due_date, url } })
       }).catch(() => {})
     } catch {}
   }
