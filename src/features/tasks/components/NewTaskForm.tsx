@@ -23,6 +23,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
   const [status, setStatus] = useState<'todo' | 'in_progress' | 'review' | 'completed'>('todo');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [notifySlack, setNotifySlack] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +42,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
         priority,
         status,
         due_date: dueDate || null,
+        notifySlack,
       });
       
       toast.success('Görev başarıyla oluşturuldu');
@@ -123,6 +125,11 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
           onChange={(e) => setDueDate(e.target.value)}
           disabled={loading}
         />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input id="notifySlack" type="checkbox" className="rounded" checked={notifySlack} onChange={(e) => setNotifySlack(e.target.checked)} />
+        <Label htmlFor="notifySlack">Slack’e mesaj yolla</Label>
       </div>
 
       <div className="flex items-center gap-2 pt-4">
