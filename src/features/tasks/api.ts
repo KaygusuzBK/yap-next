@@ -28,6 +28,50 @@ export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
   return data ?? [];
 }
 
+export async function fetchMyTasks(): Promise<Task[]> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  type SupabaseTaskRow = {
+    id: string;
+    project_id: string;
+    title: string;
+    description: string | null;
+    status: Task['status'];
+    priority: Task['priority'];
+    assigned_to: string | null;
+    created_by: string;
+    due_date: string | null;
+    created_at: string;
+    updated_at: string;
+    projects?: { title?: string } | null;
+  };
+
+  const { data, error } = await supabase
+    .from('project_tasks')
+    .select(`*, projects(title)`) // join for project title
+    .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data as SupabaseTaskRow[] | null ?? []).map((row) => ({
+    id: row.id,
+    project_id: row.project_id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    priority: row.priority,
+    assigned_to: row.assigned_to,
+    created_by: row.created_by,
+    due_date: row.due_date,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    project_title: row.projects?.title,
+  })) as Task[];
+}
+
 export async function createTask(input: {
   project_id: string;
   title: string;
