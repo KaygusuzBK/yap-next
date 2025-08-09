@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import Input from "@/components/ui/input"
 import NewTeamForm from "@/features/teams/components/NewTeamForm"
 import NewProjectForm from "@/features/projects/components/NewProjectForm"
+import NewTaskForm from "@/features/tasks/components/NewTaskForm"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ import {
 
 import { NavUser } from "@/components/nav-user"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Sidebar,
   SidebarContent,
@@ -515,6 +517,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       
       // Önce projeleri al
       const projects = await fetchProjects()
+      // Mevcut kullanıcıyı al
+      const supabase = getSupabase()
+      const { data: auth } = await supabase.auth.getUser()
+      const currentUserId = auth?.user?.id || null
       
       // Her proje için görevleri al
       const allTasks: TaskStat[] = []
@@ -523,7 +529,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         try {
           const tasks = await fetchTasksByProject(project.id)
           
-          const projectTasks = tasks.map(task => {
+          const projectTasks = tasks
+            .filter(task => {
+              // Sadece bana atanmış görevler
+              if (!currentUserId) return false
+              return task.assigned_to === currentUserId
+            })
+            .map(task => {
             const dueDate = task.due_date ? new Date(task.due_date) : null
             const now = new Date()
             const daysRemaining = dueDate 
@@ -621,6 +633,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [teamProjects, setTeamProjects] = React.useState<Array<{ id: string; title: string }>>([])
   const [addMemberOpen, setAddMemberOpen] = React.useState(false)
   const [memberEmail, setMemberEmail] = React.useState("")
+  const [createTaskOpen, setCreateTaskOpen] = React.useState(false)
+  const [taskProjectId, setTaskProjectId] = React.useState<string | null>(null)
 
   const onAssignProject = React.useCallback(async (teamId: string) => {
     setSelectedTeamId(teamId)
@@ -720,7 +734,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
             {isTasksActive && (
               <Label className="flex items-center gap-2 text-sm">
-                <span>Yapılanlar</span>
+                <span>Bitenler</span>
                 <Switch className="shadow-none" />
               </Label>
             )}
@@ -744,6 +758,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               >
                 <Plus className="size-4" />
                 <span className="sr-only">Proje oluştur</span>
+              </Button>
+            )}
+            {(isTasksActive || isProjectsActive) && (
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => { setTaskProjectId(null); setCreateTaskOpen(true) }}
+                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+              >
+                <Plus className="size-4" />
+                <span className="sr-only">Görev oluştur</span>
               </Button>
             )}
           </div>
@@ -938,6 +963,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               }
             }}>{saving ? "Kaydediliyor..." : "Kaydet"}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Task Modal (two-step) */}
+      <Dialog open={createTaskOpen} onOpenChange={setCreateTaskOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{taskProjectId ? 'Yeni Görev' : 'Proje Seçin'}</DialogTitle>
+          </DialogHeader>
+          {!taskProjectId ? (
+            <div className="space-y-3">
+              <Label className="text-sm">Proje</Label>
+              <Select value={taskProjectId ?? ''} onValueChange={(v) => setTaskProjectId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Bir proje seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectStats.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateTaskOpen(false)}>Vazgeç</Button>
+                <Button disabled={!taskProjectId} onClick={() => taskProjectId && setTaskProjectId(taskProjectId)}>Devam</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <NewTaskForm 
+                projectId={taskProjectId}
+                onCreated={() => { setCreateTaskOpen(false); setTaskProjectId(null); if (isTasksActive) fetchTaskStats() }}
+                onCancel={() => { setCreateTaskOpen(false); setTaskProjectId(null) }}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
