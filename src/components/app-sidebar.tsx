@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog"
 import type { ChangeEvent } from "react"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
+import { updateTask } from "@/features/tasks/api"
 import { fetchProjects } from "@/features/projects/api"
 import { fetchTasksByProject } from "@/features/tasks/api"
 import {
@@ -190,10 +191,15 @@ const ProjectRow = React.memo(function ProjectRow({
 const TaskRow = React.memo(function TaskRow({
   task,
   onSelect,
+  onStatusChange,
 }: {
   task: TaskStat
   onSelect: (taskId: string) => void
+  onStatusChange: (taskId: string, status: TaskStat['status']) => void
 }) {
+  const [dragX, setDragX] = React.useState(0)
+  const startXRef = React.useRef<number | null>(null)
+
   const getPriorityColor = (priority: TaskStat['priority']) => {
     switch (priority) {
       case 'low':
@@ -240,6 +246,65 @@ const TaskRow = React.memo(function TaskRow({
     return 'text-green-600'
   }
 
+  const statusBorder = React.useMemo(() => {
+    switch (task.status) {
+      case 'in_progress':
+        return 'border-l-2 border-blue-500'
+      case 'completed':
+        return 'border-l-2 border-green-500'
+      case 'review':
+        return 'border-l-2 border-yellow-500'
+      default:
+        return 'border-l-2 border-transparent'
+    }
+  }, [task.status])
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    startXRef.current = e.clientX
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+  const onMouseMove = (e: MouseEvent) => {
+    if (startXRef.current == null) return
+    const dx = e.clientX - startXRef.current
+    setDragX(dx)
+  }
+  const onMouseUp = () => {
+    if (startXRef.current != null) {
+      const dx = dragX
+      if (dx > 80) {
+        onStatusChange(task.id, 'in_progress')
+      } else if (dx < -80) {
+        onStatusChange(task.id, 'completed')
+      }
+    }
+    startXRef.current = null
+    setDragX(0)
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('mouseup', onMouseUp)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startXRef.current == null) return
+    const dx = e.touches[0].clientX - startXRef.current
+    setDragX(dx)
+  }
+  const onTouchEnd = () => {
+    if (startXRef.current != null) {
+      const dx = dragX
+      if (dx > 80) {
+        onStatusChange(task.id, 'in_progress')
+      } else if (dx < -80) {
+        onStatusChange(task.id, 'completed')
+      }
+    }
+    startXRef.current = null
+    setDragX(0)
+  }
+
   return (
     <div
       className={`hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm ${
@@ -252,7 +317,16 @@ const TaskRow = React.memo(function TaskRow({
         if (e.key === "Enter" || e.key === " ") onSelect(task.id)
       }}
     >
-      <button type="button" onClick={() => onSelect(task.id)} className="text-left flex-1">
+      <button
+        type="button"
+        onClick={() => onSelect(task.id)}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className={`text-left flex-1 transform transition-transform ${statusBorder}`}
+        style={{ transform: dragX !== 0 ? `translateX(${dragX}px)` : undefined }}
+      >
         <div className={`font-medium line-clamp-1 ${
           task.status === 'completed' ? 'line-through text-muted-foreground' : ''
         }`}>
@@ -275,6 +349,12 @@ const TaskRow = React.memo(function TaskRow({
             {getDaysRemainingText(task.days_remaining)}
           </span>
         </div>
+        {dragX > 40 && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600">Devam ediyor</span>
+        )}
+        {dragX < -40 && (
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-green-600">Tamamlandı</span>
+        )}
       </button>
     </div>
   )
@@ -1075,10 +1155,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         return (
                           <div className="flex flex-col">
                             {filtered.slice(0, 12).map((task) => (
-                              <TaskRow
+                          <TaskRow
                                 key={task.id}
                                 task={task}
-                                onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
+                            onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
+                            onStatusChange={async (taskId, status) => {
+                              try {
+                                await updateTask({ id: taskId, status })
+                                fetchTaskStats()
+                              } catch (e) {
+                                console.error('Durum güncellenemedi', e)
+                              }
+                            }}
                               />
                             ))}
                             {filtered.length > 12 && (
@@ -1256,8 +1344,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             if (filtered.length === 0) return <p className="text-sm text-muted-foreground">Görev yok.</p>
             return (
               <div className="space-y-2">
-                {filtered.map(task => (
-                  <TaskRow key={task.id} task={task} onSelect={(id) => router.push(`/dashboard/tasks/${id}`)} />
+                        {filtered.map(task => (
+                  <TaskRow key={task.id} task={task} onSelect={(id) => router.push(`/dashboard/tasks/${id}`)} onStatusChange={() => {}} />
                 ))}
               </div>
             )
