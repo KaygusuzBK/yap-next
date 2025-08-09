@@ -419,8 +419,8 @@ const TaskRow = React.memo(function TaskRow({
 // This is sample data
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "",
+    email: "",
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
@@ -970,7 +970,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <NavUser user={data.user} />
+          <NavUser user={{
+            name: (typeof window !== 'undefined' ? window.localStorage.getItem('profile_name') : null) || 'Kullanıcı',
+            email: (typeof window !== 'undefined' ? window.localStorage.getItem('profile_email') : null) || '—',
+            avatar: data.user.avatar,
+          }} />
         </SidebarFooter>
       </Sidebar>
 

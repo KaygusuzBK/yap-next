@@ -22,7 +22,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        setUser(data.session?.user ?? null);
+        const u = data.session?.user ?? null
+        setUser(u);
+        try {
+          if (typeof window !== 'undefined') {
+            const getMetaString = (obj: unknown, key: string): string | '' => {
+              if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
+                const val = (obj as Record<string, unknown>)[key]
+                return typeof val === 'string' ? val : ''
+              }
+              return ''
+            }
+            const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
+            const email = u?.email ?? ''
+            if (fullName) window.localStorage.setItem('profile_name', fullName)
+            if (email) window.localStorage.setItem('profile_email', email)
+          }
+        } catch {}
       } finally {
         setLoading(false);
       }
@@ -30,7 +46,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     init();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null
+      setUser(u);
+      try {
+        if (typeof window !== 'undefined') {
+          const getMetaString = (obj: unknown, key: string): string | '' => {
+            if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
+              const val = (obj as Record<string, unknown>)[key]
+              return typeof val === 'string' ? val : ''
+            }
+            return ''
+          }
+          const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
+          const email = u?.email ?? ''
+          if (fullName) window.localStorage.setItem('profile_name', fullName)
+          if (email) window.localStorage.setItem('profile_email', email)
+        }
+      } catch {}
     });
 
     return () => {
