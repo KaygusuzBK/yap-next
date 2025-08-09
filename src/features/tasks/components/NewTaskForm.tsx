@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,14 +10,17 @@ import { createTask } from '../api';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface NewTaskFormProps {
   projectId: string;
   onCreated?: () => void;
   onCancel?: () => void;
+  defaultSlackWebhookUrl?: string;
 }
 
-export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskFormProps) {
+export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSlackWebhookUrl }: NewTaskFormProps) {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
@@ -26,6 +29,29 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
   const [loading, setLoading] = useState(false);
   const [notifySlack, setNotifySlack] = useState(true);
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+
+  // Load/save temporary preferences from localStorage (per-user if available)
+  useEffect(() => {
+    try {
+      const key = `prefs:${user?.id || 'anon'}:slack`;
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const saved = JSON.parse(raw) as { notify?: boolean; webhook?: string };
+        if (typeof saved.notify === 'boolean') setNotifySlack(saved.notify);
+        if (typeof saved.webhook === 'string') setSlackWebhookUrl(saved.webhook);
+      } else if (defaultSlackWebhookUrl) {
+        setSlackWebhookUrl(defaultSlackWebhookUrl);
+      }
+    } catch {}
+  }, [user?.id, defaultSlackWebhookUrl]);
+
+  useEffect(() => {
+    try {
+      const key = `prefs:${user?.id || 'anon'}:slack`;
+      const payload = JSON.stringify({ notify: notifySlack, webhook: slackWebhookUrl });
+      window.localStorage.setItem(key, payload);
+    } catch {}
+  }, [notifySlack, slackWebhookUrl, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -9,6 +9,7 @@ export type Project = {
   description: string | null;
   team_id: string | null;
   status: 'active' | 'archived' | 'completed';
+  slack_webhook_url?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -41,7 +42,7 @@ export async function createProject(input: { title: string; description?: string
   return data as Project;
 }
 
-export async function updateProject(input: { id: string; title?: string; description?: string | null; team_id?: string | null; status?: 'active' | 'archived' | 'completed' }): Promise<Project> {
+export async function updateProject(input: { id: string; title?: string; description?: string | null; team_id?: string | null; status?: 'active' | 'archived' | 'completed'; slack_webhook_url?: string | null }): Promise<Project> {
   const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -71,6 +72,7 @@ export async function updateProject(input: { id: string; title?: string; descrip
       description: input.description,
       team_id: input.team_id,
       status: input.status,
+      slack_webhook_url: input.slack_webhook_url,
       updated_at: new Date().toISOString()
     })
     .eq('id', input.id)
