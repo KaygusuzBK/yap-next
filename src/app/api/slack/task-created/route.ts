@@ -29,13 +29,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'missing_task' }, { status: 400 })
   }
 
+  const formatPriority = (p?: TaskPayload['priority']) => {
+    switch (p) {
+      case 'urgent': return 'Acil'
+      case 'high': return 'Yüksek'
+      case 'medium': return 'Orta'
+      case 'low': return 'Düşük'
+      default: return undefined
+    }
+  }
+
+  const formatStatus = (s?: TaskPayload['status']) => {
+    switch (s) {
+      case 'todo': return 'Yapılacak'
+      case 'in_progress': return 'Devam ediyor'
+      case 'review': return 'İncelemede'
+      case 'completed': return 'Tamamlandı'
+      default: return undefined
+    }
+  }
+
   const lines: string[] = []
-  lines.push(`Yeni görev: *${task.title}*`)
-  if (task.project_title) lines.push(`Proje: ${task.project_title}`)
-  if (task.priority) lines.push(`Öncelik: ${task.priority}`)
-  if (task.status) lines.push(`Durum: ${task.status}`)
+  const titleLine = task.project_title
+    ? `Yeni görev: *${task.title}* (${task.project_title})`
+    : `Yeni görev: *${task.title}*`
+  lines.push(titleLine)
+  const pr = formatPriority(task.priority)
+  const st = formatStatus(task.status)
+  if (pr) lines.push(`Öncelik: ${pr}`)
+  if (st) lines.push(`Durum: ${st}`)
   if (task.due_date) lines.push(`Bitiş: ${new Date(task.due_date).toLocaleString('tr-TR')}`)
-  if (task.url) lines.push(`<${task.url}|Görevi aç> )`)
+  if (task.url) lines.push(`<${task.url}|Görevi aç>`)
 
   const text = lines.join('\n')
 
