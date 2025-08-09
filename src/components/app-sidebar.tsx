@@ -1401,7 +1401,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             return (
               <div className="space-y-2">
                         {filtered.map(task => (
-                  <TaskRow key={task.id} task={task} onSelect={(id) => router.push(`/dashboard/tasks/${id}`)} onStatusChange={() => {}} />
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    onSelect={(id) => router.push(`/dashboard/tasks/${id}`)}
+                    onStatusChange={async (taskId, status) => {
+                      try {
+                        await updateTask({ id: taskId, status })
+                        fetchTaskStats()
+                      } catch (e) {
+                        console.error('Durum güncellenemedi', e)
+                      }
+                    }}
+                  />
                 ))}
               </div>
             )
