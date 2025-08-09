@@ -17,6 +17,26 @@ export type Task = {
   project_title?: string;
 };
 
+export type TaskComment = {
+  id: string;
+  task_id: string;
+  created_by: string;
+  content: string;
+  created_at: string;
+  author_name?: string | null;
+  author_email?: string | null;
+};
+
+export type TaskFile = {
+  path: string;
+  name: string;
+  url: string | null;
+  created_at?: string;
+  size?: number | null;
+};
+
+const TASK_FILES_BUCKET = 'task-files';
+
 export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -309,6 +329,120 @@ export async function deleteTask(taskId: string): Promise<void> {
     .eq('id', taskId);
     
   if (taskError) throw taskError;
+}
+
+// Comments CRUD
+export async function fetchComments(taskId: string): Promise<TaskComment[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('task_comments')
+    .select(`id, task_id, created_by, content, created_at`)
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  type Row = { id: string; task_id: string; created_by: string; content: string; created_at: string }
+  const rows: Row[] = (data as Row[]) ?? []
+  const uniqueUserIds = Array.from(new Set(rows.map(r => r.created_by)))
+  let idToProfile: Record<string, { full_name?: string | null; email?: string | null }> = {}
+  if (uniqueUserIds.length > 0) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', uniqueUserIds)
+    if (profs) {
+      type Prof = { id: string; full_name?: string | null; email?: string | null }
+      idToProfile = Object.fromEntries((profs as Prof[]).map((p) => [p.id, { full_name: p.full_name, email: p.email }]))
+    }
+  }
+  return rows.map((row) => ({
+    id: row.id,
+    task_id: row.task_id,
+    created_by: row.created_by,
+    content: row.content,
+    created_at: row.created_at,
+    author_name: idToProfile[row.created_by]?.full_name ?? null,
+    author_email: idToProfile[row.created_by]?.email ?? null,
+  }))
+}
+
+export async function addComment(taskId: string, content: string): Promise<TaskComment> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+  const { data, error } = await supabase
+    .from('task_comments')
+    .insert({ task_id: taskId, created_by: user.id, content })
+    .select(`id, task_id, created_by, content, created_at`)
+    .single();
+  if (error) throw error;
+  type Row = { id: string; task_id: string; created_by: string; content: string; created_at: string }
+  const row = data as Row
+  // fetch profile for author
+  let authorName: string | null = null
+  let authorEmail: string | null = null
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', row.created_by)
+    .single()
+  if (prof) { authorName = prof.full_name ?? null; authorEmail = prof.email ?? null }
+  return {
+    id: row.id,
+    task_id: row.task_id,
+    created_by: row.created_by,
+    content: row.content,
+    created_at: row.created_at,
+    author_name: authorName,
+    author_email: authorEmail,
+  }
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
+  if (error) throw error;
+}
+
+// Files (Supabase Storage)
+export async function listTaskFiles(taskId: string): Promise<TaskFile[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.storage.from(TASK_FILES_BUCKET).list(taskId, {
+    limit: 100,
+    offset: 0,
+    sortBy: { column: 'created_at', order: 'asc' },
+  });
+  if (error) throw error;
+  type Entry = { name: string; created_at?: string; metadata?: { size?: number } }
+  const files = ((data as Entry[]) ?? []).map((f) => {
+    const fullPath = `${taskId}/${f.name}`;
+    const pub = supabase.storage.from(TASK_FILES_BUCKET).getPublicUrl(fullPath);
+    return {
+      path: fullPath,
+      name: f.name,
+      url: pub.data.publicUrl || null,
+      created_at: f.created_at || undefined,
+      size: f.metadata?.size ?? null,
+    } as TaskFile;
+  });
+  return files;
+}
+
+export async function uploadTaskFile(taskId: string, file: File): Promise<TaskFile> {
+  const supabase = getSupabase();
+  const safeName = file.name.replace(/\s+/g, '_');
+  const path = `${taskId}/${Date.now()}_${safeName}`;
+  const { error } = await supabase.storage
+    .from(TASK_FILES_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+  if (error) throw error;
+  const pub = supabase.storage.from(TASK_FILES_BUCKET).getPublicUrl(path);
+  return { path, name: path.split('/').pop() || file.name, url: pub.data.publicUrl };
+}
+
+export async function deleteTaskFile(path: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.storage.from(TASK_FILES_BUCKET).remove([path]);
+  if (error) throw error;
 }
 
 

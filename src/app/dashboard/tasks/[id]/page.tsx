@@ -20,7 +20,7 @@ import {
   Plus,
   Loader2
 } from 'lucide-react';
-import { fetchTaskById, getProjectMembers, type Task } from '../../../../features/tasks/api';
+import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, type Task, type TaskComment, type TaskFile } from '../../../../features/tasks/api';
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
 import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
@@ -44,6 +44,11 @@ export default function TaskDetailPage() {
   const [editing, setEditing] = useState(false);
   const [showAssignment, setShowAssignment] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; email: string; name?: string }>>([]);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [files, setFiles] = useState<TaskFile[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const loadTask = useCallback(async () => {
     try {
@@ -56,8 +61,8 @@ export default function TaskDetailPage() {
       try {
         const members = await getProjectMembers(taskData.project_id);
         setProjectMembers(members);
-      } catch (memberError) {
-        console.error('Proje üyeleri yüklenirken hata:', memberError);
+    } catch {
+        // ignore
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Görev yüklenirken bir hata oluştu');
@@ -70,8 +75,61 @@ export default function TaskDetailPage() {
   useEffect(() => {
     if (taskId) {
       loadTask();
+      // load comments
+      fetchComments(taskId).then(setComments).catch(() => {});
+      // load files
+      listTaskFiles(taskId).then(setFiles).catch(() => {});
     }
   }, [taskId, loadTask]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!task) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const saved = await uploadTaskFile(task.id, file);
+      setFiles((prev) => [...prev, saved]);
+    } catch {
+      toast.error('Dosya yüklenemedi');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteFile = async (path: string) => {
+    try {
+      await deleteTaskFile(path);
+      setFiles((prev) => prev.filter((f) => f.path !== path));
+    } catch {
+      toast.error('Dosya silinemedi');
+    }
+  };
+
+  const handleAddComment = async () => {
+    const content = newComment.trim();
+    if (!content || !task) return;
+    try {
+      setCommentLoading(true);
+      const created = await addComment(task.id, content);
+      setComments((prev) => [...prev, created]);
+      setNewComment('');
+    } catch (e) {
+      toast.error('Yorum eklenemedi');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    try {
+      await deleteComment(id);
+      setComments((prev) => prev.filter((c) => c.id !== id));
+    } catch {
+      toast.error('Yorum silinemedi');
+    }
+  };
 
   const handleAssignmentChange = () => {
     loadTask(); // Görevi yeniden yükle
@@ -295,18 +353,52 @@ export default function TaskDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Yorumlar
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('task.comments.add')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Yorum yaz..."
+                        className="border rounded px-2 py-1 text-sm w-64"
+                      />
+                      <Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
+                        {commentLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Kaydediliyor
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-2" />
+                            {t('task.comments.add')}
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('task.comments.empty')}</p>
-                    <p className="text-sm">{t('task.comments.first')}</p>
-                  </div>
+                  {comments.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>{t('task.comments.empty')}</p>
+                      <p className="text-sm">{t('task.comments.first')}</p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {comments.map((c) => (
+                        <li key={c.id} className="border rounded p-3">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{c.author_name || c.author_email || 'Kullanıcı'}</span>
+                            <span>{new Date(c.created_at).toLocaleString('tr-TR')}</span>
+                          </div>
+                          <div className="mt-1 text-sm whitespace-pre-wrap">{c.content}</div>
+                          <div className="mt-2 text-right">
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteComment(c.id)}>Sil</Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -316,18 +408,43 @@ export default function TaskDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                 {t('task.tabs.files')}
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('task.files.add')}
-                    </Button>
+                    <div>
+                      <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="file" className="hidden" onChange={handleUpload} />
+                        <Button size="sm" disabled={uploading}>
+                          {uploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Yükleniyor
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" /> {t('task.files.add')}
+                            </>
+                          )}
+                        </Button>
+                      </label>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('task.files.empty')}</p>
-                    <p className="text-sm">{t('task.files.first')}</p>
-                  </div>
+                  {files.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>{t('task.files.empty')}</p>
+                      <p className="text-sm">{t('task.files.first')}</p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {files.map((f) => (
+                        <li key={f.path} className="flex items-center justify-between border rounded p-2 text-sm">
+                          <a href={f.url || '#'} target="_blank" rel="noreferrer" className="underline truncate max-w-[70%]">
+                            {f.name}
+                          </a>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteFile(f.path)}>Sil</Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
