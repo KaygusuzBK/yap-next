@@ -68,7 +68,7 @@ export default function ProjectDetailPage() {
   const [description, setDescription] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('personal');
   const [status, setStatus] = useState<'active' | 'archived' | 'completed'>('active');
-  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+  // Removed persisted project-level Slack webhook (manual entry will be used in task form)
 
   const loadProject = useCallback(async () => {
     try {
@@ -80,7 +80,6 @@ export default function ProjectDetailPage() {
         setDescription(projectData.description || '');
         setSelectedTeamId(projectData.team_id || 'personal');
         setStatus(projectData.status);
-        setSlackWebhookUrl(projectData.slack_webhook_url ?? '');
       } else {
         setError(t('project.notFound'));
       }
@@ -116,7 +115,6 @@ export default function ProjectDetailPage() {
         description: description.trim() || null,
         team_id: selectedTeamId === 'personal' ? null : selectedTeamId,
         status,
-        slack_webhook_url: slackWebhookUrl.trim() || null,
       });
       
       setProject(updatedProject);
@@ -329,11 +327,6 @@ export default function ProjectDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Slack Webhook URL</Label>
-                    <Input value={slackWebhookUrl} onChange={(e) => setSlackWebhookUrl(e.target.value)} placeholder="https://hooks.slack.com/services/..." />
-                  </div>
-                  
-                  <div className="space-y-2">
                     <Label htmlFor="status">{t('project.details.fields.status')}</Label>
                     <Select value={status} onValueChange={(value: 'active' | 'archived' | 'completed') => setStatus(value)}>
                       <SelectTrigger>
@@ -368,13 +361,6 @@ export default function ProjectDetailPage() {
                         teams.find(t => t.id === project.team_id)?.name || t('project.details.unknownTeam') : 
                         t('project.details.personalProject')
                       }
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">Slack Webhook URL</Label>
-                    <p className="text-sm text-muted-foreground mt-1 break-all">
-                      {project.slack_webhook_url || '-'}
                     </p>
                   </div>
 
@@ -461,7 +447,6 @@ export default function ProjectDetailPage() {
               <CardContent>
                   <NewTaskForm
                     projectId={projectId}
-                    defaultSlackWebhookUrl={project.slack_webhook_url || undefined}
                   onCreated={() => {
                     setShowTaskForm(false);
                     // Görev listesini yenilemek için key değiştir
