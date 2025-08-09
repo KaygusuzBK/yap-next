@@ -120,10 +120,18 @@ export async function createTask(input: {
           .single()
         project_title = proj?.title
       } catch {}
+      // If no explicit URL from form, try per-project KV store
+      let webhookUrl = input.slackWebhookUrl
+      if (!webhookUrl && typeof window !== 'undefined') {
+        const res = await fetch(`/api/slack/webhook?projectId=${task.project_id}`)
+        type WebhookResp = { webhookUrl?: string | null }
+        const j: WebhookResp = await res.json().catch(() => ({} as WebhookResp))
+        if (j && typeof j.webhookUrl === 'string') webhookUrl = j.webhookUrl
+      }
       await fetch('/api/slack/task-created', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, project_title, priority: task.priority, status: task.status, due_date: task.due_date, url }, webhookUrl: input.slackWebhookUrl })
+        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, project_title, priority: task.priority, status: task.status, due_date: task.due_date, url }, webhookUrl })
       }).catch(() => {})
     } catch {}
   }
