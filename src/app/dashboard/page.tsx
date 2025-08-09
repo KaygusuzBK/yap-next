@@ -1,10 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import NewTeamForm from "@/features/teams/components/NewTeamForm"
-import TeamList from "@/features/teams/components/TeamList"
-import NewProjectForm from "@/features/projects/components/NewProjectForm"
-import ProjectList from "@/features/projects/components/ProjectList"
 import { fetchProjects, type Project } from "@/features/projects/api"
 import { fetchTeams, type Team } from "@/features/teams/api"
 import { useI18n } from "@/i18n/I18nProvider"
@@ -21,7 +17,6 @@ import { Folder, Users, Calendar, TrendingUp } from "lucide-react"
 
 export default function Page() {
   const { t } = useI18n()
-  const [refreshKey, setRefreshKey] = useState(0)
   const [projects, setProjects] = useState<Project[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loadingProjects, setLoadingProjects] = useState(false)
@@ -55,7 +50,7 @@ export default function Page() {
     return () => {
       mounted = false
     }
-  }, [refreshKey])
+  }, [])
 
   return (
     <main className="flex flex-1 flex-col p-2 gap-4">
@@ -143,17 +138,7 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="space-y-3" id="teams">
-          <h1 className="text-lg font-semibold">{t('dashboard.sections.teams')}</h1>
-          <NewTeamForm onCreated={() => setRefreshKey((k) => k + 1)} />
-          <TeamList refreshKey={refreshKey} />
-        </section>
-
-        <section className="space-y-3" id="projects">
-          <h2 className="text-lg font-semibold">{t('dashboard.sections.projects')}</h2>
-          <NewProjectForm onCreated={() => setRefreshKey((k) => k + 1)} />
-          <ProjectList refreshKey={refreshKey} />
-        </section>
+        {/* Teams and Projects sections removed as requested */}
       </div>
     </main>
   )
