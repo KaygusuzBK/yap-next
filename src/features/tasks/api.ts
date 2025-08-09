@@ -27,6 +27,16 @@ export type TaskComment = {
   author_email?: string | null;
 };
 
+export type TaskFile = {
+  path: string;
+  name: string;
+  url: string | null;
+  created_at?: string;
+  size?: number | null;
+};
+
+const TASK_FILES_BUCKET = 'task-files';
+
 export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -368,6 +378,48 @@ export async function addComment(taskId: string, content: string): Promise<TaskC
 export async function deleteComment(commentId: string): Promise<void> {
   const supabase = getSupabase();
   const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
+  if (error) throw error;
+}
+
+// Files (Supabase Storage)
+export async function listTaskFiles(taskId: string): Promise<TaskFile[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.storage.from(TASK_FILES_BUCKET).list(taskId, {
+    limit: 100,
+    offset: 0,
+    sortBy: { column: 'created_at', order: 'asc' },
+  });
+  if (error) throw error;
+  type Entry = { name: string; created_at?: string; metadata?: { size?: number } }
+  const files = ((data as Entry[]) ?? []).map((f) => {
+    const fullPath = `${taskId}/${f.name}`;
+    const pub = supabase.storage.from(TASK_FILES_BUCKET).getPublicUrl(fullPath);
+    return {
+      path: fullPath,
+      name: f.name,
+      url: pub.data.publicUrl || null,
+      created_at: f.created_at || undefined,
+      size: f.metadata?.size ?? null,
+    } as TaskFile;
+  });
+  return files;
+}
+
+export async function uploadTaskFile(taskId: string, file: File): Promise<TaskFile> {
+  const supabase = getSupabase();
+  const safeName = file.name.replace(/\s+/g, '_');
+  const path = `${taskId}/${Date.now()}_${safeName}`;
+  const { error } = await supabase.storage
+    .from(TASK_FILES_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+  if (error) throw error;
+  const pub = supabase.storage.from(TASK_FILES_BUCKET).getPublicUrl(path);
+  return { path, name: path.split('/').pop() || file.name, url: pub.data.publicUrl };
+}
+
+export async function deleteTaskFile(path: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.storage.from(TASK_FILES_BUCKET).remove([path]);
   if (error) throw error;
 }
 
