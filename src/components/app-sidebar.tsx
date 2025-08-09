@@ -327,34 +327,58 @@ const TaskRow = React.memo(function TaskRow({
         className={`relative text-left flex-1 transform transition-transform pl-3`}
         style={{ transform: dragX !== 0 ? `translateX(${dragX}px)` : undefined }}
       >
+        {/* Status indicator */}
         <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1.5 rounded ${statusColor}`} />
-        <div className={`font-medium line-clamp-1 ${
-          task.status === 'completed' ? 'line-through text-muted-foreground' : ''
-        }`}>
-          {task.title}
-        </div>
-        <div className={`text-xs mt-1 ${
-          task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
-        }`}>
-          Proje: {task.project_title}
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          <span className={`text-xs font-medium ${getPriorityColor(task.priority)} ${
-            task.status === 'completed' ? 'opacity-70' : ''
+
+        {/* Swipe overlay */}
+        {dragX !== 0 && (
+          <div
+            className={`absolute inset-0 z-0 ${dragX > 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}
+            style={{ opacity: Math.min(Math.abs(dragX) / 120, 0.85) }}
+          />
+        )}
+
+        {/* Content */}
+        <div className={`relative z-10 ${Math.abs(dragX) > 20 ? 'opacity-60' : ''}`}>
+          <div className={`font-medium line-clamp-1 ${
+            task.status === 'completed' ? 'line-through text-muted-foreground' : ''
           }`}>
-            {getPriorityText(task.priority)}
-          </span>
-          <span className={`text-xs ${getDaysRemainingColor(task.days_remaining)} ${
-            task.status === 'completed' ? 'opacity-70' : ''
-          }`}>
-            {getDaysRemainingText(task.days_remaining)}
-          </span>
+            {task.title}
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+              task.status === 'in_progress' ? 'text-blue-700 border-blue-200 dark:text-blue-300 dark:border-blue-800' :
+              task.status === 'completed' ? 'text-green-700 border-green-200 dark:text-green-300 dark:border-green-800' :
+              task.status === 'review' ? 'text-yellow-700 border-yellow-200 dark:text-yellow-300 dark:border-yellow-800' :
+              'text-muted-foreground border-border'
+            }`}>
+              {task.status === 'in_progress' ? 'Devam ediyor' : task.status === 'completed' ? 'Tamamlandı' : task.status === 'review' ? 'İncelemede' : 'Yapılacak'}
+            </span>
+            <span className={`text-xs ${
+              task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+            }`}>
+              Proje: {task.project_title}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`text-xs font-medium ${getPriorityColor(task.priority)} ${
+              task.status === 'completed' ? 'opacity-70' : ''
+            }`}>
+              {getPriorityText(task.priority)}
+            </span>
+            <span className={`text-xs ${getDaysRemainingColor(task.days_remaining)} ${
+              task.status === 'completed' ? 'opacity-70' : ''
+            }`}>
+              {getDaysRemainingText(task.days_remaining)}
+            </span>
+          </div>
         </div>
+        {/* Labels on top */}
         {dragX > 40 && (
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600">Devam ediyor</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold text-blue-700 drop-shadow-sm">Devam ediyor</span>
         )}
         {dragX < -40 && (
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-green-600">Tamamlandı</span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold text-green-700 drop-shadow-sm">Tamamlandı</span>
         )}
       </button>
     </div>
