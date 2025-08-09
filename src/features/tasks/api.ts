@@ -17,6 +17,16 @@ export type Task = {
   project_title?: string;
 };
 
+export type TaskComment = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  author_name?: string | null;
+  author_email?: string | null;
+};
+
 export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -309,6 +319,56 @@ export async function deleteTask(taskId: string): Promise<void> {
     .eq('id', taskId);
     
   if (taskError) throw taskError;
+}
+
+// Comments CRUD
+export async function fetchComments(taskId: string): Promise<TaskComment[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('task_comments')
+    .select(`id, task_id, user_id, content, created_at, profiles:profiles(full_name,email)`) // assumes FK profiles.id = user_id
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  type Row = { id: string; task_id: string; user_id: string; content: string; created_at: string; profiles?: { full_name?: string | null; email?: string | null } | null }
+  return ((data as Row[]) ?? []).map((row) => ({
+    id: row.id,
+    task_id: row.task_id,
+    user_id: row.user_id,
+    content: row.content,
+    created_at: row.created_at,
+    author_name: row.profiles?.full_name ?? null,
+    author_email: row.profiles?.email ?? null,
+  }))
+}
+
+export async function addComment(taskId: string, content: string): Promise<TaskComment> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+  const { data, error } = await supabase
+    .from('task_comments')
+    .insert({ task_id: taskId, user_id: user.id, content })
+    .select(`id, task_id, user_id, content, created_at, profiles:profiles(full_name,email)`) // return joined info
+    .single();
+  if (error) throw error;
+  type Row = { id: string; task_id: string; user_id: string; content: string; created_at: string; profiles?: { full_name?: string | null; email?: string | null } | null }
+  const row = data as Row
+  return {
+    id: row.id,
+    task_id: row.task_id,
+    user_id: row.user_id,
+    content: row.content,
+    created_at: row.created_at,
+    author_name: row.profiles?.full_name ?? null,
+    author_email: row.profiles?.email ?? null,
+  }
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
+  if (error) throw error;
 }
 
 

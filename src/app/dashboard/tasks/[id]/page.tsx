@@ -20,7 +20,7 @@ import {
   Plus,
   Loader2
 } from 'lucide-react';
-import { fetchTaskById, getProjectMembers, type Task } from '../../../../features/tasks/api';
+import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComment, type Task, type TaskComment } from '../../../../features/tasks/api';
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
 import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
@@ -44,6 +44,9 @@ export default function TaskDetailPage() {
   const [editing, setEditing] = useState(false);
   const [showAssignment, setShowAssignment] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; email: string; name?: string }>>([]);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
 
   const loadTask = useCallback(async () => {
     try {
@@ -56,8 +59,8 @@ export default function TaskDetailPage() {
       try {
         const members = await getProjectMembers(taskData.project_id);
         setProjectMembers(members);
-      } catch (memberError) {
-        console.error('Proje üyeleri yüklenirken hata:', memberError);
+      } catch {
+        // ignore
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Görev yüklenirken bir hata oluştu');
@@ -70,8 +73,34 @@ export default function TaskDetailPage() {
   useEffect(() => {
     if (taskId) {
       loadTask();
+      // load comments
+      fetchComments(taskId).then(setComments).catch(() => {});
     }
   }, [taskId, loadTask]);
+
+  const handleAddComment = async () => {
+    const content = newComment.trim();
+    if (!content || !task) return;
+    try {
+      setCommentLoading(true);
+      const created = await addComment(task.id, content);
+      setComments((prev) => [...prev, created]);
+      setNewComment('');
+    } catch (e) {
+      toast.error('Yorum eklenemedi');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    try {
+      await deleteComment(id);
+      setComments((prev) => prev.filter((c) => c.id !== id));
+    } catch {
+      toast.error('Yorum silinemedi');
+    }
+  };
 
   const handleAssignmentChange = () => {
     loadTask(); // Görevi yeniden yükle
@@ -295,18 +324,52 @@ export default function TaskDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Yorumlar
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('task.comments.add')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Yorum yaz..."
+                        className="border rounded px-2 py-1 text-sm w-64"
+                      />
+                      <Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
+                        {commentLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Kaydediliyor
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-2" />
+                            {t('task.comments.add')}
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('task.comments.empty')}</p>
-                    <p className="text-sm">{t('task.comments.first')}</p>
-                  </div>
+                  {comments.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>{t('task.comments.empty')}</p>
+                      <p className="text-sm">{t('task.comments.first')}</p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {comments.map((c) => (
+                        <li key={c.id} className="border rounded p-3">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{c.author_name || c.author_email || 'Kullanıcı'}</span>
+                            <span>{new Date(c.created_at).toLocaleString('tr-TR')}</span>
+                          </div>
+                          <div className="mt-1 text-sm whitespace-pre-wrap">{c.content}</div>
+                          <div className="mt-2 text-right">
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteComment(c.id)}>Sil</Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
