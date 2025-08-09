@@ -375,10 +375,10 @@ const TaskRow = React.memo(function TaskRow({
         </div>
         {/* Labels on top */}
         {dragX > 40 && (
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold text-blue-700 drop-shadow-sm">Devam ediyor</span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold text-blue-700 drop-shadow-sm">Devam ediyor</span>
         )}
         {dragX < -40 && (
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold text-green-700 drop-shadow-sm">Tamamlandı</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold text-green-700 drop-shadow-sm">Tamamlandı</span>
         )}
       </button>
     </div>
