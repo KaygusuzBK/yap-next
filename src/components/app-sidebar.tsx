@@ -798,6 +798,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [taskDueFilter, setTaskDueFilter] = React.useState<'all' | 'overdue' | 'today' | 'week'>('all')
   const [taskPriorityFilter, setTaskPriorityFilter] = React.useState<'all' | 'urgent' | 'high' | 'medium' | 'low'>('all')
   const [taskSortBy, setTaskSortBy] = React.useState<'smart' | 'due' | 'priority'>('smart')
+  const [showCompletedToggle, setShowCompletedToggle] = React.useState(false)
   const [myTasksOpen, setMyTasksOpen] = React.useState(false)
 
   // Drag & Drop state and helpers
@@ -840,6 +841,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const filtered = taskStats.filter(t => {
         if (taskStatusFilter === 'open' && t.status === 'completed') return false
         if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
+        if (!showCompletedToggle && t.status === 'completed') return false
         if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
         if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
         if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
@@ -982,8 +984,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
             {isTasksActive && (
               <Label className="flex items-center gap-2 text-sm">
-                <span>Bitenler</span>
-                <Switch className="shadow-none" />
+                <span>Bitenleri göster</span>
+                <Switch className="shadow-none" checked={showCompletedToggle} onCheckedChange={(v) => setShowCompletedToggle(Boolean(v))} />
               </Label>
             )}
             {isTeamsActive && (
@@ -1189,6 +1191,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       {(() => {
                         const filtered = taskStats.filter(t => {
                           // Durum filtresi
+                          if (!showCompletedToggle && t.status === 'completed') return false
                           if (taskStatusFilter === 'open' && t.status === 'completed') return false
                           if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
                           // Tarih filtresi
@@ -1410,6 +1413,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             const filtered = taskStats.filter(t => {
               if (taskStatusFilter === 'open' && t.status === 'completed') return false
               if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
+              if (!showCompletedToggle && t.status === 'completed') return false
               if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
               if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
               if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
