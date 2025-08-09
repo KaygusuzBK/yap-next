@@ -68,6 +68,7 @@ export default function ProjectDetailPage() {
   const [description, setDescription] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('personal');
   const [status, setStatus] = useState<'active' | 'archived' | 'completed'>('active');
+  // Removed persisted project-level Slack webhook (manual entry will be used in task form)
 
   const loadProject = useCallback(async () => {
     try {
@@ -113,7 +114,7 @@ export default function ProjectDetailPage() {
         title: title.trim(),
         description: description.trim() || null,
         team_id: selectedTeamId === 'personal' ? null : selectedTeamId,
-        status
+        status,
       });
       
       setProject(updatedProject);
@@ -444,8 +445,8 @@ export default function ProjectDetailPage() {
               <CardDescription>{t('project.tasks.createDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <NewTaskForm
-                  projectId={projectId}
+                  <NewTaskForm
+                    projectId={projectId}
                   onCreated={() => {
                     setShowTaskForm(false);
                     // Görev listesini yenilemek için key değiştir

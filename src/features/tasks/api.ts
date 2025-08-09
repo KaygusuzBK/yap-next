@@ -79,6 +79,8 @@ export async function createTask(input: {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   status?: 'todo' | 'in_progress' | 'review' | 'completed';
   due_date?: string | null;
+  notifySlack?: boolean;
+  slackWebhookUrl?: string;
 }): Promise<Task> {
   const supabase = getSupabase();
   
@@ -101,7 +103,32 @@ export async function createTask(input: {
     .single();
     
   if (error) throw error;
-  return data as Task;
+  const task = data as Task;
+
+  // Notify Slack (best-effort, non-blocking)
+  if (input.notifySlack && input.slackWebhookUrl) {
+    try {
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || ''
+      const url = baseUrl ? `${baseUrl}/dashboard/tasks/${task.id}` : undefined
+      // Fetch project title for Slack message
+      let project_title: string | undefined
+      try {
+        const { data: proj } = await supabase
+          .from('projects')
+          .select('title')
+          .eq('id', task.project_id)
+          .single()
+        project_title = proj?.title
+      } catch {}
+      await fetch('/api/slack/task-created', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, project_title, priority: task.priority, status: task.status, due_date: task.due_date, url }, webhookUrl: input.slackWebhookUrl })
+      }).catch(() => {})
+    } catch {}
+  }
+
+  return task;
 }
 
 export async function assignTaskToUser(taskId: string, userId: string): Promise<void> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,20 +9,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createTask } from '../api';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface NewTaskFormProps {
   projectId: string;
   onCreated?: () => void;
   onCancel?: () => void;
+  defaultSlackWebhookUrl?: string;
 }
 
-export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskFormProps) {
+export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSlackWebhookUrl }: NewTaskFormProps) {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [status, setStatus] = useState<'todo' | 'in_progress' | 'review' | 'completed'>('todo');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [notifySlack, setNotifySlack] = useState(true);
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+
+  // Load/save temporary preferences from localStorage (per-user if available)
+  useEffect(() => {
+    try {
+      const key = `prefs:${user?.id || 'anon'}:slack`;
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const saved = JSON.parse(raw) as { notify?: boolean; webhook?: string };
+        if (typeof saved.notify === 'boolean') setNotifySlack(saved.notify);
+        if (typeof saved.webhook === 'string') setSlackWebhookUrl(saved.webhook);
+      } else if (defaultSlackWebhookUrl) {
+        setSlackWebhookUrl(defaultSlackWebhookUrl);
+      }
+    } catch {}
+  }, [user?.id, defaultSlackWebhookUrl]);
+
+  useEffect(() => {
+    try {
+      const key = `prefs:${user?.id || 'anon'}:slack`;
+      const payload = JSON.stringify({ notify: notifySlack, webhook: slackWebhookUrl });
+      window.localStorage.setItem(key, payload);
+    } catch {}
+  }, [notifySlack, slackWebhookUrl, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +70,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
         priority,
         status,
         due_date: dueDate || null,
+        notifySlack,
+        slackWebhookUrl: slackWebhookUrl.trim() || undefined,
       });
       
       toast.success('Görev başarıyla oluşturuldu');
@@ -123,6 +154,23 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
           onChange={(e) => setDueDate(e.target.value)}
           disabled={loading}
         />
+      </div>
+
+      <div className="space-y-3 rounded-md border p-3">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="text-sm font-medium">Slack’e mesaj yolla</div>
+            <div className="text-xs text-muted-foreground">Görev oluşturulunca Slack kanalına bildirim gönder.</div>
+          </div>
+          <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
+        </div>
+        {notifySlack && (
+          <div className="space-y-1">
+            <Label htmlFor="slackWebhook">Slack Webhook URL (opsiyonel)</Label>
+            <Input id="slackWebhook" placeholder="https://hooks.slack.com/services/..." value={slackWebhookUrl} onChange={(e) => setSlackWebhookUrl(e.target.value)} />
+            <div className="text-[10px] text-muted-foreground">Boş bırakırsan varsayılan kanal kullanılır.</div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 pt-4">
