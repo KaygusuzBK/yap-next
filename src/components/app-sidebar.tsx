@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter } from "lucide-react"
 import Logo from "@/components/Logo"
+import { applySavedOrder, saveOrder } from "@/lib/sidebarOrder"
 import { getSupabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import Input from "@/components/ui/input"
@@ -857,7 +858,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setDragType(null)
     setDragIndex(null)
     setDragOverIndex(null)
-  }, [dragType, dragIndex, teamStats, projectStats, taskStats, taskStatusFilter, taskDueFilter, taskPriorityFilter])
+  }, [dragType, dragIndex, teamStats, projectStats, taskStats, taskStatusFilter, taskDueFilter, taskPriorityFilter, showCompletedToggle])
 
   // Drag & Drop state and helpers
   // duplicate state removed
@@ -865,26 +866,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // duplicate helper removed
 
-  function saveOrder(key: 'teams' | 'projects' | 'tasks', ids: string[]) {
-    try { window.localStorage.setItem(`sidebar-order-${key}`, JSON.stringify(ids)) } catch {}
-  }
-
-  function loadOrder(key: 'teams' | 'projects' | 'tasks'): string[] | null {
-    try {
-      const raw = window.localStorage.getItem(`sidebar-order-${key}`)
-      return raw ? (JSON.parse(raw) as string[]) : null
-    } catch { return null }
-  }
-
-  function applySavedOrder<T extends { id: string }>(key: 'teams' | 'projects' | 'tasks', list: T[]): T[] {
-    const order = typeof window !== 'undefined' ? loadOrder(key) : null
-    if (!order) return list
-    const idToItem = new Map(list.map(i => [i.id, i]))
-    const ordered: T[] = []
-    order.forEach(id => { const it = idToItem.get(id); if (it) ordered.push(it) })
-    list.forEach(it => { if (!order.includes(it.id)) ordered.push(it) })
-    return ordered
-  }
+  // saveOrder/applySavedOrder moved to @/lib/sidebarOrder for stable references
 
   const onAssignProject = React.useCallback(async (teamId: string) => {
     setSelectedTeamId(teamId)
