@@ -636,6 +636,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [createTaskOpen, setCreateTaskOpen] = React.useState(false)
   const [taskProjectId, setTaskProjectId] = React.useState<string | null>(null)
 
+  // Görev filtreleme & sıralama kontrolleri
+  const [taskStatusFilter, setTaskStatusFilter] = React.useState<'all' | 'open' | 'completed'>('all')
+  const [taskDueFilter, setTaskDueFilter] = React.useState<'all' | 'overdue' | 'today' | 'week'>('all')
+  const [taskPriorityFilter, setTaskPriorityFilter] = React.useState<'all' | 'urgent' | 'high' | 'medium' | 'low'>('all')
+  const [taskSortBy, setTaskSortBy] = React.useState<'smart' | 'due' | 'priority'>('smart')
+
   const onAssignProject = React.useCallback(async (teamId: string) => {
     setSelectedTeamId(teamId)
     setAssignProjectId(null)
@@ -835,24 +841,113 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   {taskError && (
                     <p className="text-sm text-red-600">{taskError}</p>
                   )}
-                  {!loadingTasks && !taskError && taskStats.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Henüz görev yok.</p>
-                  )}
                   {!loadingTasks && !taskError && (
-                    <div className="flex flex-col">
-                      {taskStats.slice(0, 10).map((task) => (
-                        <TaskRow
-                          key={task.id}
-                          task={task}
-                          onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
-                        />
-                      ))}
-                      {taskStats.length > 10 && (
-                        <div className="text-center p-2 text-xs text-muted-foreground">
-                          +{taskStats.length - 10} görev daha...
-                        </div>
-                      )}
-                    </div>
+                    <>
+                      {/* Filtreler */}
+                      <div className="mb-3 grid grid-cols-2 gap-2">
+                        <Select value={taskStatusFilter} onValueChange={(v: 'all' | 'open' | 'completed') => setTaskStatusFilter(v)}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Durum" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tüm Durumlar</SelectItem>
+                            <SelectItem value="open">Açık</SelectItem>
+                            <SelectItem value="completed">Biten</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={taskDueFilter} onValueChange={(v: 'all' | 'overdue' | 'today' | 'week') => setTaskDueFilter(v)}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Tarih" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tümü</SelectItem>
+                            <SelectItem value="overdue">Gecikmiş</SelectItem>
+                            <SelectItem value="today">Bugün</SelectItem>
+                            <SelectItem value="week">7 Gün</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={taskPriorityFilter} onValueChange={(v: 'all' | 'urgent' | 'high' | 'medium' | 'low') => setTaskPriorityFilter(v)}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Öncelik" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tümü</SelectItem>
+                            <SelectItem value="urgent">Acil</SelectItem>
+                            <SelectItem value="high">Yüksek</SelectItem>
+                            <SelectItem value="medium">Orta</SelectItem>
+                            <SelectItem value="low">Düşük</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={taskSortBy} onValueChange={(v: 'smart' | 'due' | 'priority') => setTaskSortBy(v)}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Sırala" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="smart">Öncelik+Durum</SelectItem>
+                            <SelectItem value="due">Bitiş Tarihi</SelectItem>
+                            <SelectItem value="priority">Öncelik</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Filtrelenmiş liste */}
+                      {(() => {
+                        const filtered = taskStats.filter(t => {
+                          // Durum filtresi
+                          if (taskStatusFilter === 'open' && t.status === 'completed') return false
+                          if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
+                          // Tarih filtresi
+                          if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
+                          if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
+                          if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
+                          // Öncelik filtresi
+                          if (taskPriorityFilter !== 'all' && t.priority !== taskPriorityFilter) return false
+                          return true
+                        })
+
+                        // Sıralama
+                        const priorityOrder: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 }
+                        if (taskSortBy === 'due') {
+                          filtered.sort((a, b) => {
+                            const ad = a.days_remaining ?? Number.POSITIVE_INFINITY
+                            const bd = b.days_remaining ?? Number.POSITIVE_INFINITY
+                            return ad - bd
+                          })
+                        } else if (taskSortBy === 'priority') {
+                          filtered.sort((a, b) => (priorityOrder[b.priority] - priorityOrder[a.priority]))
+                        } else {
+                          // smart: önce tamamlanmamış, sonra öncelik, sonra gün
+                          filtered.sort((a, b) => {
+                            if (a.status === 'completed' && b.status !== 'completed') return 1
+                            if (a.status !== 'completed' && b.status === 'completed') return -1
+                            const pr = priorityOrder[b.priority] - priorityOrder[a.priority]
+                            if (pr !== 0) return pr
+                            const ad = a.days_remaining ?? Number.POSITIVE_INFINITY
+                            const bd = b.days_remaining ?? Number.POSITIVE_INFINITY
+                            return ad - bd
+                          })
+                        }
+
+                        if (filtered.length === 0) {
+                          return <p className="text-sm text-muted-foreground">Filtrelere uygun görev yok.</p>
+                        }
+
+                        return (
+                          <div className="flex flex-col">
+                            {filtered.slice(0, 12).map((task) => (
+                              <TaskRow
+                                key={task.id}
+                                task={task}
+                                onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
+                              />
+                            ))}
+                            {filtered.length > 12 && (
+                              <div className="text-center p-2 text-xs text-muted-foreground">+{filtered.length - 12} görev daha...</div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </>
                   )}
                 </div>
               ) : (
