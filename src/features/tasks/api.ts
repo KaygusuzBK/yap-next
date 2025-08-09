@@ -101,7 +101,20 @@ export async function createTask(input: {
     .single();
     
   if (error) throw error;
-  return data as Task;
+  const task = data as Task;
+
+  // Notify Slack (best-effort, non-blocking)
+  try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || ''
+    const url = baseUrl ? `${baseUrl}/dashboard/tasks/${task.id}` : undefined
+    await fetch('/api/slack/task-created', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, priority: task.priority, status: task.status, due_date: task.due_date, url } })
+    }).catch(() => {})
+  } catch {}
+
+  return task;
 }
 
 export async function assignTaskToUser(taskId: string, userId: string): Promise<void> {
