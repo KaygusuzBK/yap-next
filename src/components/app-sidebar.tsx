@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle } from "lucide-react"
+import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter } from "lucide-react"
 import Logo from "@/components/Logo"
 import { getSupabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
@@ -458,12 +458,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ;(members ?? []).forEach((m) => {
         teamIdToCount.set(m.team_id, (teamIdToCount.get(m.team_id) ?? 0) + 1)
       })
-      const stats = (teams ?? []).map((t) => ({
+      let stats = (teams ?? []).map((t) => ({
         id: t.id,
         name: t.name,
         memberCount: teamIdToCount.get(t.id) ?? null,
         projectTitle: teamIdToProjectTitle.get(t.id) ?? null,
       }))
+      stats = applySavedOrder('teams', stats)
       setTeamStats(stats)
     } catch (e) {
       setTeamError(e instanceof Error ? e.message : "Takım verileri alınamadı")
@@ -494,7 +495,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         })
       }
       
-      const stats = projects.map((p) => ({
+      let stats = projects.map((p) => ({
         id: p.id,
         title: p.title,
         status: p.status,
@@ -502,6 +503,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         createdAt: p.created_at,
       }))
       
+      stats = applySavedOrder('projects', stats)
       setProjectStats(stats)
     } catch (e) {
       setProjectError(e instanceof Error ? e.message : "Proje verileri alınamadı")
@@ -580,7 +582,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         return a.days_remaining - b.days_remaining
       })
       
-      setTaskStats(allTasks)
+      setTaskStats(applySavedOrder('tasks', allTasks))
     } catch (e) {
       setTaskError(e instanceof Error ? e.message : "Görev verileri alınamadı")
     } finally {
@@ -641,6 +643,91 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [taskDueFilter, setTaskDueFilter] = React.useState<'all' | 'overdue' | 'today' | 'week'>('all')
   const [taskPriorityFilter, setTaskPriorityFilter] = React.useState<'all' | 'urgent' | 'high' | 'medium' | 'low'>('all')
   const [taskSortBy, setTaskSortBy] = React.useState<'smart' | 'due' | 'priority'>('smart')
+  const [myTasksOpen, setMyTasksOpen] = React.useState(false)
+
+  // Drag & Drop state and helpers
+  const [dragType, setDragType] = React.useState<null | 'team' | 'project' | 'task'>(null)
+  const [dragIndex, setDragIndex] = React.useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null)
+
+  function reorderArray<T>(items: T[], startIndex: number, endIndex: number): T[] {
+    const updated = [...items]
+    const [removed] = updated.splice(startIndex, 1)
+    updated.splice(endIndex, 0, removed)
+    return updated
+  }
+
+  // duplicate helpers removed
+
+  const onDragStartGeneric = React.useCallback((type: 'team' | 'project' | 'task', index: number) => {
+    setDragType(type)
+    setDragIndex(index)
+  }, [])
+
+  const onDragOverGeneric = React.useCallback((e: React.DragEvent, type: 'team' | 'project' | 'task', index: number) => {
+    if (dragType === type) {
+      e.preventDefault()
+      setDragOverIndex(index)
+    }
+  }, [dragType])
+
+  const onDropGeneric = React.useCallback((type: 'team' | 'project' | 'task', index: number) => {
+    if (dragType !== type || dragIndex === null) return
+    if (type === 'team') {
+      const updated = reorderArray(teamStats, dragIndex, index)
+      setTeamStats(updated)
+      saveOrder('teams', updated.map(t => t.id))
+    } else if (type === 'project') {
+      const updated = reorderArray(projectStats, dragIndex, index)
+      setProjectStats(updated)
+      saveOrder('projects', updated.map(p => p.id))
+    } else if (type === 'task') {
+      const filtered = taskStats.filter(t => {
+        if (taskStatusFilter === 'open' && t.status === 'completed') return false
+        if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
+        if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
+        if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
+        if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
+        if (taskPriorityFilter !== 'all' && t.priority !== taskPriorityFilter) return false
+        return true
+      })
+      const re = reorderArray(filtered, dragIndex, index)
+      const reorderedIds = new Set(re.map(t => t.id))
+      const updated = [...re, ...taskStats.filter(t => !reorderedIds.has(t.id))]
+      setTaskStats(updated)
+      saveOrder('tasks', updated.map(t => t.id))
+    }
+    setDragType(null)
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }, [dragType, dragIndex, teamStats, projectStats, taskStats, taskStatusFilter, taskDueFilter, taskPriorityFilter])
+
+  // Drag & Drop state and helpers
+  // duplicate state removed
+  // duplicate state removed
+
+  // duplicate helper removed
+
+  function saveOrder(key: 'teams' | 'projects' | 'tasks', ids: string[]) {
+    try { window.localStorage.setItem(`sidebar-order-${key}`, JSON.stringify(ids)) } catch {}
+  }
+
+  function loadOrder(key: 'teams' | 'projects' | 'tasks'): string[] | null {
+    try {
+      const raw = window.localStorage.getItem(`sidebar-order-${key}`)
+      return raw ? (JSON.parse(raw) as string[]) : null
+    } catch { return null }
+  }
+
+  function applySavedOrder<T extends { id: string }>(key: 'teams' | 'projects' | 'tasks', list: T[]): T[] {
+    const order = typeof window !== 'undefined' ? loadOrder(key) : null
+    if (!order) return list
+    const idToItem = new Map(list.map(i => [i.id, i]))
+    const ordered: T[] = []
+    order.forEach(id => { const it = idToItem.get(id); if (it) ordered.push(it) })
+    list.forEach(it => { if (!order.includes(it.id)) ordered.push(it) })
+    return ordered
+  }
 
   const onAssignProject = React.useCallback(async (teamId: string) => {
     setSelectedTeamId(teamId)
@@ -796,16 +883,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                   {!loadingTeams && !teamError && (
                     <div className="flex flex-col">
-                      {teamStats.map((t) => (
-                        <TeamRow
+                      {teamStats.map((t, index) => (
+                        <div
                           key={t.id}
-                          team={t}
-                          onOpenRename={onOpenRename}
-                          onDelete={onDeleteTeam}
-                          onAssignProject={onAssignProject}
-                          onAddMember={onAddMember}
-                          onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
-                        />
+                          draggable
+                          onDragStart={() => onDragStartGeneric('team', index)}
+                          onDragOver={(e) => onDragOverGeneric(e, 'team', index)}
+                          onDrop={() => onDropGeneric('team', index)}
+                          className={dragType === 'team' && dragOverIndex === index ? 'outline outline-2 outline-primary/60 rounded-sm' : ''}
+                        >
+                          <TeamRow
+                            team={t}
+                            onOpenRename={onOpenRename}
+                            onDelete={onDeleteTeam}
+                            onAssignProject={onAssignProject}
+                            onAddMember={onAddMember}
+                            onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -823,12 +918,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                   {!loadingProjects && !projectError && (
                     <div className="flex flex-col">
-                      {projectStats.map((p) => (
-                        <ProjectRow
+                      {projectStats.map((p, index) => (
+                        <div
                           key={p.id}
-                          project={p}
-                          onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
-                        />
+                          draggable
+                          onDragStart={() => onDragStartGeneric('project', index)}
+                          onDragOver={(e) => onDragOverGeneric(e, 'project', index)}
+                          onDrop={() => onDropGeneric('project', index)}
+                          className={dragType === 'project' && dragOverIndex === index ? 'outline outline-2 outline-primary/60 rounded-sm' : ''}
+                        >
+                          <ProjectRow
+                            project={p}
+                            onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -843,52 +946,89 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                   {!loadingTasks && !taskError && (
                     <>
-                      {/* Filtreler */}
-                      <div className="mb-3 grid grid-cols-2 gap-2">
-                        <Select value={taskStatusFilter} onValueChange={(v: 'all' | 'open' | 'completed') => setTaskStatusFilter(v)}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Durum" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Tüm Durumlar</SelectItem>
-                            <SelectItem value="open">Açık</SelectItem>
-                            <SelectItem value="completed">Biten</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={taskDueFilter} onValueChange={(v: 'all' | 'overdue' | 'today' | 'week') => setTaskDueFilter(v)}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Tarih" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Tümü</SelectItem>
-                            <SelectItem value="overdue">Gecikmiş</SelectItem>
-                            <SelectItem value="today">Bugün</SelectItem>
-                            <SelectItem value="week">7 Gün</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={taskPriorityFilter} onValueChange={(v: 'all' | 'urgent' | 'high' | 'medium' | 'low') => setTaskPriorityFilter(v)}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Öncelik" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Tümü</SelectItem>
-                            <SelectItem value="urgent">Acil</SelectItem>
-                            <SelectItem value="high">Yüksek</SelectItem>
-                            <SelectItem value="medium">Orta</SelectItem>
-                            <SelectItem value="low">Düşük</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={taskSortBy} onValueChange={(v: 'smart' | 'due' | 'priority') => setTaskSortBy(v)}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Sırala" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="smart">Öncelik+Durum</SelectItem>
-                            <SelectItem value="due">Bitiş Tarihi</SelectItem>
-                            <SelectItem value="priority">Öncelik</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {/* Kompakt filtre toolbar */}
+                      {(() => {
+                        const activeCount = [
+                          taskStatusFilter !== 'all',
+                          taskDueFilter !== 'all',
+                          taskPriorityFilter !== 'all',
+                          taskSortBy !== 'smart',
+                        ].filter(Boolean).length
+                        return (
+                          <div className="mb-2 flex items-center gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" className="h-8">
+                                  <Filter className="h-4 w-4 mr-2" />
+                                  Filtre
+                                  {activeCount > 0 && (
+                                    <span className="ml-2 rounded bg-primary/10 px-1.5 text-xs">
+                                      {activeCount}
+                                    </span>
+                                  )}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-56">
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground">Durum</div>
+                                <DropdownMenuItem onClick={() => setTaskStatusFilter('all')} inset>
+                                  Tüm Durumlar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskStatusFilter('open')} inset>
+                                  Açık
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskStatusFilter('completed')} inset>
+                                  Biten
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground">Tarih</div>
+                                <DropdownMenuItem onClick={() => setTaskDueFilter('all')} inset>
+                                  Tümü
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskDueFilter('overdue')} inset>
+                                  Gecikmiş
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskDueFilter('today')} inset>
+                                  Bugün
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskDueFilter('week')} inset>
+                                  7 Gün
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground">Öncelik</div>
+                                <DropdownMenuItem onClick={() => setTaskPriorityFilter('all')} inset>
+                                  Tümü
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskPriorityFilter('urgent')} inset>
+                                  Acil
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskPriorityFilter('high')} inset>
+                                  Yüksek
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskPriorityFilter('medium')} inset>
+                                  Orta
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskPriorityFilter('low')} inset>
+                                  Düşük
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground">Sırala</div>
+                                <DropdownMenuItem onClick={() => setTaskSortBy('smart')} inset>
+                                  Öncelik+Durum
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskSortBy('due')} inset>
+                                  Bitiş Tarihi
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskSortBy('priority')} inset>
+                                  Öncelik
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button size="sm" variant="outline" className="h-8" onClick={() => setMyTasksOpen(true)}>
+                              Görevlerim
+                            </Button>
+                          </div>
+                        )
+                      })()}
 
                       {/* Filtrelenmiş liste */}
                       {(() => {
@@ -1094,6 +1234,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Görevlerim Dialog */}
+      <Dialog open={myTasksOpen} onOpenChange={setMyTasksOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Görevlerim</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const filtered = taskStats.filter(t => {
+              if (taskStatusFilter === 'open' && t.status === 'completed') return false
+              if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
+              if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
+              if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
+              if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
+              if (taskPriorityFilter !== 'all' && t.priority !== taskPriorityFilter) return false
+              return true
+            })
+            if (filtered.length === 0) return <p className="text-sm text-muted-foreground">Görev yok.</p>
+            return (
+              <div className="space-y-2">
+                {filtered.map(task => (
+                  <TaskRow key={task.id} task={task} onSelect={(id) => router.push(`/dashboard/tasks/${id}`)} />
+                ))}
+              </div>
+            )
+          })()}
         </DialogContent>
       </Dialog>
 
