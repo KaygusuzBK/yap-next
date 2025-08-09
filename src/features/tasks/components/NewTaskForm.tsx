@@ -25,6 +25,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [notifySlack, setNotifySlack] = useState(true);
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +45,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
         status,
         due_date: dueDate || null,
         notifySlack,
+        slackWebhookUrl: slackWebhookUrl.trim() || undefined,
       });
       
       toast.success('Görev başarıyla oluşturuldu');
@@ -128,12 +130,21 @@ export default function NewTaskForm({ projectId, onCreated, onCancel }: NewTaskF
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-md border p-3">
-        <div className="space-y-0.5">
-          <div className="text-sm font-medium">Slack’e mesaj yolla</div>
-          <div className="text-xs text-muted-foreground">Görev oluşturulunca seçili Slack kanalına bildirim gönder.</div>
+      <div className="space-y-3 rounded-md border p-3">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="text-sm font-medium">Slack’e mesaj yolla</div>
+            <div className="text-xs text-muted-foreground">Görev oluşturulunca Slack kanalına bildirim gönder.</div>
+          </div>
+          <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
         </div>
-        <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
+        {notifySlack && (
+          <div className="space-y-1">
+            <Label htmlFor="slackWebhook">Slack Webhook URL (opsiyonel)</Label>
+            <Input id="slackWebhook" placeholder="https://hooks.slack.com/services/..." value={slackWebhookUrl} onChange={(e) => setSlackWebhookUrl(e.target.value)} />
+            <div className="text-[10px] text-muted-foreground">Boş bırakırsan varsayılan kanal kullanılır.</div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 pt-4">

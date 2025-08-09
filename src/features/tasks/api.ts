@@ -80,6 +80,7 @@ export async function createTask(input: {
   status?: 'todo' | 'in_progress' | 'review' | 'completed';
   due_date?: string | null;
   notifySlack?: boolean;
+  slackWebhookUrl?: string;
 }): Promise<Task> {
   const supabase = getSupabase();
   
@@ -122,7 +123,7 @@ export async function createTask(input: {
       await fetch('/api/slack/task-created', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, project_title, priority: task.priority, status: task.status, due_date: task.due_date, url } })
+        body: JSON.stringify({ task: { id: task.id, title: task.title, project_id: task.project_id, project_title, priority: task.priority, status: task.status, due_date: task.due_date, url }, webhookUrl: input.slackWebhookUrl })
       }).catch(() => {})
     } catch {}
   }

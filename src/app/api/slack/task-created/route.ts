@@ -12,12 +12,7 @@ type TaskPayload = {
 }
 
 export async function POST(req: NextRequest) {
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL
-  if (!webhookUrl) {
-    return NextResponse.json({ ok: false, reason: 'slack_not_configured' }, { status: 200 })
-  }
-
-  let body: { task?: TaskPayload }
+  let body: { task?: TaskPayload; webhookUrl?: string }
   try {
     body = await req.json()
   } catch {
@@ -27,6 +22,13 @@ export async function POST(req: NextRequest) {
   const task = body.task
   if (!task?.id || !task?.title) {
     return NextResponse.json({ ok: false, error: 'missing_task' }, { status: 400 })
+  }
+
+  // Choose webhook URL: user-provided takes precedence, fallback to env
+  const candidateUrl = body.webhookUrl || process.env.SLACK_WEBHOOK_URL || ''
+  // Very basic allow-list check
+  if (!candidateUrl.startsWith('https://hooks.slack.com/services/')) {
+    return NextResponse.json({ ok: false, error: 'invalid_webhook' }, { status: 400 })
   }
 
   const formatPriority = (p?: TaskPayload['priority']) => {
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
     text,
   }
 
-  const res = await fetch(webhookUrl, {
+  const res = await fetch(candidateUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
