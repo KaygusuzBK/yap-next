@@ -300,6 +300,15 @@ export async function acceptTeamInvitation(token: string) {
   return member;
 }
 
+export async function declineTeamInvitation(token: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('team_invitations')
+    .delete()
+    .eq('token', token);
+  if (error) throw error;
+}
+
 // Kullanıcının bekleyen davetlerini getir
 export async function getPendingInvitations() {
   const supabase = getSupabase();

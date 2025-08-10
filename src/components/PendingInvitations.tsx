@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { acceptTeamInvitation, getPendingInvitations } from "@/features/teams/api"
+import { acceptTeamInvitation, declineTeamInvitation, getPendingInvitations } from "@/features/teams/api"
 import { Users, Clock, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -65,9 +65,18 @@ export default function PendingInvitations() {
     }
   }
 
-  const handleDecline = async () => {
-    // TODO: Davet reddetme API'si eklenebilir
-    toast.info('Davet reddetme özelliği yakında eklenecek')
+  const handleDecline = async (token: string) => {
+    try {
+      setProcessing(token)
+      await declineTeamInvitation(token)
+      toast.success('Davet reddedildi')
+      setInvitations(prev => prev.filter(inv => inv.token !== token))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Bir hata oluştu'
+      toast.error(message)
+    } finally {
+      setProcessing(null)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -175,7 +184,7 @@ export default function PendingInvitations() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleDecline()}
+                onClick={() => handleDecline(invitation.token)}
                 disabled={processing === invitation.token}
               >
                 <XCircle className="h-4 w-4 mr-2" />
