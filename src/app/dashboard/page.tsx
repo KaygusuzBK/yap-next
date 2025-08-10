@@ -173,9 +173,9 @@ export default function Page() {
                 <div className="text-2xl font-bold">
                   {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {loadingProjects ? <Skeleton className="mt-1 h-4 w-32" /> : t('dashboard.overview.totalProjectsDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -191,9 +191,9 @@ export default function Page() {
                 <div className="text-2xl font-bold">
                   {loadingTeams ? <Skeleton className="h-7 w-12" /> : teams.length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {loadingTeams ? <Skeleton className="mt-1 h-4 w-40" /> : t('dashboard.overview.totalTeamsDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -209,9 +209,9 @@ export default function Page() {
                 <div className="text-2xl font-bold">
                   {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.filter(p => p.status === 'active').length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t('dashboard.overview.activeProjectsDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -236,9 +236,9 @@ export default function Page() {
                     }).length
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t('dashboard.overview.thisMonthDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
           </div>

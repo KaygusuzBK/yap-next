@@ -146,7 +146,7 @@ export default function PendingInvitations() {
           <div key={invitation.id} className="border rounded-lg p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium">{invitation.teams.name}</h4>
+                <h4 className="font-medium">{invitation.teams?.name ?? 'Takım'}</h4>
                 <p className="text-sm text-muted-foreground">
                   {invitation.role === 'member' ? 'Üye' : invitation.role} olarak davet edildiniz
                 </p>
