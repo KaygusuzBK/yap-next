@@ -168,34 +168,17 @@ export type TeamMember = {
 
 export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('team_members')
-    .select('id, team_id, user_id, role, created_at')
-    .eq('team_id', teamId)
-    .order('created_at', { ascending: true });
+  const { data, error } = await supabase.rpc('get_team_members', { p_team_id: teamId });
   if (error) throw error;
-  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string }>
-  const userIds = rows.map(r => r.user_id)
-  let profiles: Array<{ id: string; email: string | null; full_name: string | null }> = []
-  if (userIds.length > 0) {
-    const { data: profs } = await supabase
-      .from('profiles')
-      .select('id, email, full_name')
-      .in('id', userIds)
-    profiles = (profs ?? []) as Array<{ id: string; email: string | null; full_name: string | null }>
-  }
-  const idToProfile = new Map(profiles.map(p => [p.id, p]))
-  return rows.map(r => {
-    const prof = idToProfile.get(r.user_id)
-    return {
-      id: r.id,
-      user_id: r.user_id,
-      email: prof?.email ?? null,
-      name: prof?.full_name ?? (prof?.email ? prof.email.split('@')[0] : null),
-      role: r.role,
-      joined_at: r.created_at,
-    }
-  })
+  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string; email: string | null; full_name: string | null }>
+  return rows.map(r => ({
+    id: r.id,
+    user_id: r.user_id,
+    email: r.email ?? null,
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null),
+    role: r.role,
+    joined_at: r.created_at,
+  }))
 }
 
 export async function updateTeamName(input: { team_id: string; name: string }) {
