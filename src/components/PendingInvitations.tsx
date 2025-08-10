@@ -29,7 +29,8 @@ export default function PendingInvitations() {
   const [notified, setNotified] = useState(false)
 
   useEffect(() => {
-    loadInvitations()
+    void loadInvitations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadInvitations = async () => {

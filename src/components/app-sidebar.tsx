@@ -992,7 +992,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <button
                 type="button"
                 className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border"
-                onClick={() => { setActiveItem({ title: "Takımlar", url: "/dashboard#teams", icon: Users, isActive: false } as any); setOpen(true) }}
+                onClick={() => { setActiveItem({ title: "Takımlar", url: "/dashboard#teams", icon: Users, isActive: false } as unknown as typeof data.navMain[number]); setOpen(true) }}
                 aria-label="Davetler"
               >
                 <Bell className="h-4 w-4" />
@@ -1000,6 +1000,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-medium text-white">{pendingCount}</span>
                 )}
               </button>
+            </div>
             {isTasksActive && (
               <Label className="flex items-center gap-2 text-sm">
                 <span>Bitenleri göster</span>
