@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { ChangeEvent } from "react"
-import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation } from "@/features/teams/api"
+import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation, getTeamMembers } from "@/features/teams/api"
 import { updateTask } from "@/features/tasks/api"
 import { fetchProjects } from "@/features/projects/api"
 import { fetchTasksByProject } from "@/features/tasks/api"
@@ -590,14 +590,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         setTeamStats([])
         return
       }
-      const [{ data: projects }, { data: members }] = await Promise.all([
+      const [{ data: projects }] = await Promise.all([
         supabase
           .from("projects")
           .select("id,title,team_id")
-          .in("team_id", teamIds),
-        supabase
-          .from("team_members")
-          .select("team_id")
           .in("team_id", teamIds),
       ])
       const teamIdToProjectTitle = new Map<string, string>()
@@ -606,10 +602,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           teamIdToProjectTitle.set(p.team_id, p.title)
         }
       })
-      const teamIdToCount = new Map<string, number>()
-      ;(members ?? []).forEach((m) => {
-        teamIdToCount.set(m.team_id, (teamIdToCount.get(m.team_id) ?? 0) + 1)
-      })
+      // Count members via secure RPC per team (owner or member can see full list)
+      const counts = await Promise.all(teamIds.map(async (id) => {
+        try {
+          const list = await getTeamMembers(id)
+          return [id, list.length] as const
+        } catch {
+          return [id, 0] as const
+        }
+      }))
+      const teamIdToCount = new Map<string, number>(counts)
       let stats = (teams ?? []).map((t) => ({
         id: t.id,
         name: t.name,
