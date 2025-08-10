@@ -4,7 +4,6 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
-import ThemeToggle from "@/components/theme/ThemeToggle";
 import CommandMenu from "@/components/CommandMenu";
 import Navbar from "@/components/layout/Navbar";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -40,7 +39,6 @@ export default function RootLayout({
         <AuthTree>
           <Navbar />
           <AppFrame>{children}</AppFrame>
-          <ThemeToggle />
           <CommandMenu />
         </AuthTree>
         <Toaster richColors position="top-center" />

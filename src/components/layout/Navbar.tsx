@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import Logo from '@/components/Logo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/i18n/I18nProvider';
+import ThemeToggle from '@/components/theme/ThemeToggle';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -31,6 +32,7 @@ export default function Navbar() {
             </>
           )}
           <LanguageSwitcher />
+          <ThemeToggle />
         </nav>
       </div>
     </header>
