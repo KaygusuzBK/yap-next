@@ -106,6 +106,105 @@ export async function inviteToTeam(input: { team_id: string; email: string; role
   return data;
 }
 
+export type TeamInvitation = {
+  id: string;
+  team_id: string;
+  email: string;
+  role: string;
+  token: string;
+  accepted_at: string | null;
+  expires_at: string;
+  created_at: string;
+};
+
+export async function revokeTeamInvitation(invitationId: string): Promise<void> {
+  const supabase = getSupabase();
+  // Check ownership
+  const { data: inv, error: invErr } = await supabase
+    .from('team_invitations')
+    .select('team_id')
+    .eq('id', invitationId)
+    .single();
+  if (invErr || !inv) throw invErr ?? new Error('Davet bulunamadı');
+  const { data: team } = await supabase
+    .from('teams')
+    .select('owner_id')
+    .eq('id', inv.team_id)
+    .single();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!team || !user || team.owner_id !== user.id) throw new Error('Bu işlem için yetkiniz yok');
+  const { error } = await supabase.from('team_invitations').delete().eq('id', invitationId);
+  if (error) throw error;
+}
+
+export async function resendTeamInvitation(invitationId: string): Promise<TeamInvitation> {
+  const supabase = getSupabase();
+  // Check ownership and fetch invitation
+  const { data: inv, error: invErr } = await supabase
+    .from('team_invitations')
+    .select('id, team_id')
+    .eq('id', invitationId)
+    .single();
+  if (invErr || !inv) throw invErr ?? new Error('Davet bulunamadı');
+  const { data: team } = await supabase
+    .from('teams')
+    .select('owner_id')
+    .eq('id', inv.team_id)
+    .single();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!team || !user || team.owner_id !== user.id) throw new Error('Bu işlem için yetkiniz yok');
+  const token = crypto.randomUUID();
+  const { data, error } = await supabase
+    .from('team_invitations')
+    .update({ token, accepted_at: null, expires_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() })
+    .eq('id', invitationId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as TeamInvitation;
+}
+
+export type TeamMember = {
+  id: string;
+  user_id: string;
+  email: string | null;
+  name: string | null;
+  role: string;
+  joined_at: string;
+}
+
+export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('id, team_id, user_id, role, created_at')
+    .eq('team_id', teamId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string }>
+  const userIds = rows.map(r => r.user_id)
+  let profiles: Array<{ id: string; email: string | null; full_name: string | null }> = []
+  if (userIds.length > 0) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .in('id', userIds)
+    profiles = (profs ?? []) as Array<{ id: string; email: string | null; full_name: string | null }>
+  }
+  const idToProfile = new Map(profiles.map(p => [p.id, p]))
+  return rows.map(r => {
+    const prof = idToProfile.get(r.user_id)
+    return {
+      id: r.id,
+      user_id: r.user_id,
+      email: prof?.email ?? null,
+      name: prof?.full_name ?? (prof?.email ? prof.email.split('@')[0] : null),
+      role: r.role,
+      joined_at: r.created_at,
+    }
+  })
+}
+
 export async function updateTeamName(input: { team_id: string; name: string }) {
   const supabase = getSupabase();
   const { data, error } = await supabase
