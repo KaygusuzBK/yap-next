@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { getSupabase } from "../../../../lib/supabase"
 import { Button } from "../../../../components/ui/button"
 import { getTeamInvitations, inviteToTeam, revokeTeamInvitation, resendTeamInvitation, getTeamMembers } from "../../../../features/teams/api"
+import InvitePreview from "@/features/teams/components/InvitePreview"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -54,6 +55,7 @@ export default function TeamDetailPage() {
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>("member")
   const [members, setMembers] = useState<Array<{ id: string; name: string | null; email: string | null; role: string; joined_at: string }>>([])
   const [inviting, setInviting] = useState(false)
+  const [preview, setPreview] = useState<{ open: boolean; to: string; url: string } | null>(null)
 
   useEffect(() => {
     if (!teamId) return
@@ -228,10 +230,11 @@ export default function TeamDetailPage() {
                 <Button disabled={!inviteEmail.trim() || inviting} onClick={async () => {
                   try {
                     setInviting(true)
-                    await inviteToTeam({ team_id: teamId, email: inviteEmail.trim(), role: inviteRole })
+                    const res = await inviteToTeam({ team_id: teamId, email: inviteEmail.trim(), role: inviteRole })
                     setInviteEmail("")
-                    toast.success('Davet gönderildi')
+                    toast.success('Davet oluşturuldu')
                     setInvitations(await getTeamInvitations(teamId))
+                    setPreview({ open: true, to: inviteEmail.trim(), url: res.inviteUrl })
                   } catch (e) {
                     toast.error(e instanceof Error ? e.message : 'Davet gönderilemedi')
                   } finally {
@@ -241,6 +244,10 @@ export default function TeamDetailPage() {
               </div>
             </div>
           </section>
+
+          {preview?.open && (
+            <InvitePreview open={preview.open} onOpenChange={(v) => setPreview(prev => prev ? { ...prev, open: v } : null)} to={preview.to} teamName={team?.name} inviteUrl={preview.url} />
+          )}
         </>
       )}
     </div>

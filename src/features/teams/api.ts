@@ -63,7 +63,7 @@ export async function createTeam(input: { name: string }): Promise<Team> {
   return team as Team;
 }
 
-export async function inviteToTeam(input: { team_id: string; email: string; role?: string }) {
+export async function inviteToTeam(input: { team_id: string; email: string; role?: string }): Promise<{ invitation: any; inviteUrl: string; teamName?: string }> {
   const supabase = getSupabase();
   const token = crypto.randomUUID();
   
@@ -94,23 +94,9 @@ export async function inviteToTeam(input: { team_id: string; email: string; role
   
   if (error) throw error;
   
-  // E-posta gönderme (gerçek uygulamada burada e-posta servisi kullanılır)
+  // Artık e-postayı kullanıcı kendi istemcisinden gönderecek; davet bağlantısını döndürüyoruz
   const inviteUrl = `${window.location.origin}/invite/${token}`;
-  try {
-    await fetch('/api/email/team-invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: input.email, teamName: team?.name, inviteUrl })
-    })
-  } catch (e) {
-    console.warn('Invite email could not be sent, falling back to console link')
-    console.log('Davet linki:', inviteUrl)
-  }
-  
-  // TODO: Gerçek e-posta gönderme servisi entegrasyonu
-  // Örnek: SendGrid, Mailgun, AWS SES, vb.
-  
-  return data;
+  return { invitation: data, inviteUrl, teamName: team?.name };
 }
 
 export type TeamInvitation = {
