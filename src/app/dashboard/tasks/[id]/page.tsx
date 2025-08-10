@@ -250,12 +250,12 @@ export default function TaskDetailPage() {
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border bg-card/60 backdrop-blur mb-6">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
-        <div className="relative p-4 md:p-6 flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()} className="shrink-0">
+        <div className="relative p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+          <Button variant="outline" onClick={() => router.back()} className="shrink-0 order-1 md:order-none">
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t('task.back')}
           </Button>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 order-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> {task.project_title || 'Bilinmeyen Proje'}</span>
               <span>•</span>
@@ -263,7 +263,7 @@ export default function TaskDetailPage() {
             </div>
             <h1 className="text-xl md:text-2xl font-semibold truncate">{task.title}</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 order-3 md:order-none md:ml-auto mt-1 md:mt-0">
             {getPriorityBadge(task.priority)}
             <Button onClick={() => setEditing(true)}>
               <Edit className="h-4 w-4 mr-2" />
@@ -342,7 +342,7 @@ export default function TaskDetailPage() {
 
           {/* Tabs */}
           <Tabs defaultValue="comments" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="w-full overflow-x-auto">
               <TabsTrigger value="comments" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
                 {t('task.tabs.comments')}
@@ -359,15 +359,15 @@ export default function TaskDetailPage() {
             
             <TabsContent value="comments" className="mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Yorumlar
-                    <div className="flex items-center gap-2">
+                <CardHeader className="space-y-2">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <CardTitle>Yorumlar</CardTitle>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
                       <input
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Yorum yaz..."
-                        className="border rounded px-2 py-1 text-sm w-64"
+                        className="border rounded px-2 py-1 text-sm flex-1 min-w-0 md:w-64"
                       />
                       <Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
                         {commentLoading ? (
@@ -383,7 +383,7 @@ export default function TaskDetailPage() {
                         )}
                       </Button>
                     </div>
-                  </CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {comments.length === 0 ? (
