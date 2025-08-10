@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
 // POST /api/email/team-invite
 // body: { to: string; teamName: string; inviteUrl: string }
@@ -9,15 +9,18 @@ export async function POST(req: NextRequest) {
     if (!to || !inviteUrl) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
-    const apiKey = process.env.RESEND_API_KEY
-    const from = process.env.RESEND_FROM_EMAIL || 'no-reply@yap.app'
-    if (!apiKey) {
-      return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 500 })
+    const host = process.env.SMTP_HOST
+    const port = Number(process.env.SMTP_PORT || 587)
+    const user = process.env.SMTP_USER
+    const pass = process.env.SMTP_PASS
+    const from = process.env.SMTP_FROM || 'no-reply@yap.app'
+    if (!host || !user || !pass) {
+      return NextResponse.json({ error: 'SMTP config missing' }, { status: 500 })
     }
-    const resend = new Resend(apiKey)
+    const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
 
     const html = renderInviteEmail({ teamName, inviteUrl })
-    await resend.emails.send({ to, from, subject: `YAP | ${teamName ?? 'Takım'} daveti`, html })
+    await transporter.sendMail({ to, from, subject: `YAP | ${teamName ?? 'Takım'} daveti`, html })
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('invite email error', e)
