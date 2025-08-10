@@ -26,6 +26,7 @@ export default function PendingInvitations() {
   const [invitations, setInvitations] = useState<PendingInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
+  const [notified, setNotified] = useState(false)
 
   useEffect(() => {
     loadInvitations()
@@ -36,6 +37,10 @@ export default function PendingInvitations() {
       setLoading(true)
       const data = await getPendingInvitations()
       setInvitations(data)
+      if (!notified && (data?.length ?? 0) > 0) {
+        toast.info(`${data.length} bekleyen takım davetiniz var`)
+        setNotified(true)
+      }
     } catch (error) {
       console.warn('Davetler yüklenirken hata:', error)
       // Hata durumunda bileşeni gösterme

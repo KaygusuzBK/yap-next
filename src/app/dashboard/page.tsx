@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
+import PendingInvitations from "@/components/PendingInvitations"
 
 export default function Page() {
   const { t } = useI18n()
@@ -242,6 +243,7 @@ export default function Page() {
             </Card>
           </div>
         </section>
+        <PendingInvitations />
 
         {/* Teams and Projects sections removed as requested */}
 
