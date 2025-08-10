@@ -63,7 +63,7 @@ export async function createTeam(input: { name: string }): Promise<Team> {
   return team as Team;
 }
 
-export async function inviteToTeam(input: { team_id: string; email: string; role?: string }): Promise<{ invitation: any; inviteUrl: string; teamName?: string }> {
+export async function inviteToTeam(input: { team_id: string; email: string; role?: string }): Promise<{ invitation: TeamInvitation; inviteUrl: string; teamName?: string }> {
   const supabase = getSupabase();
   const token = crypto.randomUUID();
   
@@ -96,7 +96,7 @@ export async function inviteToTeam(input: { team_id: string; email: string; role
   
   // Artık e-postayı kullanıcı kendi istemcisinden gönderecek; davet bağlantısını döndürüyoruz
   const inviteUrl = `${window.location.origin}/invite/${token}`;
-  return { invitation: data, inviteUrl, teamName: team?.name };
+  return { invitation: data as TeamInvitation, inviteUrl, teamName: team?.name };
 }
 
 export type TeamInvitation = {
