@@ -260,9 +260,12 @@ export async function acceptTeamInvitation(token: string) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) throw new Error('Kullanıcı bilgileri alınamadı');
   
-  // 5. E-posta kontrolü
-  if (user.email !== invitation.email) {
-    throw new Error('Bu davet size ait değil');
+  // 5. E-posta kontrolü (case-insensitive ve trim)
+  const invitedEmail = (invitation.email || '').trim().toLowerCase()
+  const currentEmail = (user.email || '').trim().toLowerCase()
+  if (invitedEmail !== currentEmail) {
+    // Devam etmeden önce kullanıcıya anlaşılır bir mesaj ver
+    throw new Error(`Bu davet ${invitation.email} adresine ait. Giriş yaptığınız hesap: ${user.email || '—'}`)
   }
   
   // 6. Zaten takım üyesi mi kontrolü
