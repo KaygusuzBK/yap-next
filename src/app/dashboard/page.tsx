@@ -299,7 +299,17 @@ export default function Page() {
                                 e.dataTransfer.setDragImage(node, 10, 10)
                                 setTimeout(() => node.remove(), 0)
                               }}
-                              className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm"
+                              className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Görev: ${task.title}`}
+                              onKeyDown={(e) => {
+                                if (dragTaskId) return
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  window.location.href = `/dashboard/tasks/${task.id}`
+                                }
+                              }}
                               onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
                             >
                                 <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />

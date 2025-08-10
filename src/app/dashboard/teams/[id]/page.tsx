@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { getSupabase } from "../../../../lib/supabase"
 import { Button } from "../../../../components/ui/button"
 import { getTeamInvitations, inviteToTeam, revokeTeamInvitation, resendTeamInvitation, getTeamMembers } from "../../../../features/teams/api"
@@ -44,7 +44,6 @@ type InvitationRecord = {
 export default function TeamDetailPage() {
   const { t } = useI18n()
   const params = useParams() as { id?: string }
-  const router = useRouter()
   const teamId = params?.id ?? ""
 
   const [team, setTeam] = useState<TeamRecord | null>(null)
