@@ -296,14 +296,22 @@ export default function Page() {
                       {loadingTasks ? (
                         <div className="text-sm text-muted-foreground">Yükleniyor...</div>
                       ) : columnTasks.length === 0 ? (
-                        <div className="text-sm text-muted-foreground">Kayıt yok</div>
+                        <div className="text-sm text-muted-foreground flex items-center justify-center h-24 border border-dashed rounded-md">Sürükleyip bırakın</div>
                       ) : (
                         <div className="space-y-2">
                           {columnTasks.slice(0, 50).map(task => (
                             <div
                               key={task.id}
                               draggable
-                              onDragStart={() => setDragTaskId(task.id)}
+                              onDragStart={(e) => {
+                                setDragTaskId(task.id)
+                                const node = document.createElement('div')
+                                node.className = 'px-3 py-2 text-xs rounded-md border bg-background shadow'
+                                node.textContent = task.title
+                                document.body.appendChild(node)
+                                e.dataTransfer.setDragImage(node, 10, 10)
+                                setTimeout(() => node.remove(), 0)
+                              }}
                               className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm"
                               onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
                             >

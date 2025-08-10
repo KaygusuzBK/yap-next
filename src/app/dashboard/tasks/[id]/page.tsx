@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from 'react';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
@@ -47,6 +48,9 @@ export default function TaskDetailPage() {
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; email: string; name?: string }>>([]);
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(0);
   const [commentLoading, setCommentLoading] = useState(false);
   const [files, setFiles] = useState<TaskFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -122,6 +126,71 @@ export default function TaskDetailPage() {
       setCommentLoading(false);
     }
   };
+
+  // Mention detection and suggestion list
+  const mentionCandidates = React.useMemo(() => {
+    if (!mentionOpen) return [] as Array<{ id: string; label: string; email: string }>
+    const q = mentionQuery.trim().toLowerCase()
+    const base = projectMembers.map((m) => ({ id: m.id, label: m.name || (m.email?.split('@')[0] ?? ''), email: m.email ?? '' }))
+    if (!q) return base.slice(0, 6)
+    return base.filter((c) => c.label.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)).slice(0, 6)
+  }, [mentionOpen, mentionQuery, projectMembers])
+
+  const handleCommentInput = (val: string) => {
+    setNewComment(val)
+    // parse last @token
+    const at = val.lastIndexOf('@')
+    if (at >= 0) {
+      // ensure there is a separator before @ (start or whitespace) and no space until caret
+      const before = at === 0 ? ' ' : val[at - 1]
+      const after = val.slice(at + 1)
+      if ((before.trim() === '' || at === 0) && !after.includes(' ')) {
+        setMentionOpen(true)
+        setMentionQuery(after)
+        setMentionIndex(0)
+        return
+      }
+    }
+    setMentionOpen(false)
+  }
+
+  const insertMention = (candidate: { id: string; label: string }) => {
+    const at = newComment.lastIndexOf('@')
+    if (at < 0) return
+    const prefix = newComment.slice(0, at)
+    const mentionText = `@${candidate.label}`
+    setNewComment(prefix + mentionText + ' ')
+    setMentionOpen(false)
+  }
+
+  function renderCommentText(text: string) {
+    // simple emoji shortcodes
+    const emojiMap: Record<string, string> = {
+      ':smile:': '😄', ':thumbsup:': '👍', ':fire:': '🔥', ':heart:': '❤️', ':tada:': '🎉'
+    }
+    let replaced = text
+    for (const [k, v] of Object.entries(emojiMap)) {
+      replaced = replaced.split(k).join(v)
+    }
+    // linkify
+    const parts: Array<React.ReactNode> = []
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = urlRegex.exec(replaced)) !== null) {
+      const [url] = match
+      const start = match.index
+      if (start > lastIndex) parts.push(replaced.slice(lastIndex, start))
+      parts.push(
+        <a key={start} href={url} target="_blank" rel="noreferrer" className="underline text-primary break-all">
+          {url}
+        </a>
+      )
+      lastIndex = start + url.length
+    }
+    if (lastIndex < replaced.length) parts.push(replaced.slice(lastIndex))
+    return parts
+  }
 
   const handleDeleteComment = async (id: string) => {
     try {
@@ -367,12 +436,39 @@ export default function TaskDetailPage() {
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <CardTitle>Yorumlar</CardTitle>
                     <div className="flex items-center gap-2 w-full md:w-auto">
+                      <div className="relative flex-1">
                       <input
                         value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Yorum yaz..."
-                        className="border rounded px-2 py-1 text-sm flex-1 min-w-0 md:w-64"
+                        onChange={(e) => handleCommentInput(e.target.value)}
+                        placeholder="Yorum yaz... (@ ile kişi önerisi)"
+                        className="border rounded px-2 py-1 text-sm w-full min-w-0 md:w-64"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment();
+                          } else if (mentionOpen) {
+                            if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, Math.max(mentionCandidates.length - 1, 0))) }
+                            if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)) }
+                            if (e.key === 'Escape') { setMentionOpen(false) }
+                            if (e.key === 'Tab') { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c) }
+                          }
+                        }}
                       />
+                      {mentionOpen && mentionCandidates.length > 0 && (
+                        <div className="absolute z-20 mt-1 w-full max-w-[20rem] rounded-md border bg-popover text-popover-foreground shadow">
+                          {mentionCandidates.map((c, idx) => (
+                            <button
+                              type="button"
+                              key={c.id}
+                              className={`w-full text-left px-2 py-1 text-sm hover:bg-accent hover:text-accent-foreground ${idx === mentionIndex ? 'bg-accent/60' : ''}`}
+                              onMouseDown={(e) => { e.preventDefault(); insertMention(c) }}
+                            >
+                              @{c.label} <span className="text-xs text-muted-foreground">{c.email}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      </div>
                       <Button size="sm" className="md:inline-flex hidden" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
                         {commentLoading ? (
                           <>
@@ -420,7 +516,7 @@ export default function TaskDetailPage() {
                             <span>{c.author_name || c.author_email || 'Kullanıcı'}</span>
                             <span>{new Date(c.created_at).toLocaleString('tr-TR')}</span>
                           </div>
-                          <div className="mt-1 text-sm whitespace-pre-wrap">{c.content}</div>
+                          <div className="mt-1 text-sm whitespace-pre-wrap break-words">{renderCommentText(c.content)}</div>
                           <div className="mt-2 text-right">
                             <Button variant="ghost" size="sm" onClick={() => handleDeleteComment(c.id)}>Sil</Button>
                           </div>
