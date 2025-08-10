@@ -9,6 +9,7 @@ import { getSupabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { MagicLinkInline } from './MagicLink';
 
 const schema = z.object({
   email: z.string().email('Geçerli bir e-posta girin'),
