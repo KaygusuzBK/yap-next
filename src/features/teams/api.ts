@@ -181,6 +181,21 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   }))
 }
 
+export async function getTeamMembersForInvited(teamId: string): Promise<TeamMember[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('get_team_members_for_invited', { p_team_id: teamId });
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string; email: string | null; full_name: string | null }>
+  return rows.map(r => ({
+    id: r.id,
+    user_id: r.user_id,
+    email: r.email ?? null,
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null),
+    role: r.role,
+    joined_at: r.created_at,
+  }))
+}
+
 export async function updateTeamName(input: { team_id: string; name: string }) {
   const supabase = getSupabase();
   const { data, error } = await supabase

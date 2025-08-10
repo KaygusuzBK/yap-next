@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { acceptTeamInvitation, declineTeamInvitation, getPendingInvitations } from "@/features/teams/api"
+import { acceptTeamInvitation, declineTeamInvitation, getPendingInvitations, getTeamMembersForInvited } from "@/features/teams/api"
 import { Users, Clock, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -27,6 +27,7 @@ export default function PendingInvitations() {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
   const [notified, setNotified] = useState(false)
+  const [membersByTeam, setMembersByTeam] = useState<Record<string, Array<{ id: string; name: string | null; email: string | null; role: string }>>>({})
 
   useEffect(() => {
     void loadInvitations()
@@ -38,6 +39,24 @@ export default function PendingInvitations() {
       setLoading(true)
       const data = await getPendingInvitations()
       setInvitations(data)
+      // aynı takımdaki üyeleri getir
+      const grouped: Record<string, PendingInvitation[]> = {}
+      for (const inv of data) {
+        const teamId = inv.teams?.id
+        if (!teamId) continue
+        if (!grouped[teamId]) grouped[teamId] = []
+        grouped[teamId].push(inv)
+      }
+      const entries = Object.keys(grouped)
+      const membersPairs = await Promise.all(entries.map(async (teamId) => {
+        try {
+          const members = await getTeamMembersForInvited(teamId)
+          return [teamId, members.map(m => ({ id: m.id, name: m.name, email: m.email, role: m.role }))] as const
+        } catch {
+          return [teamId, []] as const
+        }
+      }))
+      setMembersByTeam(Object.fromEntries(membersPairs))
       if (!notified && (data?.length ?? 0) > 0) {
         toast.info(`${data.length} bekleyen takım davetiniz var`)
         setNotified(true)
@@ -156,6 +175,18 @@ export default function PendingInvitations() {
                 <p className="text-xs text-muted-foreground">
                   {getTimeLeft(invitation.expires_at)}
                 </p>
+                {invitation.teams?.id && (membersByTeam[invitation.teams.id]?.length ?? 0) > 0 && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="font-medium text-foreground text-xs mb-1">Takımdaki Üyeler</div>
+                    <div className="flex flex-wrap gap-1">
+                      {membersByTeam[invitation.teams.id]!.map(m => (
+                        <span key={m.id} className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]">
+                          {(m.name ?? m.email ?? '—')}{m.role ? ` • ${m.role}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <Badge variant="outline" className="text-xs">
                 {invitation.role}
