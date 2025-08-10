@@ -1305,6 +1305,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={{
+            name: (typeof window !== 'undefined' ? window.localStorage.getItem('profile_name') : null) || 'Kullanıcı',
+            email: (typeof window !== 'undefined' ? window.localStorage.getItem('profile_email') : null) || '—',
+            avatar: data.user.avatar,
+          }} />
+        </SidebarFooter>
       </Sidebar>
       {/* Takım detayı sayfasına yönlendiriliyor */}
       {/* Create Team Modal */}
