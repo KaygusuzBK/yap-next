@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter, Bell } from "lucide-react"
+import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter } from "lucide-react"
 import Logo from "@/components/Logo"
 import { applySavedOrder, saveOrder } from "@/lib/sidebarOrder"
 import { getSupabase } from "@/lib/supabase"
@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { ChangeEvent } from "react"
-import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam } from "@/features/teams/api"
+import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation } from "@/features/teams/api"
 import { updateTask } from "@/features/tasks/api"
 import { fetchProjects } from "@/features/projects/api"
 import { fetchTasksByProject } from "@/features/tasks/api"
@@ -55,6 +55,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 
 type TeamStat = {
   id: string
@@ -547,7 +548,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [taskStats, setTaskStats] = React.useState<TaskStat[]>([])
   const [loadingTasks, setLoadingTasks] = React.useState(false)
   const [taskError, setTaskError] = React.useState<string | null>(null)
-  const [pendingCount, setPendingCount] = React.useState<number>(0)
+  const [pendingInvites, setPendingInvites] = React.useState<Array<{ id: string; token: string; email: string; role: string; created_at: string; expires_at: string; teams?: { id: string; name?: string } }>>([])
+  // legacy counter state no longer used (we render full list under Teams)
+  // const [pendingCount, setPendingCount] = React.useState<number>(0)
   const [renameOpen, setRenameOpen] = React.useState(false)
   const [renameValue, setRenameValue] = React.useState("")
   const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null)
@@ -557,6 +560,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const hash = typeof window !== "undefined" ? window.location.hash : ""
     const found = data.navMain.find((i) => i.url.endsWith(hash))
     if (found) setActiveItem(found)
+  }, [])
+
+  // Pending invitations list (sidebar Teams section)
+  React.useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const list = await getPendingInvitations()
+        setPendingInvites(list as Array<{ id: string; token: string; email: string; role: string; created_at: string; expires_at: string; teams?: { id: string; name?: string } }>)
+      } catch { setPendingInvites([]) }
+    }
+    fetchPending()
   }, [])
 
   // URL hash değişikliklerini dinlemeye gerek yok artık
@@ -611,24 +625,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, [])
 
-  // Pending invitations counter (lightweight)
-  React.useEffect(() => {
-    const fetchPending = async () => {
-      try {
-        const supabase = getSupabase()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user?.email) { setPendingCount(0); return }
-        const { data } = await supabase
-          .from('team_invitations')
-          .select('id')
-          .eq('email', user.email)
-          .is('accepted_at', null)
-          .gt('expires_at', new Date().toISOString())
-        setPendingCount((data ?? []).length)
-      } catch { setPendingCount(0) }
-    }
-    fetchPending()
-  }, [])
+  // Removed legacy pending counter effect; list is shown under Teams
 
   const fetchProjectStats = React.useCallback(async () => {
     try {
@@ -988,19 +985,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="text-foreground text-base font-medium">
               {activeItem?.title}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border"
-                onClick={() => { setActiveItem({ title: "Takımlar", url: "/dashboard#teams", icon: Users, isActive: false } as unknown as typeof data.navMain[number]); setOpen(true) }}
-                aria-label="Davetler"
-              >
-                <Bell className="h-4 w-4" />
-                {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-medium text-white">{pendingCount}</span>
-                )}
-              </button>
-            </div>
+            <div />
             {isTasksActive && (
               <Label className="flex items-center gap-2 text-sm">
                 <span>Bitenleri göster</span>
@@ -1078,6 +1063,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           />
                         </div>
                       ))}
+                      {/* Pending invitations under teams */}
+                      {pendingInvites.length > 0 && (
+                        <div className="mt-3 rounded-md border p-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-xs font-medium">Davetler ({pendingInvites.length})</div>
+                          </div>
+                          <div className="space-y-2">
+                            {pendingInvites.map((inv) => (
+                              <div key={inv.id} className="flex items-center justify-between gap-2 text-xs">
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">{inv.teams?.name ?? 'Takım'}</div>
+                                  <div className="text-muted-foreground">{inv.email}</div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" onClick={async () => { try { await acceptTeamInvitation(inv.token); toast.success('Kabul edildi'); setPendingInvites(prev => prev.filter(i => i.id !== inv.id)) } catch {} }}>Kabul</Button>
+                                  <Button size="sm" variant="outline" onClick={async () => { try { await declineTeamInvitation(inv.token); toast.success('Reddedildi'); setPendingInvites(prev => prev.filter(i => i.id !== inv.id)) } catch {} }}>Reddet</Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
