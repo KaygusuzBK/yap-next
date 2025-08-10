@@ -2,6 +2,7 @@
 
 -- RLS'yi etkinleştir
 alter table public.project_tasks enable row level security;
+alter table public.project_task_statuses enable row level security;
 alter table public.task_assignments enable row level security;
 alter table public.task_comments enable row level security;
 alter table public.task_time_logs enable row level security;
@@ -68,6 +69,41 @@ do $$ begin
           where owner_id = auth.uid()
         ) or
         created_by = auth.uid()
+      );
+  end if;
+end $$;
+
+-- project_task_statuses policies
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'project_task_statuses' and policyname = 'read_project_task_statuses'
+  ) then
+    create policy "read_project_task_statuses" on public.project_task_statuses
+      for select using (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or 
+                id in (select project_id from public.project_members where user_id = auth.uid())
+        )
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where tablename = 'project_task_statuses' and policyname = 'manage_project_task_statuses'
+  ) then
+    create policy "manage_project_task_statuses" on public.project_task_statuses
+      for all using (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or 
+                id in (select project_id from public.project_members where user_id = auth.uid() and role in ('owner','admin'))
+        )
+      ) with check (
+        project_id in (
+          select id from public.projects 
+          where owner_id = auth.uid() or 
+                id in (select project_id from public.project_members where user_id = auth.uid() and role in ('owner','admin'))
+        )
       );
   end if;
 end $$;

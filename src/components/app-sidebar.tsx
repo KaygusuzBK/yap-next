@@ -75,7 +75,7 @@ type TaskStat = {
   id: string
   title: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
-  status: 'todo' | 'in_progress' | 'review' | 'completed'
+  status: string
   due_date: string | null
   project_title: string
   project_id: string

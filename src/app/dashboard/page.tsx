@@ -18,9 +18,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Folder, Users, Calendar, TrendingUp } from "lucide-react"
+import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
 
 export default function Page() {
   const { t } = useI18n()
@@ -30,9 +30,37 @@ export default function Page() {
   const [loadingTeams, setLoadingTeams] = useState(false)
   const [myTasks, setMyTasks] = useState<Task[]>([])
   const [loadingTasks, setLoadingTasks] = useState(false)
-  const [showCompletedBoard, setShowCompletedBoard] = useState(false)
+  
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<"todo" | "in_progress" | "review" | "completed" | null>(null)
+  const [statusesByProject, setStatusesByProject] = useState<Record<string, ProjectTaskStatus[]>>({})
+
+  const priorityTheme: Record<NonNullable<Task["priority"]>, { bar: string; chip: string; text: string; dot: string }> = {
+    urgent: {
+      bar: "bg-red-500",
+      chip: "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
+      text: "text-red-600 dark:text-red-400",
+      dot: "bg-red-500",
+    },
+    high: {
+      bar: "bg-amber-500",
+      chip: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30",
+      text: "text-amber-600 dark:text-amber-400",
+      dot: "bg-amber-500",
+    },
+    medium: {
+      bar: "bg-sky-500",
+      chip: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/30",
+      text: "text-sky-600 dark:text-sky-400",
+      dot: "bg-sky-500",
+    },
+    low: {
+      bar: "bg-emerald-500",
+      chip: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30",
+      text: "text-emerald-600 dark:text-emerald-400",
+      dot: "bg-emerald-500",
+    },
+  }
 
   useEffect(() => {
     let mounted = true
@@ -64,6 +92,14 @@ export default function Page() {
         setLoadingTasks(true)
         const tasks = await fetchMyTasks()
         if (mounted) setMyTasks(tasks)
+        // Load statuses for involved projects
+        const uniqueProjectIds = Array.from(new Set(tasks.map(t => t.project_id)))
+        if (uniqueProjectIds.length > 0) {
+          const map = await fetchStatusesForProjects(uniqueProjectIds)
+          if (mounted) setStatusesByProject(map)
+        } else if (mounted) {
+          setStatusesByProject({})
+        }
       } catch (e) {
         if (mounted) console.error("Görevler yüklenemedi:", e)
       } finally {
@@ -83,6 +119,28 @@ export default function Page() {
     }
   }, [])
 
+  function getGroupForTask(task: Task): "todo" | "in_progress" | "review" | "completed" {
+    const statuses = statusesByProject[task.project_id]
+    if (statuses && statuses.length > 0) {
+      const def = statuses.find(s => s.key === task.status)
+      if (def) return def.group
+    }
+    // Fallback for legacy keys
+    if (task.status === 'in_progress' || task.status === 'review' || task.status === 'completed') return task.status
+    return 'todo'
+  }
+
+  function getDefaultKeyForGroup(projectId: string, group: "todo" | "in_progress" | "review" | "completed"): string {
+    const statuses = statusesByProject[projectId]
+    if (statuses && statuses.length > 0) {
+      const byGroup = statuses.filter(s => s.group === group)
+      const firstByOrder = byGroup.sort((a,b) => a.position - b.position)[0]
+      if (firstByOrder) return firstByOrder.key
+    }
+    // fallback to base key when mapping not available
+    return group
+  }
+
   return (
     <main className="flex flex-1 flex-col p-2 gap-4">
       <div className="w-full space-y-4">
@@ -101,45 +159,54 @@ export default function Page() {
         </section>
                     <section className="space-y-4">
           <h2 className="text-lg font-semibold">{t('dashboard.overview.title')}</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="relative overflow-hidden transition-all hover:shadow-md">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalProjects')}</CardTitle>
-                <Folder className="h-4 w-4 text-muted-foreground" />
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Folder className="h-4 w-4" />
+                </span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loadingProjects ? "..." : projects.length}
+                  {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {loadingProjects ? t('common.loading') : t('dashboard.overview.totalProjectsDesc')}
+                  {loadingProjects ? <Skeleton className="mt-1 h-4 w-32" /> : t('dashboard.overview.totalProjectsDesc')}
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden transition-all hover:shadow-md">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalTeams')}</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Users className="h-4 w-4" />
+                </span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loadingTeams ? "..." : teams.length}
+                  {loadingTeams ? <Skeleton className="h-7 w-12" /> : teams.length}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {loadingTeams ? t('common.loading') : t('dashboard.overview.totalTeamsDesc')}
+                  {loadingTeams ? <Skeleton className="mt-1 h-4 w-40" /> : t('dashboard.overview.totalTeamsDesc')}
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden transition-all hover:shadow-md">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.activeProjects')}</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <TrendingUp className="h-4 w-4" />
+                </span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loadingProjects ? "..." : projects.filter(p => p.status === 'active').length}
+                  {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.filter(p => p.status === 'active').length}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {t('dashboard.overview.activeProjectsDesc')}
@@ -147,19 +214,26 @@ export default function Page() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden transition-all hover:shadow-md">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.thisMonth')}</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <CalendarIcon className="h-4 w-4" />
+                </span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loadingProjects ? "..." : projects.filter(p => {
-                    const created = new Date(p.created_at)
-                    const now = new Date()
-                    return created.getMonth() === now.getMonth() && 
-                           created.getFullYear() === now.getFullYear()
-                  }).length}
+                  {loadingProjects ? (
+                    <Skeleton className="h-7 w-12" />
+                  ) : (
+                    projects.filter(p => {
+                      const created = new Date(p.created_at)
+                      const now = new Date()
+                      return created.getMonth() === now.getMonth() && 
+                             created.getFullYear() === now.getFullYear()
+                    }).length
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {t('dashboard.overview.thisMonthDesc')}
@@ -179,18 +253,15 @@ export default function Page() {
           </TabsList>
 
           <TabsContent value="board" className="space-y-3">
-            <div className="flex items-center justify-end gap-2">
-              <Label htmlFor="showCompletedBoard" className="text-sm">Bitenleri göster</Label>
-              <Switch id="showCompletedBoard" checked={showCompletedBoard} onCheckedChange={setShowCompletedBoard} />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 md:overflow-visible overflow-x-auto pb-2 [grid-auto-columns:85%] [grid-auto-flow:column] md:[grid-auto-flow:initial] md:[grid-auto-columns:initial]">
               {([
                 { key: 'todo', title: 'Yapılacak' },
                 { key: 'in_progress', title: 'Devam Ediyor' },
                 { key: 'review', title: 'İncelemede' },
                 { key: 'completed', title: 'Tamamlandı' },
               ] as const).map((col) => {
-                const columnTasks = myTasks.filter(t => t.status === col.key && (showCompletedBoard || t.status !== 'completed'))
+                const columnTasks = myTasks.filter(t => getGroupForTask(t) === col.key)
                 return (
                   <Card
                     key={col.key}
@@ -206,19 +277,20 @@ export default function Page() {
                       setDragOverStatus(null)
                       setDragTaskId(null)
                       try {
-                        await updateTask({ id: task.id, status: col.key })
+                        const nextKey = getDefaultKeyForGroup(task.project_id, col.key)
+                        await updateTask({ id: task.id, status: nextKey })
                       } catch {
                         // revert
                         setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
                       }
                     }}
-                    className={dragOverStatus === col.key ? 'ring-2 ring-primary' : undefined}
+                    className={`min-h-[320px] overflow-hidden transition-all ${dragOverStatus === col.key ? 'ring-2 ring-primary/70 shadow-md border-primary/40 bg-primary/5' : 'hover:border-primary/20'} bg-muted/30 backdrop-blur-sm`}
                   >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader className="sticky top-0 z-10 flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-b from-background/95 to-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                       <CardTitle className="text-sm font-medium">{col.title}</CardTitle>
-                      <Badge variant={col.key === 'completed' ? 'secondary' : 'outline'}>{loadingTasks ? '...' : columnTasks.length}</Badge>
+                      <Badge variant={col.key === 'completed' ? 'secondary' : 'outline'} className="rounded-full">{loadingTasks ? '...' : columnTasks.length}</Badge>
                     </CardHeader>
-                    <CardContent className="space-y-2">
+                    <CardContent className="space-y-2 max-h-[70vh] overflow-y-auto pt-2">
                       {loadingTasks ? (
                         <div className="text-sm text-muted-foreground">Yükleniyor...</div>
                       ) : columnTasks.length === 0 ? (
@@ -230,16 +302,32 @@ export default function Page() {
                               key={task.id}
                               draggable
                               onDragStart={() => setDragTaskId(task.id)}
-                              className="rounded-md border p-2 hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing"
+                              className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm"
                               onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
                             >
-                                <div className="text-sm font-medium truncate">{task.title}</div>
-                                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                                  {task.project_title && <span className="truncate">{task.project_title}</span>}
-                                  <span className="inline-flex items-center gap-1">
-                                    <span className="h-2 w-2 rounded-full bg-border" />
-                                    {task.priority}
-                                  </span>
+                                <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
+                                <div className="flex items-start gap-2">
+                                  <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-medium truncate leading-5">{task.title}</div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                      {task.project_title && (
+                                        <span className="inline-flex items-center max-w-[160px] truncate rounded-full border px-2 py-0.5 bg-muted/40">
+                                          {task.project_title}
+                                        </span>
+                                      )}
+                                      {task.due_date && (
+                                        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                                          <CalendarIcon className="h-3.5 w-3.5" />
+                                          {new Date(task.due_date).toLocaleDateString('tr-TR')}
+                                        </span>
+                                      )}
+                                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${priorityTheme[task.priority ?? 'low'].chip}`}>
+                                        <span className={`h-2 w-2 rounded-full ${priorityTheme[task.priority ?? 'low'].dot}`} />
+                                        {task.priority}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                             </div>
                           ))}
@@ -256,12 +344,12 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="backlog">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card className="overflow-hidden bg-muted/30 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sticky top-0 z-10 bg-gradient-to-b from-background/95 to-background/70 backdrop-blur border-b">
                 <CardTitle className="text-sm font-medium">Yapılacaklar</CardTitle>
                 <Badge variant="outline">{loadingTasks ? '...' : myTasks.filter(t => t.status === 'todo').length}</Badge>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2 max-h-[70vh] overflow-y-auto pt-2">
                 {loadingTasks ? (
                   <div className="text-sm text-muted-foreground">Yükleniyor...</div>
                 ) : (
@@ -279,16 +367,29 @@ export default function Page() {
                       .slice(0, 10)
                       .map(task => (
                         <Link key={task.id} href={`/dashboard/tasks/${task.id}`} className="block">
-                          <div className="rounded-md border p-3 hover:bg-muted/50 transition-colors">
-                            <div className="flex items-start justify-between gap-2">
+                          <div className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm">
+                            <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
+                            <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="text-sm font-medium truncate">{task.title}</div>
-                                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                                  {task.project_title && <span className="truncate">{task.project_title}</span>}
-                                  {task.due_date && <span>{new Date(task.due_date).toLocaleDateString('tr-TR')}</span>}
+                                <div className="text-sm font-medium truncate leading-5">{task.title}</div>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                  {task.project_title && (
+                                    <span className="inline-flex items-center max-w-[180px] truncate rounded-full border px-2 py-0.5 bg-muted/40">
+                                      {task.project_title}
+                                    </span>
+                                  )}
+                                  {task.due_date && (
+                                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                                      <CalendarIcon className="h-3.5 w-3.5" />
+                                      {new Date(task.due_date).toLocaleDateString('tr-TR')}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              <Badge variant={task.priority === 'urgent' || task.priority === 'high' ? 'destructive' : 'secondary'}>{task.priority}</Badge>
+                              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${priorityTheme[task.priority ?? 'low'].chip}`}>
+                                <span className={`h-2 w-2 rounded-full ${priorityTheme[task.priority ?? 'low'].dot}`} />
+                                {task.priority}
+                              </span>
                             </div>
                           </div>
                         </Link>

@@ -7,7 +7,8 @@ export type Task = {
   project_id: string;
   title: string;
   description: string | null;
-  status: 'todo' | 'in_progress' | 'review' | 'completed';
+  // status is now a dynamic project-defined key
+  status: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to: string | null;
   created_by: string;
@@ -58,7 +59,7 @@ export async function fetchMyTasks(): Promise<Task[]> {
     project_id: string;
     title: string;
     description: string | null;
-    status: Task['status'];
+    status: string;
     priority: Task['priority'];
     assigned_to: string | null;
     created_by: string;
@@ -97,7 +98,7 @@ export async function createTask(input: {
   title: string;
   description?: string | null;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
-  status?: 'todo' | 'in_progress' | 'review' | 'completed';
+  status?: string;
   due_date?: string | null;
   notifySlack?: boolean;
   slackWebhookUrl?: string;
@@ -235,7 +236,7 @@ export async function updateTask(input: {
   title?: string;
   description?: string | null;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
-  status?: 'todo' | 'in_progress' | 'review' | 'completed';
+  status?: string;
   assigned_to?: string | null;
   due_date?: string | null;
 }): Promise<Task> {
@@ -258,6 +259,111 @@ export async function updateTask(input: {
   if (error) throw error;
   return data as Task;
 }
+
+// Project-specific task statuses
+export type ProjectTaskStatus = {
+  id: string;
+  project_id: string;
+  key: string;
+  label: string;
+  group: 'todo' | 'in_progress' | 'review' | 'completed';
+  position: number;
+  is_default: boolean;
+  color?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchProjectStatuses(projectId: string): Promise<ProjectTaskStatus[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('project_task_statuses')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('position', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ProjectTaskStatus[];
+}
+
+export async function fetchStatusesForProjects(projectIds: string[]): Promise<Record<string, ProjectTaskStatus[]>> {
+  const supabase = getSupabase();
+  if (projectIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('project_task_statuses')
+    .select('*')
+    .in('project_id', projectIds)
+    .order('position', { ascending: true });
+  if (error) throw error;
+  const map: Record<string, ProjectTaskStatus[]> = {};
+  for (const row of (data ?? []) as ProjectTaskStatus[]) {
+    if (!map[row.project_id]) map[row.project_id] = [];
+    map[row.project_id].push(row);
+  }
+  return map;
+}
+
+export async function createProjectStatus(input: {
+  project_id: string;
+  key: string;
+  label: string;
+  group: ProjectTaskStatus['group'];
+  position?: number;
+  is_default?: boolean;
+  color?: string;
+}): Promise<ProjectTaskStatus> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('project_task_statuses')
+    .insert({
+      project_id: input.project_id,
+      key: input.key,
+      label: input.label,
+      group: input.group,
+      position: input.position ?? 0,
+      is_default: input.is_default ?? false,
+      color: input.color ?? '#64748b',
+    })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as ProjectTaskStatus;
+}
+
+export async function updateProjectStatus(input: {
+  id: string;
+  label?: string;
+  group?: ProjectTaskStatus['group'];
+  position?: number;
+  is_default?: boolean;
+  color?: string;
+}): Promise<ProjectTaskStatus> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('project_task_statuses')
+    .update({
+      label: input.label,
+      group: input.group,
+      position: input.position,
+      is_default: input.is_default,
+      color: input.color,
+    })
+    .eq('id', input.id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as ProjectTaskStatus;
+}
+
+export async function deleteProjectStatus(id: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('project_task_statuses')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// Deprecated: default status concept removed from UI flow
 
 export async function fetchTaskById(taskId: string): Promise<Task> {
   const supabase = getSupabase();

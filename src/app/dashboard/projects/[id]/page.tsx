@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getProjectById, updateProject, deleteProject, type Project } from '../../../../features/projects/api';
 import { fetchTeams, type Team } from '../../../../features/teams/api';
 import TaskList from '../../../../features/tasks/components/TaskList';
+import ProjectSettingsButton from '../../../../features/projects/components/ProjectSettingsButton';
 import NewTaskForm from '../../../../features/tasks/components/NewTaskForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
@@ -245,6 +246,7 @@ export default function ProjectDetailPage() {
                   <Edit className="h-4 w-4 mr-2" />
                   {t('common.edit')}
                 </Button>
+                <ProjectSettingsButton projectId={projectId} />
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive">
@@ -464,38 +466,7 @@ export default function ProjectDetailPage() {
           )}
         </section>
 
-        {/* Diğer Özellikler */}
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Dosyalar</CardTitle>
-              <CardDescription>Proje dosyalarını yönetin</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="text-center py-8">
-                  <div className="text-muted-foreground mb-2">{t('common.soon')}</div>
-                  <Button variant="outline" disabled>
-                    {t('project.files.upload')}
-                  </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{t('project.comments.title')}</CardTitle>
-              <CardDescription>{t('project.comments.desc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="text-center py-8">
-                  <div className="text-muted-foreground mb-2">{t('common.soon')}</div>
-                  <Button variant="outline" disabled>
-                    {t('project.comments.add')}
-                  </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+        {/* Diğer Özellikler - kaldırıldı, ayarlar modala taşındı */}
       </div>
     </main>
   );

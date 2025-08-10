@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { updateTask, type Task } from '../api';
+import { updateTask, type Task, fetchProjectStatuses, type ProjectTaskStatus } from '../api';
 import { toast } from 'sonner';
 import { Save, Loader2, X } from 'lucide-react';
 import TaskAssignment from './TaskAssignment';
@@ -22,9 +22,17 @@ export default function TaskEditForm({ task, projectId, onSaved, onCancel }: Tas
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>(task.priority);
-  const [status, setStatus] = useState<'todo' | 'in_progress' | 'review' | 'completed'>(task.status);
+  const [status, setStatus] = useState<string>(task.status);
   const [dueDate, setDueDate] = useState(task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '');
   const [loading, setLoading] = useState(false);
+  const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null)
+
+  // Load project-specific statuses
+  useEffect(() => {
+    fetchProjectStatuses(projectId)
+      .then(setStatuses)
+      .catch(() => setStatuses([]))
+  }, [projectId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,16 +109,24 @@ export default function TaskEditForm({ task, projectId, onSaved, onCancel }: Tas
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="status">Durum</Label>
-            <Select value={status} onValueChange={(value: 'todo' | 'in_progress' | 'review' | 'completed') => setStatus(value)}>
+          <Label htmlFor="status">Durum</Label>
+          <Select value={status} onValueChange={(value: string) => setStatus(value)}>
               <SelectTrigger disabled={loading}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todo">Yapılacak</SelectItem>
-                <SelectItem value="in_progress">Devam Ediyor</SelectItem>
-                <SelectItem value="review">İncelemede</SelectItem>
-                <SelectItem value="completed">Tamamlandı</SelectItem>
+              {statuses && statuses.length > 0 ? (
+                statuses.sort((a,b) => a.position - b.position).map((s) => (
+                  <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="todo">Yapılacak</SelectItem>
+                  <SelectItem value="in_progress">Devam Ediyor</SelectItem>
+                  <SelectItem value="review">İncelemede</SelectItem>
+                  <SelectItem value="completed">Tamamlandı</SelectItem>
+                </>
+              )}
               </SelectContent>
             </Select>
           </div>

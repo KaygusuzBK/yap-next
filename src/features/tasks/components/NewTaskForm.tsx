@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createTask } from '../api';
+import { createTask, fetchProjectStatuses, type ProjectTaskStatus } from '../api';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -24,13 +24,26 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
-  const [status, setStatus] = useState<'todo' | 'in_progress' | 'review' | 'completed'>('todo');
+  const [status, setStatus] = useState<string>('todo');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [notifySlack, setNotifySlack] = useState(true);
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+  const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null)
 
   // Load/save temporary preferences from localStorage (per-user if available)
+  useEffect(() => {
+    // Load project statuses
+    fetchProjectStatuses(projectId)
+      .then((rows) => {
+        setStatuses(rows)
+        // Pick default of 'todo' group for new task
+        const def = rows.find(r => r.group === 'todo' && r.is_default) || rows.find(r => r.group === 'todo')
+        if (def) setStatus(def.key)
+      })
+      .catch(() => setStatuses([]))
+  }, [projectId])
+
   useEffect(() => {
     try {
       const key = `prefs:${user?.id || 'anon'}:slack`;
@@ -131,15 +144,23 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
 
         <div className="space-y-2">
           <Label htmlFor="status">Durum</Label>
-          <Select value={status} onValueChange={(value: 'todo' | 'in_progress' | 'review' | 'completed') => setStatus(value)}>
+          <Select value={status} onValueChange={(value: string) => setStatus(value)}>
             <SelectTrigger disabled={loading}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todo">Yapılacak</SelectItem>
-              <SelectItem value="in_progress">Devam Ediyor</SelectItem>
-              <SelectItem value="review">İncelemede</SelectItem>
-              <SelectItem value="completed">Tamamlandı</SelectItem>
+              {statuses && statuses.length > 0 ? (
+                statuses.sort((a,b) => a.position - b.position).map((s) => (
+                  <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="todo">Yapılacak</SelectItem>
+                  <SelectItem value="in_progress">Devam Ediyor</SelectItem>
+                  <SelectItem value="review">İncelemede</SelectItem>
+                  <SelectItem value="completed">Tamamlandı</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
