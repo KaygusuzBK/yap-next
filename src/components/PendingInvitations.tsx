@@ -4,49 +4,33 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { acceptTeamInvitation, declineTeamInvitation, getPendingInvitations, getTeamMembersForInvited } from "@/features/teams/api"
+import { getTeamMembersForInvited } from "@/features/teams/api"
+import { useInvitesStore } from "@/lib/store/invites"
 import { Users, Clock, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-type PendingInvitation = {
-  id: string
-  token: string
-  email: string
-  role: string
-  created_at: string
-  expires_at: string
-  teams: {
-    id: string
-    name: string
-    owner_id: string
-  }
-}
+type PendingInvitation = ReturnType<typeof useInvitesStore.getState>['invitations'][number]
 
 export default function PendingInvitations() {
-  const [invitations, setInvitations] = useState<PendingInvitation[]>([])
-  const [loading, setLoading] = useState(true)
+  const { invitations, loading, fetchInvites, accept, decline } = useInvitesStore()
   const [processing, setProcessing] = useState<string | null>(null)
   const [notified, setNotified] = useState(false)
   const [membersByTeam, setMembersByTeam] = useState<Record<string, Array<{ id: string; name: string | null; email: string | null; role: string }>>>({})
 
   useEffect(() => {
-    void loadInvitations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    fetchInvites().catch(() => {})
+  }, [fetchInvites])
 
-  const loadInvitations = async () => {
-    try {
-      setLoading(true)
-      const data = await getPendingInvitations()
-      setInvitations(data)
-      // aynı takımdaki üyeleri getir
-      const grouped: Record<string, PendingInvitation[]> = {}
-      for (const inv of data) {
-        const teamId = inv.teams?.id
-        if (!teamId) continue
-        if (!grouped[teamId]) grouped[teamId] = []
-        grouped[teamId].push(inv)
-      }
+  useEffect(() => {
+    // ekip üyelerini getir
+    const grouped: Record<string, PendingInvitation[]> = {}
+    for (const inv of invitations) {
+      const teamId = inv.teams?.id
+      if (!teamId) continue
+      if (!grouped[teamId]) grouped[teamId] = []
+      grouped[teamId].push(inv as PendingInvitation)
+    }
+    const run = async () => {
       const entries = Object.keys(grouped)
       const membersPairs = await Promise.all(entries.map(async (teamId) => {
         try {
@@ -57,26 +41,19 @@ export default function PendingInvitations() {
         }
       }))
       setMembersByTeam(Object.fromEntries(membersPairs))
-      if (!notified && (data?.length ?? 0) > 0) {
-        toast.info(`${data.length} bekleyen takım davetiniz var`)
+      if (!notified && (invitations?.length ?? 0) > 0) {
+        toast.info(`${invitations.length} bekleyen takım davetiniz var`)
         setNotified(true)
       }
-    } catch (error) {
-      console.warn('Davetler yüklenirken hata:', error)
-      // Hata durumunda bileşeni gösterme
-      setInvitations([])
-    } finally {
-      setLoading(false)
     }
-  }
+    run().catch(() => {})
+  }, [invitations, notified])
 
   const handleAccept = async (token: string) => {
     try {
       setProcessing(token)
-      await acceptTeamInvitation(token)
+      await accept(token)
       toast.success('Takıma başarıyla katıldınız!')
-      // Davet listesini güncelle
-      setInvitations(prev => prev.filter(inv => inv.token !== token))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Bir hata oluştu'
       toast.error(message)
@@ -88,9 +65,8 @@ export default function PendingInvitations() {
   const handleDecline = async (token: string) => {
     try {
       setProcessing(token)
-      await declineTeamInvitation(token)
+      await decline(token)
       toast.success('Davet reddedildi')
-      setInvitations(prev => prev.filter(inv => inv.token !== token))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Bir hata oluştu'
       toast.error(message)
