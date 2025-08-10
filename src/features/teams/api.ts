@@ -274,7 +274,7 @@ export async function acceptTeamInvitation(token: string) {
     .select('*')
     .eq('team_id', invitation.team_id)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
   
   if (existingMember) {
     throw new Error('Zaten bu takımın üyesisiniz');
