@@ -237,7 +237,7 @@ export async function getProjectMembers(projectId: string): Promise<Array<{ id: 
   const { data: teamMembers, error: teamErr } = await supabase.rpc('get_team_members', { p_team_id: teamId })
   if (teamErr) throw teamErr
   type Row = { user_id: string; email: string | null; full_name: string | null }
-  const rows: Row[] = (teamMembers as any[]) ?? []
+  const rows: Row[] = (teamMembers as Array<Row> | null | undefined) ?? []
   return rows.map(r => ({
     id: r.user_id,
     email: r.email ?? '',
@@ -408,9 +408,10 @@ export async function fetchTaskById(taskId: string): Promise<Task> {
     }
   } catch {}
 
+  const projectTitle = (data as { projects?: { title?: string | null } }).projects?.title ?? 'Bilinmeyen Proje'
   return {
     ...data,
-    project_title: (data as any).projects?.title || 'Bilinmeyen Proje',
+    project_title: projectTitle,
     creator_name,
     creator_email,
   } as Task;

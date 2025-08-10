@@ -195,8 +195,8 @@ export default function TeamDetailPage() {
                       <div className="flex items-center gap-2">
                         {!invitation.accepted_at && (
                           <>
-                            <Button size="sm" variant="outline" onClick={async () => {
-                              try { await resendTeamInvitation(invitation.id); toast.success('Davet linki yenilendi'); } catch (e) { toast.error('Yeniden gönderilemedi') }
+            <Button size="sm" variant="outline" onClick={async () => {
+                              try { await resendTeamInvitation(invitation.id); toast.success('Davet linki yenilendi'); } catch { toast.error('Yeniden gönderilemedi') }
                             }}>Yeniden Gönder</Button>
                             <Button size="sm" variant="ghost" onClick={async () => {
                               if (!confirm('Davet iptal edilsin mi?')) return

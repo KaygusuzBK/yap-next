@@ -15,7 +15,8 @@ type Props = { projectId: string }
 
 export default function ProjectStatusManager({ projectId }: Props) {
   const [rows, setRows] = useState<ProjectTaskStatus[]>([])
-  const [loading, setLoading] = useState(false)
+  // loading reserved for future async sequences
+  const [loading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [activeGroup, setActiveGroup] = useState<ProjectTaskStatus['group']>('todo')

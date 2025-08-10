@@ -116,7 +116,7 @@ export default function TaskDetailPage() {
       const created = await addComment(task.id, content);
       setComments((prev) => [...prev, created]);
       setNewComment('');
-    } catch (e) {
+    } catch {
       toast.error('Yorum eklenemedi');
     } finally {
       setCommentLoading(false);
