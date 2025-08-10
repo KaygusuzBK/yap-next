@@ -27,7 +27,7 @@ begin
   end if;
 
   return query
-  select tm.id, tm.team_id, tm.user_id, tm.role, tm.created_at, p.email, p.name as full_name
+  select tm.user_id as id, tm.team_id, tm.user_id, tm.role, tm.created_at, p.email, p.name as full_name
   from public.team_members tm
   left join public.profiles p on p.id = tm.user_id
   where tm.team_id = p_team_id
