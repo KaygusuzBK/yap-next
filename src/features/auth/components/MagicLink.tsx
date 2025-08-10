@@ -33,4 +33,23 @@ export default function MagicLink() {
   );
 }
 
+export function MagicLinkInline({ email }: { email: string }) {
+  const [loading, setLoading] = useState(false)
+  const disabled = !email || email.trim().length === 0
+  const onSend = async () => {
+    if (disabled) return
+    setLoading(true)
+    const supabase = getSupabase()
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/dashboard` } })
+    setLoading(false)
+    if (error) return toast.error(error.message)
+    toast.success('Giriş bağlantısı gönderildi')
+  }
+  return (
+    <Button type="button" variant="outline" className="w-full" onClick={onSend} disabled={loading || disabled}>
+      {loading ? 'Gönderiliyor...' : 'Magic Link ile Gönder'}
+    </Button>
+  )
+}
+
 

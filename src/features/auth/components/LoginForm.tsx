@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 const schema = z.object({
   email: z.string().email('Geçerli bir e-posta girin'),
-  password: z.string().min(6, 'En az 6 karakter'),
+  password: z.string().min(6, 'En az 6 karakter').optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -48,22 +48,14 @@ export default function LoginForm() {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Şifre</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Şifre alanı kaldırıldı */}
         <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
           {form.formState.isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
         </Button>
+        {/* Magic link tetikleyici */}
+        <div className="pt-2">
+          <MagicLinkInline email={form.watch('email') || ''} />
+        </div>
       </form>
     </Form>
   );
