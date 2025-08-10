@@ -18,7 +18,7 @@ export default function InvitePreview({ open, onOpenChange, to, teamName, invite
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl w-[96vw] md:w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Davet E-postası</DialogTitle>
         </DialogHeader>
@@ -33,7 +33,7 @@ export default function InvitePreview({ open, onOpenChange, to, teamName, invite
           </div>
           <div>
             <div className="text-xs text-muted-foreground mb-1">İçerik</div>
-            <textarea className="w-full min-h-32 rounded-md border px-3 py-2 text-sm bg-muted/20" readOnly value={body} />
+            <textarea className="w-full min-h-48 md:min-h-64 rounded-md border px-3 py-2 text-sm bg-muted/20" readOnly value={body} />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
