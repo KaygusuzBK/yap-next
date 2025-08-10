@@ -25,14 +25,7 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from '../../../../components/ui/alert-dialog';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '../../../../components/ui/breadcrumb';
+import DashboardHeader from '@/components/layout/DashboardHeader';
 import { 
   Edit, 
   Save, 
@@ -195,88 +188,73 @@ export default function ProjectDetailPage() {
   return (
     <main className="flex flex-1 flex-col p-2 gap-4">
       <div className="w-full space-y-4">
-        {/* Breadcrumb */}
-        <section>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard">{t('dashboard.breadcrumb.dashboard')}</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{project.title}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </section>
-
-        {/* Header */}
-        <section className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{project.title}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                {getStatusBadge(project.status)}
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  {formatDate(project.created_at)}
-                </div>
+        <DashboardHeader
+          title={project.title}
+          backHref="/dashboard"
+          breadcrumb={[
+            { label: t('dashboard.breadcrumb.dashboard'), href: '/dashboard' },
+            { label: project.title },
+          ]}
+          meta={(
+            <>
+              {getStatusBadge(project.status)}
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                {formatDate(project.created_at)}
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {editing ? (
-              <>
-                <Button onClick={handleSave} disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? t('common.saving') : t('common.save')}
-                </Button>
-                <Button variant="outline" onClick={() => setEditing(false)}>
-                  <X className="h-4 w-4 mr-2" />
-                  {t('common.cancel')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button onClick={() => setEditing(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t('common.edit')}
-                </Button>
-                <ProjectSettingsButton projectId={projectId} />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {t('common.delete')}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('project.deleteTitle')}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t('project.deleteConfirm',).replace('{title}', project.title)}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        {deleting ? t('common.deleting') : t('common.delete')}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            )}
-          </div>
-        </section>
+            </>
+          )}
+          actions={(
+            <>
+              {editing ? (
+                <>
+                  <Button onClick={handleSave} disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? t('common.saving') : t('common.save')}
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditing(false)}>
+                    <X className="h-4 w-4 mr-2" />
+                    {t('common.cancel')}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => setEditing(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    {t('common.edit')}
+                  </Button>
+                  <ProjectSettingsButton projectId={projectId} />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {t('common.delete')}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('project.deleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t('project.deleteConfirm',).replace('{title}', project.title)}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          disabled={deleting}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {deleting ? t('common.deleting') : t('common.delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+            </>
+          )}
+        />
 
         {/* Project Details */}
         <section className="grid gap-4 md:grid-cols-2">

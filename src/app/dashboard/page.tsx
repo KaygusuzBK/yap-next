@@ -6,14 +6,7 @@ import { fetchTeams, type Team } from "@/features/teams/api"
 import { fetchMyTasks, updateTask, type Task } from "@/features/tasks/api"
 import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+import DashboardHeader from "@/components/layout/DashboardHeader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -145,20 +138,14 @@ export default function Page() {
   return (
     <main className="flex flex-1 flex-col p-2 gap-4">
       <div className="w-full space-y-4">
-        <section>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">{t('dashboard.breadcrumb.home')}</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{t('dashboard.breadcrumb.dashboard')}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </section>
-                    <section className="space-y-4">
+        <DashboardHeader
+          title={t('dashboard.breadcrumb.dashboard')}
+          breadcrumb={[
+            { label: t('dashboard.breadcrumb.home'), href: '/' },
+            { label: t('dashboard.breadcrumb.dashboard') },
+          ]}
+        />
+        <section className="space-y-4">
           <h2 className="text-lg font-semibold">{t('dashboard.overview.title')}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="relative overflow-hidden transition-all hover:shadow-md">

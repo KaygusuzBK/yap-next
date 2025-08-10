@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useI18n } from "@/i18n/I18nProvider"
+import DashboardHeader from "@/components/layout/DashboardHeader"
 
 type TeamRecord = {
   id: string
@@ -104,10 +105,14 @@ export default function TeamDetailPage() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" onClick={() => router.push("/dashboard#teams")}>{t('team.back')}</Button>
-        <span className="text-sm text-muted-foreground">{t('team.detail')}</span>
-      </div>
+      <DashboardHeader
+        title={team ? team.name : t('team.detail')}
+        backHref="/dashboard#teams"
+        breadcrumb={[
+          { label: t('dashboard.breadcrumb.dashboard'), href: '/dashboard' },
+          { label: t('team.detail') },
+        ]}
+      />
       {loading ? (
         <p className="text-sm text-muted-foreground">{t('team.loading')}</p>
       ) : error ? (

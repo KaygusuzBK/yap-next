@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from '../../../../components/ui/dialog';
 import { useI18n } from '@/i18n/I18nProvider';
+import DashboardHeader from '@/components/layout/DashboardHeader';
 
 export default function TaskDetailPage() {
   const { t, locale } = useI18n();
@@ -316,26 +317,23 @@ export default function TaskDetailPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-xl border bg-card/70 backdrop-blur mb-6">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-1/2 top-0 h-40 w-[200%] bg-gradient-to-r from-primary/20 via-transparent to-primary/20 blur-2xl" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/0 to-background/40" />
-        </div>
-        <div className="relative p-4 md:p-6 flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('task.back')}
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold truncate">{task.title}</h1>
-            <p className="text-muted-foreground flex items-center gap-2 text-xs md:text-sm min-w-0">
-              <span className="inline-flex items-center gap-1 whitespace-nowrap"><Folder className="h-3 w-3" /> Proje:</span>
-              <span className="truncate">{task.project_title || 'Bilinmeyen Proje'}</span>
-              <span className="hidden md:inline">•</span>
-              <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
-            </p>
-          </div>
+      <DashboardHeader
+        title={task.title}
+        backHref="/dashboard"
+        breadcrumb={[
+          { label: t('dashboard.breadcrumb.dashboard'), href: '/dashboard' },
+          { label: task.project_title || 'Proje', href: task.project_id ? `/dashboard/projects/${task.project_id}` : undefined },
+          { label: t('task.details.title') },
+        ]}
+        meta={(
+          <p className="text-muted-foreground flex items-center gap-2 text-xs md:text-sm min-w-0">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><Folder className="h-3 w-3" /> Proje:</span>
+            <span className="truncate">{task.project_title || 'Bilinmeyen Proje'}</span>
+            <span className="hidden md:inline">•</span>
+            <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
+          </p>
+        )}
+        actions={(
           <div className="hidden md:flex items-center gap-2">
             {getPriorityBadge(task.priority)}
             <Button onClick={() => setEditing(true)}>
@@ -343,8 +341,8 @@ export default function TaskDetailPage() {
               {t('task.edit')}
             </Button>
           </div>
-        </div>
-      </div>
+        )}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ana İçerik */}
