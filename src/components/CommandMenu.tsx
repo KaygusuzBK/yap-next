@@ -15,37 +15,37 @@ import {
 import { fetchProjects } from "@/features/projects/api";
 import { fetchMyTasks } from "@/features/tasks/api";
 import { fetchTeams } from "@/features/teams/api";
+import { useCommandMenuStore } from "@/lib/store/commandMenu";
 
 export default function CommandMenu() {
-  const [open, setOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
+  const open = useCommandMenuStore(s => s.open);
+  const setOpen = useCommandMenuStore(s => s.setOpen);
+  const query = useCommandMenuStore(s => s.query);
+  const setQuery = useCommandMenuStore(s => s.setQuery);
+  const recents = useCommandMenuStore(s => s.recents);
+  const loadRecents = useCommandMenuStore(s => s.loadRecents);
+  const addRecent = useCommandMenuStore(s => s.addRecent);
   const [projects, setProjects] = React.useState<Array<{ id: string; title: string }>>([]);
   const [tasks, setTasks] = React.useState<Array<{ id: string; title: string; project_title?: string }>>([]);
   const [teams, setTeams] = React.useState<Array<{ id: string; name: string }>>([]);
-  const [recents, setRecents] = React.useState<Array<{ href: string; label: string; sub?: string; type: 'task' | 'project' | 'team'; ts: number }>>([]);
+  // recents now come from store
   const router = useRouter();
 
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        setOpen(!open);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [open, setOpen]);
 
   React.useEffect(() => {
     if (!open) return;
-    // Load recents from localStorage
-    try {
-      const raw = localStorage.getItem('recent-items');
-      if (raw) {
-        const parsed = JSON.parse(raw) as Array<{ href: string; label: string; sub?: string; type: 'task' | 'project' | 'team'; ts: number }>
-        setRecents(parsed.sort((a,b) => b.ts - a.ts).slice(0, 10))
-      }
-    } catch {}
+    // Load recents from store
+    loadRecents()
     if (projects.length || tasks.length || teams.length) return;
     (async () => {
       try {
@@ -55,20 +55,13 @@ export default function CommandMenu() {
         setTeams(tm.map(team => ({ id: team.id, name: team.name })));
       } catch {}
     })();
-  }, [open, projects.length, tasks.length, teams.length]);
+  }, [open, projects.length, tasks.length, teams.length, loadRecents]);
 
   const go = (href: string, recent?: { label: string; sub?: string; type: 'task' | 'project' | 'team' }) => {
     setOpen(false);
     router.push(href);
     if (recent) {
-      try {
-        const raw = localStorage.getItem('recent-items');
-        const list: Array<{ href: string; label: string; sub?: string; type: 'task' | 'project' | 'team'; ts: number }> = raw ? JSON.parse(raw) : []
-        const now = Date.now()
-        const next = [{ href, label: recent.label, sub: recent.sub, type: recent.type, ts: now }, ...list.filter(i => i.href !== href)]
-        localStorage.setItem('recent-items', JSON.stringify(next.slice(0, 20)))
-        setRecents(next.slice(0, 10))
-      } catch {}
+      addRecent({ href, label: recent.label, sub: recent.sub, type: recent.type })
     }
   };
 
