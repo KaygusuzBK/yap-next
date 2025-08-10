@@ -199,7 +199,7 @@ export default function ProjectDetailPage() {
             <>
               {getStatusBadge(project.status)}
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
+                  <Calendar className="h-4 w-4" aria-hidden="true" />
                 {formatDate(project.created_at)}
               </div>
             </>

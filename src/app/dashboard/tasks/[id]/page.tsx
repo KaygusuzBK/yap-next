@@ -307,7 +307,7 @@ export default function TaskDetailPage() {
             {error || t('task.notFoundDesc')}
           </p>
           <Button onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
             {t('task.back')}
           </Button>
         </div>
@@ -327,10 +327,10 @@ export default function TaskDetailPage() {
         ]}
         meta={(
           <p className="text-muted-foreground flex items-center gap-2 text-xs md:text-sm min-w-0">
-            <span className="inline-flex items-center gap-1 whitespace-nowrap"><Folder className="h-3 w-3" /> Proje:</span>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><Folder className="h-3 w-3" aria-hidden="true" /> Proje:</span>
             <span className="truncate">{task.project_title || 'Bilinmeyen Proje'}</span>
             <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
+            <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" aria-hidden="true" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
           </p>
         )}
         actions={(

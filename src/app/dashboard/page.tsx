@@ -154,7 +154,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalProjects')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Folder className="h-4 w-4" />
+                  <Folder className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -172,7 +172,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalTeams')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Users className="h-4 w-4" />
+                  <Users className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -190,7 +190,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.activeProjects')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -208,7 +208,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.thisMonth')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <CalendarIcon className="h-4 w-4" />
+                  <CalendarIcon className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -316,7 +316,7 @@ export default function Page() {
                             >
                                 <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
                                 <div className="flex items-start gap-2">
-                                  <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                                   <div className="min-w-0 flex-1">
                                     <div className="text-sm font-medium truncate leading-5">{task.title}</div>
                                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -327,7 +327,7 @@ export default function Page() {
                                       )}
                                       {task.due_date && (
                                         <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
-                                          <CalendarIcon className="h-3.5 w-3.5" />
+                                          <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
                                           {new Date(task.due_date).toLocaleDateString('tr-TR')}
                                         </span>
                                       )}
@@ -389,7 +389,7 @@ export default function Page() {
                                   )}
                                   {task.due_date && (
                                     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
-                                      <CalendarIcon className="h-3.5 w-3.5" />
+                                      <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
                                       {new Date(task.due_date).toLocaleDateString('tr-TR')}
                                     </span>
                                   )}
