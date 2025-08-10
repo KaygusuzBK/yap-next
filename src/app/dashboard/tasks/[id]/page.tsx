@@ -370,8 +370,14 @@ export default function TaskDetailPage() {
                       <input
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Yorum yaz..."
+                        placeholder="Yorum yaz... (@ ile kişi önerisi)"
                         className="border rounded px-2 py-1 text-sm flex-1 min-w-0 md:w-64"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment();
+                          }
+                        }}
                       />
                       <Button size="sm" className="md:inline-flex hidden" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
                         {commentLoading ? (
