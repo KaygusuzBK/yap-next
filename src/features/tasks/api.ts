@@ -271,7 +271,18 @@ export async function updateTask(input: {
     .single();
     
   if (error) throw error;
-  return data as Task;
+  const updated = data as Task;
+  // Best-effort: notify Slack about updates if env configured
+  try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || ''
+    const url = baseUrl ? `${baseUrl}/dashboard/tasks/${updated.id}` : undefined
+    await fetch('/api/slack/task-updated', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: updated.id, title: updated.title, status: updated.status, priority: updated.priority, url })
+    }).catch(() => {})
+  } catch {}
+  return updated;
 }
 
 // Project-specific task statuses

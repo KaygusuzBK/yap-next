@@ -24,4 +24,19 @@ export function verifySlackSignature(opts: {
   }
 }
 
+export async function postSlackMessage(channel: string, text: string) {
+  const token = process.env.SLACK_BOT_TOKEN || ''
+  if (!token) return { ok: false, error: 'missing_token' }
+  const res = await fetch('https://slack.com/api/chat.postMessage', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ channel, text }),
+  })
+  const json = await res.json().catch(() => ({}))
+  return json
+}
+
 
