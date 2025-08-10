@@ -15,8 +15,7 @@ type Props = { projectId: string }
 
 export default function ProjectStatusManager({ projectId }: Props) {
   const [rows, setRows] = useState<ProjectTaskStatus[]>([])
-  // loading reserved for future async sequences
-  const [loading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [activeGroup, setActiveGroup] = useState<ProjectTaskStatus['group']>('todo')
@@ -210,7 +209,7 @@ export default function ProjectStatusManager({ projectId }: Props) {
             </DropdownMenu>
           </div>
           <div className="md:col-span-1 flex items-end">
-            <Button onClick={onCreate} disabled={creating || !newLabel.trim()} className="rounded-full w-full md:w-auto">
+            <Button onClick={onCreate} disabled={creating || loading || !newLabel.trim()} className="rounded-full w-full md:w-auto">
               <Plus className="h-4 w-4 mr-2" /> Ekle
             </Button>
           </div>
