@@ -1016,7 +1016,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span className="sr-only">Proje oluştur</span>
               </Button>
             )}
-            {(isTasksActive || isProjectsActive) && (
+            {isTasksActive && (
               <Button
                 size="icon"
                 variant="outline"
