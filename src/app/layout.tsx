@@ -9,6 +9,7 @@ import CommandMenu from "@/components/CommandMenu";
 import Navbar from "@/components/layout/Navbar";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import AppFrame from "@/components/layout/AppFrame";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
           <CommandMenu />
         </AuthTree>
         <Toaster richColors position="top-center" />
+        <Analytics />
       </body>
     </html>
   );
