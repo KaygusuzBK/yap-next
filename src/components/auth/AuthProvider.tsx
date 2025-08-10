@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
+import { useAuthStore } from "@/lib/store/auth";
+import { useUserStore } from "@/lib/store/user";
 
 type AuthContextValue = {
   user: User | null;
@@ -14,8 +16,11 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(s => s.user)
+  const setUser = useAuthStore(s => s.setUser)
+  const loading = useAuthStore(s => s.loading)
+  const setLoading = useAuthStore(s => s.setLoading)
+  const setProfile = useUserStore(s => s.setProfile)
   const router = useRouter();
 
   useEffect(() => {
@@ -26,21 +31,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data } = await supabase.auth.getSession();
         const u = data.session?.user ?? null
         setUser(u);
-        try {
-          if (typeof window !== 'undefined') {
-            const getMetaString = (obj: unknown, key: string): string | '' => {
-              if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
-                const val = (obj as Record<string, unknown>)[key]
-                return typeof val === 'string' ? val : ''
-              }
-              return ''
-            }
-            const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
-            const email = u?.email ?? ''
-            if (fullName) window.localStorage.setItem('profile_name', fullName)
-            if (email) window.localStorage.setItem('profile_email', email)
+        // profile to user store
+        const getMetaString = (obj: unknown, key: string): string | '' => {
+          if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
+            const val = (obj as Record<string, unknown>)[key]
+            return typeof val === 'string' ? val : ''
           }
-        } catch {}
+          return ''
+        }
+        const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
+        const email = u?.email ?? ''
+        if (fullName || email) setProfile(fullName || 'Kullanıcı', email || '—')
       } finally {
         setLoading(false);
       }
@@ -50,21 +51,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
       setUser(u);
-      try {
-        if (typeof window !== 'undefined') {
-          const getMetaString = (obj: unknown, key: string): string | '' => {
-            if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
-              const val = (obj as Record<string, unknown>)[key]
-              return typeof val === 'string' ? val : ''
-            }
-            return ''
-          }
-          const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
-          const email = u?.email ?? ''
-          if (fullName) window.localStorage.setItem('profile_name', fullName)
-          if (email) window.localStorage.setItem('profile_email', email)
+      const getMetaString = (obj: unknown, key: string): string | '' => {
+        if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
+          const val = (obj as Record<string, unknown>)[key]
+          return typeof val === 'string' ? val : ''
         }
-      } catch {}
+        return ''
+      }
+      const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
+      const email = u?.email ?? ''
+      if (fullName || email) setProfile(fullName || 'Kullanıcı', email || '—')
     });
 
     return () => {

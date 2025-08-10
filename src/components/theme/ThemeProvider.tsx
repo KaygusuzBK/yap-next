@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { usePreferencesStore } from '@/lib/store/preferences';
 
 type Theme = 'light' | 'dark';
 type ThemeContextValue = {
@@ -11,24 +12,18 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const themeStore = usePreferencesStore(s => s.theme)
+  const setThemeStore = usePreferencesStore(s => s.setTheme)
+  const load = usePreferencesStore(s => s.load)
   const [theme, setTheme] = useState<Theme>('light');
 
-  useEffect(() => {
-    const stored = (typeof window !== 'undefined' && window.localStorage.getItem('theme')) as Theme | null;
-    if (stored) setTheme(stored);
-  }, []);
+  useEffect(() => { load() }, [load]);
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('dark', theme === 'dark');
-      window.localStorage.setItem('theme', theme);
-    }
-  }, [theme]);
+    setTheme(themeStore)
+  }, [themeStore])
 
-  const value = useMemo<ThemeContextValue>(
-    () => ({ theme, toggle: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')) }),
-    [theme]
-  );
+  const value = useMemo<ThemeContextValue>(() => ({ theme, toggle: () => setThemeStore(theme === 'dark' ? 'light' : 'dark') }), [theme, setThemeStore]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

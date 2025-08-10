@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from 'react'
 import {
   BadgeCheck,
   Bell,
@@ -32,6 +33,7 @@ import {
 import LanguageSwitcher from "@/components/LanguageSwitcher"
 import ThemeToggle from "@/components/theme/ThemeToggle"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { useUserStore } from "@/lib/store/user"
 
 export function NavUser({
   user,
@@ -44,6 +46,10 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { signOut } = useAuth()
+  const userStoreName = useUserStore(s => s.name)
+  const userStoreEmail = useUserStore(s => s.email)
+  const loadProfile = useUserStore(s => s.loadFromLocalStorage)
+  React.useEffect(() => { loadProfile() }, [loadProfile])
   const computeInitials = (name: string, email: string): string => {
     const safeName = (name || "").trim()
     if (safeName.length > 0) {
@@ -54,7 +60,9 @@ export function NavUser({
     const local = (email || "").split("@")[0] || "?"
     return local.slice(0, 2).toUpperCase()
   }
-  const initials = computeInitials(user.name, user.email)
+  const displayName = userStoreName || user.name
+  const displayEmail = userStoreEmail || user.email
+  const initials = computeInitials(displayName, displayEmail)
 
   return (
     <SidebarMenu>
@@ -66,12 +74,12 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                {user.avatar ? <AvatarImage src={user.avatar} alt={user.name} /> : null}
+                {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-medium">{displayName}</span>
+                <span className="truncate text-xs">{displayEmail}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -85,12 +93,12 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  {user.avatar ? <AvatarImage src={user.avatar} alt={user.name} /> : null}
+                  {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-medium">{displayName}</span>
+                  <span className="truncate text-xs">{displayEmail}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

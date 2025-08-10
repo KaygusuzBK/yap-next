@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/lib/store/auth"
+import { useUserStore } from "@/lib/store/user"
 import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter } from "lucide-react"
 import Logo from "@/components/Logo"
 import { applySavedOrder, saveOrder } from "@/lib/sidebarOrder"
@@ -536,6 +538,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [mails, setMails] = React.useState(data.mails)
   const { setOpen } = useSidebar()
   const router = useRouter()
+  const authUser = useAuthStore(s => s.user)
+  const profileName = useUserStore(s => s.name)
+  const profileEmail = useUserStore(s => s.email)
   const [teamStats, setTeamStats] = React.useState<TeamStat[]>([])
   const [loadingTeams, setLoadingTeams] = React.useState(false)
   const [teamError, setTeamError] = React.useState<string | null>(null)
@@ -972,8 +977,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarContent>
         <SidebarFooter>
           <NavUser user={{
-            name: (typeof window !== 'undefined' ? window.localStorage.getItem('profile_name') : null) || 'Kullanıcı',
-            email: (typeof window !== 'undefined' ? window.localStorage.getItem('profile_email') : null) || '—',
+            name: profileName || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || 'Kullanıcı',
+            email: profileEmail || authUser?.email || '—',
             avatar: data.user.avatar,
           }} />
         </SidebarFooter>
