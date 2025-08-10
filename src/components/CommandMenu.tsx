@@ -14,50 +14,95 @@ import {
 } from "@/components/ui/command";
 import { fetchProjects } from "@/features/projects/api";
 import { fetchMyTasks } from "@/features/tasks/api";
+import { fetchTeams } from "@/features/teams/api";
+import { useCommandMenuStore } from "@/lib/store/commandMenu";
 
 export default function CommandMenu() {
-  const [open, setOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
+  const open = useCommandMenuStore(s => s.open);
+  const setOpen = useCommandMenuStore(s => s.setOpen);
+  const query = useCommandMenuStore(s => s.query);
+  const setQuery = useCommandMenuStore(s => s.setQuery);
+  const recents = useCommandMenuStore(s => s.recents);
+  const loadRecents = useCommandMenuStore(s => s.loadRecents);
+  const addRecent = useCommandMenuStore(s => s.addRecent);
   const [projects, setProjects] = React.useState<Array<{ id: string; title: string }>>([]);
   const [tasks, setTasks] = React.useState<Array<{ id: string; title: string; project_title?: string }>>([]);
+  const [teams, setTeams] = React.useState<Array<{ id: string; name: string }>>([]);
+  // recents now come from store
   const router = useRouter();
 
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        setOpen(!open);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [open, setOpen]);
 
   React.useEffect(() => {
-    if (!open || projects.length || tasks.length) return;
+    if (!open) return;
+    // Load recents from store
+    loadRecents()
+    if (projects.length || tasks.length || teams.length) return;
     (async () => {
       try {
-        const [p, t] = await Promise.all([fetchProjects(), fetchMyTasks()]);
+        const [p, t, tm] = await Promise.all([fetchProjects(), fetchMyTasks(), fetchTeams()]);
         setProjects(p.map(pr => ({ id: pr.id, title: pr.title })));
         setTasks(t.map(ts => ({ id: ts.id, title: ts.title, project_title: ts.project_title })));
+        setTeams(tm.map(team => ({ id: team.id, name: team.name })));
       } catch {}
     })();
-  }, [open, projects.length, tasks.length]);
+  }, [open, projects.length, tasks.length, teams.length, loadRecents]);
 
-  const go = (href: string) => {
+  const go = (href: string, recent?: { label: string; sub?: string; type: 'task' | 'project' | 'team' }) => {
     setOpen(false);
     router.push(href);
+    if (recent) {
+      addRecent({ href, label: recent.label, sub: recent.sub, type: recent.type })
+    }
   };
 
   const q = query.trim().toLowerCase();
-  const filteredProjects = q ? projects.filter(p => p.title.toLowerCase().includes(q)) : projects.slice(0, 8);
-  const filteredTasks = q ? tasks.filter(t => (t.title.toLowerCase().includes(q) || (t.project_title || '').toLowerCase().includes(q))) : tasks.slice(0, 10);
+
+  // simple fuzzy match: checks that all query chars appear in order
+  const fuzzy = (needle: string, hay: string) => {
+    if (!needle) return true
+    let i = 0
+    const n = needle
+    const h = hay
+    for (let j = 0; j < h.length && i < n.length; j++) {
+      if (h[j] === n[i]) i++
+    }
+    return i === n.length
+  }
+
+  const match = (text: string) => {
+    const t = text.toLowerCase()
+    return t.includes(q) || fuzzy(q, t)
+  }
+
+  const filteredProjects = q ? projects.filter(p => match(p.title)) : projects.slice(0, 8);
+  const filteredTasks = q ? tasks.filter(t => (match(t.title) || match(t.project_title || ''))) : tasks.slice(0, 10);
+  const filteredTeams = q ? teams.filter(tm => match(tm.name)) : teams.slice(0, 8);
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Ara veya komut yaz... (⌘K)" value={query} onValueChange={setQuery} />
+      <CommandInput placeholder="Ara veya komut yaz... (⌘K, ↑↓ gezin, Enter aç)" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>Sonuç yok</CommandEmpty>
+        {!q && recents.length > 0 && (
+          <CommandGroup heading="Son açılanlar">
+            {recents.slice(0, 6).map((r) => (
+              <CommandItem key={r.href} onSelect={() => go(r.href)}>
+                {r.label}
+                {r.sub ? <span className="ml-auto text-xs text-muted-foreground">{r.sub}</span> : null}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
         <CommandGroup heading="Navigasyon">
           <CommandItem onSelect={() => go("/")}>Ana sayfa</CommandItem>
           <CommandItem onSelect={() => go("/dashboard")}>
@@ -70,7 +115,7 @@ export default function CommandMenu() {
         <CommandSeparator />
         <CommandGroup heading="Görevler">
           {filteredTasks.map((t) => (
-            <CommandItem key={t.id} onSelect={() => go(`/dashboard/tasks/${t.id}`)}>
+            <CommandItem key={t.id} onSelect={() => go(`/dashboard/tasks/${t.id}`, { label: t.title, sub: t.project_title, type: 'task' })}>
               {t.title}
               {t.project_title ? <span className="ml-auto text-xs text-muted-foreground">{t.project_title}</span> : null}
             </CommandItem>
@@ -78,8 +123,15 @@ export default function CommandMenu() {
         </CommandGroup>
         <CommandGroup heading="Projeler">
           {filteredProjects.map((p) => (
-            <CommandItem key={p.id} onSelect={() => go(`/dashboard/projects/${p.id}`)}>
+            <CommandItem key={p.id} onSelect={() => go(`/dashboard/projects/${p.id}`, { label: p.title, type: 'project' })}>
               {p.title}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+        <CommandGroup heading="Takımlar">
+          {filteredTeams.map((tm) => (
+            <CommandItem key={tm.id} onSelect={() => go(`/dashboard/teams/${tm.id}`, { label: tm.name, type: 'team' })}>
+              {tm.name}
             </CommandItem>
           ))}
         </CommandGroup>

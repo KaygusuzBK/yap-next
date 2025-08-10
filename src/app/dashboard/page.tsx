@@ -6,14 +6,7 @@ import { fetchTeams, type Team } from "@/features/teams/api"
 import { fetchMyTasks, updateTask, type Task } from "@/features/tasks/api"
 import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+import DashboardHeader from "@/components/layout/DashboardHeader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -21,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
+import { toast } from "sonner"
 import PendingInvitations from "@/components/PendingInvitations"
 
 export default function Page() {
@@ -145,20 +139,14 @@ export default function Page() {
   return (
     <main className="flex flex-1 flex-col p-2 gap-4">
       <div className="w-full space-y-4">
-        <section>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">{t('dashboard.breadcrumb.home')}</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{t('dashboard.breadcrumb.dashboard')}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </section>
-                    <section className="space-y-4">
+        <DashboardHeader
+          title={t('dashboard.breadcrumb.dashboard')}
+          breadcrumb={[
+            { label: t('dashboard.breadcrumb.home'), href: '/' },
+            { label: t('dashboard.breadcrumb.dashboard') },
+          ]}
+        />
+        <section className="space-y-4">
           <h2 className="text-lg font-semibold">{t('dashboard.overview.title')}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="relative overflow-hidden transition-all hover:shadow-md">
@@ -166,7 +154,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalProjects')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Folder className="h-4 w-4" />
+                  <Folder className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -184,7 +172,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalTeams')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Users className="h-4 w-4" />
+                  <Users className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -202,7 +190,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.activeProjects')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -220,7 +208,7 @@ export default function Page() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('dashboard.overview.thisMonth')}</CardTitle>
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <CalendarIcon className="h-4 w-4" />
+                  <CalendarIcon className="h-4 w-4" aria-hidden="true" />
                 </span>
               </CardHeader>
               <CardContent>
@@ -284,6 +272,7 @@ export default function Page() {
                       } catch {
                         // revert
                         setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
+                        toast.error(t('dashboard.toasts.moveError'))
                       }
                     }}
                     className={`min-h-[320px] overflow-hidden transition-all ${dragOverStatus === col.key ? 'ring-2 ring-primary/70 shadow-md border-primary/40 bg-primary/5' : 'hover:border-primary/20'} bg-muted/30 backdrop-blur-sm`}
@@ -306,18 +295,28 @@ export default function Page() {
                               onDragStart={(e) => {
                                 setDragTaskId(task.id)
                                 const node = document.createElement('div')
-                                node.className = 'px-3 py-2 text-xs rounded-md border bg-background shadow'
+                                node.className = 'inline-block max-w-[240px] whitespace-nowrap overflow-hidden text-ellipsis px-3 py-2 text-xs rounded-md border bg-background shadow pointer-events-none'
                                 node.textContent = task.title
                                 document.body.appendChild(node)
                                 e.dataTransfer.setDragImage(node, 10, 10)
                                 setTimeout(() => node.remove(), 0)
                               }}
-                              className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm"
+                              className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Görev: ${task.title}`}
+                              onKeyDown={(e) => {
+                                if (dragTaskId) return
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  window.location.href = `/dashboard/tasks/${task.id}`
+                                }
+                              }}
                               onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
                             >
                                 <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
                                 <div className="flex items-start gap-2">
-                                  <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                                   <div className="min-w-0 flex-1">
                                     <div className="text-sm font-medium truncate leading-5">{task.title}</div>
                                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -328,7 +327,7 @@ export default function Page() {
                                       )}
                                       {task.due_date && (
                                         <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
-                                          <CalendarIcon className="h-3.5 w-3.5" />
+                                          <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
                                           {new Date(task.due_date).toLocaleDateString('tr-TR')}
                                         </span>
                                       )}
@@ -390,7 +389,7 @@ export default function Page() {
                                   )}
                                   {task.due_date && (
                                     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
-                                      <CalendarIcon className="h-3.5 w-3.5" />
+                                      <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
                                       {new Date(task.due_date).toLocaleDateString('tr-TR')}
                                     </span>
                                   )}
@@ -405,7 +404,7 @@ export default function Page() {
                         </Link>
                     ))}
                     {myTasks.filter(t => t.status === 'todo').length === 0 && (
-                      <div className="text-sm text-muted-foreground">Backlog boş</div>
+                      <div className="text-sm text-muted-foreground">{t('dashboard.empty.backlog')}</div>
                     )}
                   </div>
                 )}

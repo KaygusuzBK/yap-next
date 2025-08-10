@@ -1305,6 +1305,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        {/* No profile footer here to avoid duplication */}
       </Sidebar>
       {/* Takım detayı sayfasına yönlendiriliyor */}
       {/* Create Team Modal */}
