@@ -24,13 +24,16 @@ export default function LoginForm() {
 
   const onSubmit = async (values: FormValues) => {
     const supabase = getSupabase();
-    const { error } = await supabase.auth.signInWithPassword(values);
+    // Şifre kaldırıldığı için Enter ile de magic link gönderelim
+    const { error } = await supabase.auth.signInWithOtp({
+      email: values.email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    });
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success('Giriş başarılı');
-    router.replace('/dashboard');
+    toast.success('Giriş bağlantısı gönderildi');
   };
 
   return (
@@ -50,9 +53,7 @@ export default function LoginForm() {
           )}
         />
         {/* Şifre alanı kaldırıldı */}
-        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
-          {form.formState.isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-        </Button>
+        {/* Enter ile de magic link gönderilecek; ayrı butona ek olarak form submit çalışır */}
         {/* Magic link tetikleyici */}
         <div className="pt-2">
           <MagicLinkInline email={form.watch('email') || ''} />
