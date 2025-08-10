@@ -44,12 +44,17 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { signOut } = useAuth()
-  const initials = (user.name || user.email || "?")
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
+  const computeInitials = (name: string, email: string): string => {
+    const safeName = (name || "").trim()
+    if (safeName.length > 0) {
+      const parts = safeName.split(/\s+/).filter(Boolean)
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    }
+    const local = (email || "").split("@")[0] || "?"
+    return local.slice(0, 2).toUpperCase()
+  }
+  const initials = computeInitials(user.name, user.email)
 
   return (
     <SidebarMenu>
@@ -61,7 +66,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                {user.avatar ? <AvatarImage src={user.avatar} alt={user.name} /> : null}
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -80,7 +85,7 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  {user.avatar ? <AvatarImage src={user.avatar} alt={user.name} /> : null}
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
