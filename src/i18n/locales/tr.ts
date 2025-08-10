@@ -33,6 +33,12 @@ export const tr = {
       teams: "Takımlar",
       projects: "Projeler",
     },
+    toasts: {
+      moveError: "Görev taşınamadı",
+    },
+    empty: {
+      backlog: "Backlog boş",
+    },
   },
   project: {
     notFound: "Proje bulunamadı",
@@ -94,8 +100,9 @@ export const tr = {
     loading: "Yükleniyor...",
     notFound: "Takım bulunamadı.",
     mainProject: { label: "Ana proje:", selected: "Seçili", none: "—" },
-    projects: { title: "Projeler", empty: "Bu takıma ait proje yok." },
+    projects: { title: "Projeler", empty: "Bu takıma ait proje yok.", createCta: "Yeni Proje Oluştur" },
     invited: { title: "Davet Edilenler", role: "Rol:", invitedAt: "Davet edildi:", accepted: "Kabul edildi", expired: "Süresi dolmuş", pending: "Beklemede" },
+    members: { empty: "Henüz üye yok.", inviteCta: "Üye Davet Et" },
   },
   landing: {
     hero: {

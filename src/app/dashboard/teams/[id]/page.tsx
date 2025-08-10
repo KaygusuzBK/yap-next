@@ -135,7 +135,7 @@ export default function TeamDetailPage() {
               <div className="text-sm text-muted-foreground flex items-center justify-between gap-2 border rounded-md p-3">
                 <span>{t('team.projects.empty')}</span>
                 <Link href="/dashboard#projects" className="text-sm">
-                  <Button size="sm">{t('team.projects.createCta') ?? 'Yeni Proje Oluştur'}</Button>
+                  <Button size="sm">{t('team.projects.createCta')}</Button>
                 </Link>
               </div>
             ) : (
@@ -158,9 +158,9 @@ export default function TeamDetailPage() {
             <h2 className="text-base font-semibold">Üyeler</h2>
             {members.length === 0 ? (
               <div className="text-sm text-muted-foreground flex items-center justify-between gap-2 border rounded-md p-3">
-                <span>Henüz üye yok.</span>
+                <span>{t('team.members.empty')}</span>
                 <Button size="sm" variant="outline" onClick={() => inviteSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                  Üye Davet Et
+                  {t('team.members.inviteCta')}
                 </Button>
               </div>
             ) : (

@@ -272,7 +272,7 @@ export default function Page() {
                       } catch {
                         // revert
                         setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
-                        toast.error('Görev taşınamadı')
+                        toast.error(t('dashboard.toasts.moveError'))
                       }
                     }}
                     className={`min-h-[320px] overflow-hidden transition-all ${dragOverStatus === col.key ? 'ring-2 ring-primary/70 shadow-md border-primary/40 bg-primary/5' : 'hover:border-primary/20'} bg-muted/30 backdrop-blur-sm`}
@@ -404,7 +404,7 @@ export default function Page() {
                         </Link>
                     ))}
                     {myTasks.filter(t => t.status === 'todo').length === 0 && (
-                      <div className="text-sm text-muted-foreground">Backlog boş</div>
+                      <div className="text-sm text-muted-foreground">{t('dashboard.empty.backlog')}</div>
                     )}
                   </div>
                 )}
