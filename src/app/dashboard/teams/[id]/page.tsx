@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useParams } from "next/navigation"
 import { getSupabase } from "../../../../lib/supabase"
 import { Button } from "../../../../components/ui/button"
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { useI18n } from "@/i18n/I18nProvider"
 import DashboardHeader from "@/components/layout/DashboardHeader"
+import Link from "next/link"
 
 type TeamRecord = {
   id: string
@@ -56,6 +57,7 @@ export default function TeamDetailPage() {
   const [members, setMembers] = useState<Array<{ id: string; name: string | null; email: string | null; role: string; joined_at: string }>>([])
   const [inviting, setInviting] = useState(false)
   const [preview, setPreview] = useState<{ open: boolean; to: string; url: string } | null>(null)
+  const inviteSectionRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!teamId) return
@@ -130,7 +132,12 @@ export default function TeamDetailPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold">{t('team.projects.title')}</h2>
             {projects.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('team.projects.empty')}</p>
+              <div className="text-sm text-muted-foreground flex items-center justify-between gap-2 border rounded-md p-3">
+                <span>{t('team.projects.empty')}</span>
+                <Link href="/dashboard#projects" className="text-sm">
+                  <Button size="sm">{t('team.projects.createCta') ?? 'Yeni Proje Oluştur'}</Button>
+                </Link>
+              </div>
             ) : (
               <div className="grid gap-2">
                 {projects.map((p) => (
@@ -150,7 +157,12 @@ export default function TeamDetailPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold">Üyeler</h2>
             {members.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Henüz üye yok.</p>
+              <div className="text-sm text-muted-foreground flex items-center justify-between gap-2 border rounded-md p-3">
+                <span>Henüz üye yok.</span>
+                <Button size="sm" variant="outline" onClick={() => inviteSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                  Üye Davet Et
+                </Button>
+              </div>
             ) : (
               <div className="grid gap-2">
                 {members.map((m) => {
@@ -217,7 +229,7 @@ export default function TeamDetailPage() {
           )}
 
           {/* Invite form */}
-          <section className="space-y-3">
+          <section ref={inviteSectionRef} className="space-y-3">
             <h2 className="text-base font-semibold">Üye Davet Et</h2>
             <div className="grid gap-3 md:grid-cols-5">
               <div className="space-y-1 md:col-span-3">

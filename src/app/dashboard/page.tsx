@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
+import { toast } from "sonner"
 import PendingInvitations from "@/components/PendingInvitations"
 
 export default function Page() {
@@ -271,6 +272,7 @@ export default function Page() {
                       } catch {
                         // revert
                         setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
+                        toast.error('Görev taşınamadı')
                       }
                     }}
                     className={`min-h-[320px] overflow-hidden transition-all ${dragOverStatus === col.key ? 'ring-2 ring-primary/70 shadow-md border-primary/40 bg-primary/5' : 'hover:border-primary/20'} bg-muted/30 backdrop-blur-sm`}
