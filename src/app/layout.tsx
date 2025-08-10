@@ -10,6 +10,7 @@ import Navbar from "@/components/layout/Navbar";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import AppFrame from "@/components/layout/AppFrame";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
         </AuthTree>
         <Toaster richColors position="top-center" />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
