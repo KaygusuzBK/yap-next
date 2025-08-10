@@ -12,6 +12,8 @@ export type Task = {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to: string | null;
   created_by: string;
+  creator_name?: string | null;
+  creator_email?: string | null;
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -202,33 +204,45 @@ export async function unassignTask(taskId: string): Promise<void> {
 export async function getProjectMembers(projectId: string): Promise<Array<{ id: string; email: string; name?: string }>> {
   const supabase = getSupabase();
   
-  // Proje üyelerini al
-  const { data: projectMembers, error: projectError } = await supabase
-    .from('project_members')
-    .select('user_id')
-    .eq('project_id', projectId);
-    
-  if (projectError) throw projectError;
-
-  if (!projectMembers || projectMembers.length === 0) {
-    return [];
+  // Projeye atanmış takımın tüm üyelerini göster
+  // 1) Projenin takımını bul
+  const { data: project, error: projErr } = await supabase
+    .from('projects')
+    .select('team_id')
+    .eq('id', projectId)
+    .single();
+  if (projErr) throw projErr;
+  const teamId = project?.team_id as string | null
+  if (!teamId) {
+    // Takımı yoksa proje üyeleri tablosuna düş
+    const { data: projectMembers, error: projectError } = await supabase
+      .from('project_members')
+      .select('user_id')
+      .eq('project_id', projectId);
+    if (projectError) throw projectError;
+    const userIds = (projectMembers ?? []).map(pm => pm.user_id)
+    if (userIds.length === 0) return []
+    const { data: users, error: usersError } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .in('id', userIds);
+    if (usersError) throw usersError;
+    return (users ?? []).map(user => ({
+      id: user.id,
+      email: user.email,
+      name: user.full_name || (user.email ? user.email.split('@')[0] : '')
+    }))
   }
-
-  const userIds = projectMembers.map(pm => pm.user_id);
-  
-  // Kullanıcı bilgilerini al
-  const { data: users, error: usersError } = await supabase
-    .from('profiles')
-    .select('id, email, full_name')
-    .in('id', userIds);
-    
-  if (usersError) throw usersError;
-
-  return users?.map(user => ({
-    id: user.id,
-    email: user.email,
-    name: user.full_name || user.email.split('@')[0]
-  })) || [];
+  // 2) Takım üyelerini güvenli RPC ile al
+  const { data: teamMembers, error: teamErr } = await supabase.rpc('get_team_members', { p_team_id: teamId })
+  if (teamErr) throw teamErr
+  type Row = { user_id: string; email: string | null; full_name: string | null }
+  const rows: Row[] = (teamMembers as Array<Row> | null | undefined) ?? []
+  return rows.map(r => ({
+    id: r.user_id,
+    email: r.email ?? '',
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : '')
+  }))
 }
 
 export async function updateTask(input: {
@@ -378,10 +392,28 @@ export async function fetchTaskById(taskId: string): Promise<Task> {
     .single();
     
   if (error) throw error;
-  
+
+  // Fetch creator profile for display name/email
+  let creator_name: string | null = null
+  let creator_email: string | null = null
+  try {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', data.created_by)
+      .single()
+    if (prof) {
+      creator_name = (prof as { full_name?: string | null }).full_name ?? null
+      creator_email = (prof as { email?: string | null }).email ?? null
+    }
+  } catch {}
+
+  const projectTitle = (data as { projects?: { title?: string | null } }).projects?.title ?? 'Bilinmeyen Proje'
   return {
     ...data,
-    project_title: data.projects?.title || 'Bilinmeyen Proje'
+    project_title: projectTitle,
+    creator_name,
+    creator_email,
   } as Task;
 }
 

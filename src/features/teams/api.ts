@@ -168,34 +168,32 @@ export type TeamMember = {
 
 export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('team_members')
-    .select('id, team_id, user_id, role, created_at')
-    .eq('team_id', teamId)
-    .order('created_at', { ascending: true });
+  const { data, error } = await supabase.rpc('get_team_members', { p_team_id: teamId });
   if (error) throw error;
-  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string }>
-  const userIds = rows.map(r => r.user_id)
-  let profiles: Array<{ id: string; email: string | null; full_name: string | null }> = []
-  if (userIds.length > 0) {
-    const { data: profs } = await supabase
-      .from('profiles')
-      .select('id, email, full_name')
-      .in('id', userIds)
-    profiles = (profs ?? []) as Array<{ id: string; email: string | null; full_name: string | null }>
-  }
-  const idToProfile = new Map(profiles.map(p => [p.id, p]))
-  return rows.map(r => {
-    const prof = idToProfile.get(r.user_id)
-    return {
-      id: r.id,
-      user_id: r.user_id,
-      email: prof?.email ?? null,
-      name: prof?.full_name ?? (prof?.email ? prof.email.split('@')[0] : null),
-      role: r.role,
-      joined_at: r.created_at,
-    }
-  })
+  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string; email: string | null; full_name: string | null }>
+  return rows.map(r => ({
+    id: r.id,
+    user_id: r.user_id,
+    email: r.email ?? null,
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null),
+    role: r.role,
+    joined_at: r.created_at,
+  }))
+}
+
+export async function getTeamMembersForInvited(teamId: string): Promise<TeamMember[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('get_team_members_for_invited', { p_team_id: teamId });
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{ id: string; team_id: string; user_id: string; role: string; created_at: string; email: string | null; full_name: string | null }>
+  return rows.map(r => ({
+    id: r.id,
+    user_id: r.user_id,
+    email: r.email ?? null,
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null),
+    role: r.role,
+    joined_at: r.created_at,
+  }))
 }
 
 export async function updateTeamName(input: { team_id: string; name: string }) {
@@ -260,9 +258,12 @@ export async function acceptTeamInvitation(token: string) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) throw new Error('Kullanıcı bilgileri alınamadı');
   
-  // 5. E-posta kontrolü
-  if (user.email !== invitation.email) {
-    throw new Error('Bu davet size ait değil');
+  // 5. E-posta kontrolü (case-insensitive ve trim)
+  const invitedEmail = (invitation.email || '').trim().toLowerCase()
+  const currentEmail = (user.email || '').trim().toLowerCase()
+  if (invitedEmail !== currentEmail) {
+    // Devam etmeden önce kullanıcıya anlaşılır bir mesaj ver
+    throw new Error(`Bu davet ${invitation.email} adresine ait. Giriş yaptığınız hesap: ${user.email || '—'}`)
   }
   
   // 6. Zaten takım üyesi mi kontrolü
@@ -271,7 +272,7 @@ export async function acceptTeamInvitation(token: string) {
     .select('*')
     .eq('team_id', invitation.team_id)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
   
   if (existingMember) {
     throw new Error('Zaten bu takımın üyesisiniz');
@@ -298,6 +299,15 @@ export async function acceptTeamInvitation(token: string) {
   if (memberError) throw memberError;
   
   return member;
+}
+
+export async function declineTeamInvitation(token: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('team_invitations')
+    .delete()
+    .eq('token', token);
+  if (error) throw error;
 }
 
 // Kullanıcının bekleyen davetlerini getir

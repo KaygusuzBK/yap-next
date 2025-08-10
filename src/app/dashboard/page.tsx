@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
+import PendingInvitations from "@/components/PendingInvitations"
 
 export default function Page() {
   const { t } = useI18n()
@@ -172,9 +173,9 @@ export default function Page() {
                 <div className="text-2xl font-bold">
                   {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {loadingProjects ? <Skeleton className="mt-1 h-4 w-32" /> : t('dashboard.overview.totalProjectsDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -190,9 +191,9 @@ export default function Page() {
                 <div className="text-2xl font-bold">
                   {loadingTeams ? <Skeleton className="h-7 w-12" /> : teams.length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {loadingTeams ? <Skeleton className="mt-1 h-4 w-40" /> : t('dashboard.overview.totalTeamsDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -208,9 +209,9 @@ export default function Page() {
                 <div className="text-2xl font-bold">
                   {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.filter(p => p.status === 'active').length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t('dashboard.overview.activeProjectsDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -235,13 +236,14 @@ export default function Page() {
                     }).length
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t('dashboard.overview.thisMonthDesc')}
-                </p>
+                </div>
               </CardContent>
             </Card>
           </div>
         </section>
+        <PendingInvitations />
 
         {/* Teams and Projects sections removed as requested */}
 

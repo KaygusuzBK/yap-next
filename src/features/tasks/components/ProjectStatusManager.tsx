@@ -209,7 +209,7 @@ export default function ProjectStatusManager({ projectId }: Props) {
             </DropdownMenu>
           </div>
           <div className="md:col-span-1 flex items-end">
-            <Button onClick={onCreate} disabled={creating || !newLabel.trim()} className="rounded-full w-full md:w-auto">
+            <Button onClick={onCreate} disabled={creating || loading || !newLabel.trim()} className="rounded-full w-full md:w-auto">
               <Plus className="h-4 w-4 mr-2" /> Ekle
             </Button>
           </div>

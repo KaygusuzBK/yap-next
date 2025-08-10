@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { acceptTeamInvitation, getPendingInvitations } from "@/features/teams/api"
+import { acceptTeamInvitation, declineTeamInvitation, getPendingInvitations, getTeamMembersForInvited } from "@/features/teams/api"
 import { Users, Clock, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -26,9 +26,12 @@ export default function PendingInvitations() {
   const [invitations, setInvitations] = useState<PendingInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
+  const [notified, setNotified] = useState(false)
+  const [membersByTeam, setMembersByTeam] = useState<Record<string, Array<{ id: string; name: string | null; email: string | null; role: string }>>>({})
 
   useEffect(() => {
-    loadInvitations()
+    void loadInvitations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadInvitations = async () => {
@@ -36,6 +39,28 @@ export default function PendingInvitations() {
       setLoading(true)
       const data = await getPendingInvitations()
       setInvitations(data)
+      // aynı takımdaki üyeleri getir
+      const grouped: Record<string, PendingInvitation[]> = {}
+      for (const inv of data) {
+        const teamId = inv.teams?.id
+        if (!teamId) continue
+        if (!grouped[teamId]) grouped[teamId] = []
+        grouped[teamId].push(inv)
+      }
+      const entries = Object.keys(grouped)
+      const membersPairs = await Promise.all(entries.map(async (teamId) => {
+        try {
+          const members = await getTeamMembersForInvited(teamId)
+          return [teamId, members.map(m => ({ id: m.id, name: m.name, email: m.email, role: m.role }))] as const
+        } catch {
+          return [teamId, []] as const
+        }
+      }))
+      setMembersByTeam(Object.fromEntries(membersPairs))
+      if (!notified && (data?.length ?? 0) > 0) {
+        toast.info(`${data.length} bekleyen takım davetiniz var`)
+        setNotified(true)
+      }
     } catch (error) {
       console.warn('Davetler yüklenirken hata:', error)
       // Hata durumunda bileşeni gösterme
@@ -60,9 +85,18 @@ export default function PendingInvitations() {
     }
   }
 
-  const handleDecline = async () => {
-    // TODO: Davet reddetme API'si eklenebilir
-    toast.info('Davet reddetme özelliği yakında eklenecek')
+  const handleDecline = async (token: string) => {
+    try {
+      setProcessing(token)
+      await declineTeamInvitation(token)
+      toast.success('Davet reddedildi')
+      setInvitations(prev => prev.filter(inv => inv.token !== token))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Bir hata oluştu'
+      toast.error(message)
+    } finally {
+      setProcessing(null)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -131,7 +165,7 @@ export default function PendingInvitations() {
           <div key={invitation.id} className="border rounded-lg p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium">{invitation.teams.name}</h4>
+                <h4 className="font-medium">{invitation.teams?.name ?? 'Takım'}</h4>
                 <p className="text-sm text-muted-foreground">
                   {invitation.role === 'member' ? 'Üye' : invitation.role} olarak davet edildiniz
                 </p>
@@ -141,6 +175,18 @@ export default function PendingInvitations() {
                 <p className="text-xs text-muted-foreground">
                   {getTimeLeft(invitation.expires_at)}
                 </p>
+                {invitation.teams?.id && (membersByTeam[invitation.teams.id]?.length ?? 0) > 0 && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="font-medium text-foreground text-xs mb-1">Takımdaki Üyeler</div>
+                    <div className="flex flex-wrap gap-1">
+                      {membersByTeam[invitation.teams.id]!.map(m => (
+                        <span key={m.id} className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]">
+                          {(m.name ?? m.email ?? '—')}{m.role ? ` • ${m.role}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <Badge variant="outline" className="text-xs">
                 {invitation.role}
@@ -170,7 +216,7 @@ export default function PendingInvitations() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleDecline()}
+                onClick={() => handleDecline(invitation.token)}
                 disabled={processing === invitation.token}
               >
                 <XCircle className="h-4 w-4 mr-2" />
