@@ -248,28 +248,26 @@ export default function TaskDetailPage() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-xl border bg-card/60 backdrop-blur mb-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
-        <div className="relative p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-          <Button variant="outline" onClick={() => router.back()} className="shrink-0 order-1 md:order-none">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('task.back')}
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          {t('task.back')}
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold truncate">{task.title}</h1>
+          <p className="text-muted-foreground flex items-center gap-2 text-xs md:text-sm min-w-0">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><Folder className="h-3 w-3" /> Proje:</span>
+            <span className="truncate">{task.project_title || 'Bilinmeyen Proje'}</span>
+            <span className="hidden md:inline">•</span>
+            <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
+          </p>
+        </div>
+        <div className="hidden md:flex items-center gap-2">
+          {getPriorityBadge(task.priority)}
+          <Button onClick={() => setEditing(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            {t('task.edit')}
           </Button>
-          <div className="flex-1 min-w-0 order-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> {task.project_title || 'Bilinmeyen Proje'}</span>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
-            </div>
-            <h1 className="text-xl md:text-2xl font-semibold truncate">{task.title}</h1>
-          </div>
-          <div className="flex items-center gap-2 order-3 md:order-none md:ml-auto mt-1 md:mt-0">
-            {getPriorityBadge(task.priority)}
-            <Button onClick={() => setEditing(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              {t('task.edit')}
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -369,7 +367,7 @@ export default function TaskDetailPage() {
                         placeholder="Yorum yaz..."
                         className="border rounded px-2 py-1 text-sm flex-1 min-w-0 md:w-64"
                       />
-                      <Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
+                      <Button size="sm" className="md:inline-flex hidden" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
                         {commentLoading ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -386,6 +384,22 @@ export default function TaskDetailPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Mobile add button under input */}
+                  <div className="px-2 pb-2 md:hidden">
+                    <Button size="sm" className="w-full" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
+                      {commentLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Kaydediliyor
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          {t('task.comments.add')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   {comments.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -508,9 +522,9 @@ export default function TaskDetailPage() {
               <CardTitle>Görev Bilgileri</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Oluşturan:</span>
-                <span>{task.creator_name || task.creator_email || task.created_by || 'Bilinmiyor'}</span>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground whitespace-nowrap">Oluşturan:</span>
+                <span className="truncate text-right">{task.creator_name || task.creator_email || task.created_by || 'Bilinmiyor'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Oluşturulma:</span>
