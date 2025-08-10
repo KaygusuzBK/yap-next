@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { usePreferencesStore } from "@/lib/store/preferences";
 import { en } from "./locales/en";
 import { tr } from "./locales/tr";
 
@@ -31,25 +32,17 @@ function getFromPath(dict: Dictionary, path: string): string | undefined {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
+  const prefLocale = usePreferencesStore(s => s.locale)
+  const setPrefLocale = usePreferencesStore(s => s.setLocale)
+  const loadPrefs = usePreferencesStore(s => s.load)
   const [locale, setLocaleState] = useState<Locale>("tr");
 
-  useEffect(() => {
-    const stored = typeof window !== "undefined" ? (window.localStorage.getItem("locale") as Locale | null) : null;
-    if (stored && (stored === "tr" || stored === "en")) {
-      setLocaleState(stored);
-      document.documentElement.lang = stored;
-    } else {
-      document.documentElement.lang = "tr";
-    }
-  }, []);
+  useEffect(() => { loadPrefs() }, [loadPrefs])
+  useEffect(() => { setLocaleState(prefLocale) }, [prefLocale])
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    try {
-      window.localStorage.setItem("locale", next);
-      document.documentElement.lang = next;
-    } catch {}
-  }, []);
+    setPrefLocale(next)
+  }, [setPrefLocale]);
 
   const t = useMemo(() => {
     return (path: string) => {
