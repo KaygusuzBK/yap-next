@@ -18,7 +18,8 @@ import {
   FileText, 
   History,
   Plus,
-  Loader2
+  Loader2,
+  Folder
 } from 'lucide-react';
 import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, type Task, type TaskComment, type TaskFile } from '../../../../features/tasks/api';
 import { toast } from 'sonner';
@@ -247,21 +248,29 @@ export default function TaskDetailPage() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          {t('task.back')}
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{task.title}</h1>
-          <p className="text-muted-foreground">
-            {`Proje: ${task.project_title || 'Bilinmeyen Proje'}`}
-          </p>
+      <div className="relative overflow-hidden rounded-xl border bg-card/60 backdrop-blur mb-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
+        <div className="relative p-4 md:p-6 flex items-center gap-4">
+          <Button variant="outline" onClick={() => router.back()} className="shrink-0">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {t('task.back')}
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" /> {task.project_title || 'Bilinmeyen Proje'}</span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
+            </div>
+            <h1 className="text-xl md:text-2xl font-semibold truncate">{task.title}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {getPriorityBadge(task.priority)}
+            <Button onClick={() => setEditing(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              {t('task.edit')}
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => setEditing(true)}>
-          <Edit className="h-4 w-4 mr-2" />
-          {t('task.edit')}
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -501,7 +510,7 @@ export default function TaskDetailPage() {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Oluşturan:</span>
-                <span>{task.created_by || 'Bilinmiyor'}</span>
+                <span>{task.creator_name || task.creator_email || task.created_by || 'Bilinmiyor'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Oluşturulma:</span>

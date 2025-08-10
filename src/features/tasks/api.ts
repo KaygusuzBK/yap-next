@@ -12,6 +12,8 @@ export type Task = {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to: string | null;
   created_by: string;
+  creator_name?: string | null;
+  creator_email?: string | null;
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -390,10 +392,27 @@ export async function fetchTaskById(taskId: string): Promise<Task> {
     .single();
     
   if (error) throw error;
-  
+
+  // Fetch creator profile for display name/email
+  let creator_name: string | null = null
+  let creator_email: string | null = null
+  try {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', data.created_by)
+      .single()
+    if (prof) {
+      creator_name = (prof as { full_name?: string | null }).full_name ?? null
+      creator_email = (prof as { email?: string | null }).email ?? null
+    }
+  } catch {}
+
   return {
     ...data,
-    project_title: data.projects?.title || 'Bilinmeyen Proje'
+    project_title: (data as any).projects?.title || 'Bilinmeyen Proje',
+    creator_name,
+    creator_email,
   } as Task;
 }
 
