@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter } from "lucide-react"
+import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter, Bell } from "lucide-react"
 import Logo from "@/components/Logo"
 import { applySavedOrder, saveOrder } from "@/lib/sidebarOrder"
 import { getSupabase } from "@/lib/supabase"
@@ -547,6 +547,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [taskStats, setTaskStats] = React.useState<TaskStat[]>([])
   const [loadingTasks, setLoadingTasks] = React.useState(false)
   const [taskError, setTaskError] = React.useState<string | null>(null)
+  const [pendingCount, setPendingCount] = React.useState<number>(0)
   const [renameOpen, setRenameOpen] = React.useState(false)
   const [renameValue, setRenameValue] = React.useState("")
   const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null)
@@ -608,6 +609,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     } finally {
       setLoadingTeams(false)
     }
+  }, [])
+
+  // Pending invitations counter (lightweight)
+  React.useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const supabase = getSupabase()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user?.email) { setPendingCount(0); return }
+        const { data } = await supabase
+          .from('team_invitations')
+          .select('id')
+          .eq('email', user.email)
+          .is('accepted_at', null)
+          .gt('expires_at', new Date().toISOString())
+        setPendingCount((data ?? []).length)
+      } catch { setPendingCount(0) }
+    }
+    fetchPending()
   }, [])
 
   const fetchProjectStats = React.useCallback(async () => {
@@ -968,6 +988,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="text-foreground text-base font-medium">
               {activeItem?.title}
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                onClick={() => { setActiveItem({ title: "Takımlar", url: "/dashboard#teams", icon: Users, isActive: false } as any); setOpen(true) }}
+                aria-label="Davetler"
+              >
+                <Bell className="h-4 w-4" />
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-medium text-white">{pendingCount}</span>
+                )}
+              </button>
             {isTasksActive && (
               <Label className="flex items-center gap-2 text-sm">
                 <span>Bitenleri göster</span>
