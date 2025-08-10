@@ -96,9 +96,16 @@ export async function inviteToTeam(input: { team_id: string; email: string; role
   
   // E-posta gönderme (gerçek uygulamada burada e-posta servisi kullanılır)
   const inviteUrl = `${window.location.origin}/invite/${token}`;
-  console.log('Davet linki:', inviteUrl);
-  console.log('Takım:', team?.name);
-  console.log('E-posta:', input.email);
+  try {
+    await fetch('/api/email/team-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: input.email, teamName: team?.name, inviteUrl })
+    })
+  } catch (e) {
+    console.warn('Invite email could not be sent, falling back to console link')
+    console.log('Davet linki:', inviteUrl)
+  }
   
   // TODO: Gerçek e-posta gönderme servisi entegrasyonu
   // Örnek: SendGrid, Mailgun, AWS SES, vb.
