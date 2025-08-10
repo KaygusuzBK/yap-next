@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
 
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -77,9 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut: async () => {
         const supabase = getSupabase();
         await supabase.auth.signOut();
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.removeItem('profile_name');
+            window.localStorage.removeItem('profile_email');
+          }
+        } catch {}
+        router.push('/');
       },
     }),
-    [user, loading]
+    [user, loading, router]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
