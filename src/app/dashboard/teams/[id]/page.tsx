@@ -149,14 +149,20 @@ export default function TeamDetailPage() {
               <p className="text-sm text-muted-foreground">Henüz üye yok.</p>
             ) : (
               <div className="grid gap-2">
-                {members.map((m) => (
-                  <div key={m.id} className="border rounded-md p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{m.name ?? m.email ?? '—'}</div>
-                      <div className="text-xs text-muted-foreground">{m.role} • {new Date(m.joined_at).toLocaleString()}</div>
+                {members.map((m) => {
+                  const roleLabel = m.role === 'owner' ? 'Sahip' : m.role === 'admin' ? 'Admin' : 'Üye'
+                  return (
+                    <div key={m.id} className="border rounded-md p-3 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{m.name ?? m.email ?? '—'}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(m.joined_at).toLocaleString()}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{roleLabel}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </section>
