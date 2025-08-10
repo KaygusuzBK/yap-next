@@ -422,7 +422,7 @@ const data = {
   user: {
     name: "",
     email: "",
-    avatar: "/avatars/shadcn.jpg",
+    avatar: "/vercel.svg",
   },
   navMain: [
     {
