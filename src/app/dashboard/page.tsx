@@ -295,7 +295,7 @@ export default function Page() {
                               onDragStart={(e) => {
                                 setDragTaskId(task.id)
                                 const node = document.createElement('div')
-                                node.className = 'px-3 py-2 text-xs rounded-md border bg-background shadow'
+                                node.className = 'inline-block max-w-[240px] whitespace-nowrap overflow-hidden text-ellipsis px-3 py-2 text-xs rounded-md border bg-background shadow pointer-events-none'
                                 node.textContent = task.title
                                 document.body.appendChild(node)
                                 e.dataTransfer.setDragImage(node, 10, 10)
