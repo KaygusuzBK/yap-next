@@ -88,8 +88,8 @@ export default function ProjectDetailPage() {
     try {
       const teamsData = await fetchTeams();
       setTeams(teamsData);
-    } catch (error) {
-      console.error('Takımlar yüklenirken hata:', error);
+    } catch {
+      // noop
     }
   }, []);
 

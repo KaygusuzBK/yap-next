@@ -4,8 +4,13 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useCall
 import { usePreferencesStore } from "@/lib/store/preferences";
 import { en } from "./locales/en";
 import { tr } from "./locales/tr";
+import { de } from "./locales/de";
+import { es } from "./locales/es";
+import { fr } from "./locales/fr";
+import { ar } from "./locales/ar";
+import { zhCN } from "./locales/zh-CN";
 
-type Locale = "tr" | "en";
+type Locale = "tr" | "en" | "de" | "es" | "fr" | "ar" | "zh-CN";
 
 type Dictionary = typeof en;
 
@@ -15,7 +20,7 @@ type I18nContextType = {
   t: (path: string) => string;
 };
 
-const dictionaries: Record<Locale, Dictionary> = { en, tr };
+const dictionaries: Record<Locale, Dictionary> = { en, tr, de, es, fr, ar, "zh-CN": zhCN };
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
@@ -41,7 +46,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { setLocaleState(prefLocale) }, [prefLocale])
 
   const setLocale = useCallback((next: Locale) => {
-    setPrefLocale(next)
+    // First update local state to avoid cross-render setState warnings
+    setLocaleState(next)
+    // Then persist to store (async-ish side effect)
+    Promise.resolve().then(() => setPrefLocale(next))
   }, [setPrefLocale]);
 
   const t = useMemo(() => {

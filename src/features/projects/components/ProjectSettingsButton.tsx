@@ -10,10 +10,14 @@ import { Label } from '@/components/ui/label'
 import { updateProjectSlackChannel, getProjectById } from '@/features/projects/api'
 import { toast } from 'sonner'
 import { Settings } from 'lucide-react'
+import { usePreferencesStore, type Locale } from '@/lib/store/preferences'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export default function ProjectSettingsButton({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false)
   const [channel, setChannel] = useState('')
+  const enabledLocales = usePreferencesStore(s => s.enabledLocales)
+  const setEnabledLocales = usePreferencesStore(s => s.setEnabledLocales)
 
   async function load() {
     try { const p = await getProjectById(projectId); setChannel(p?.slack_channel_id ?? '') } catch {}
@@ -46,6 +50,31 @@ export default function ProjectSettingsButton({ projectId }: { projectId: string
                       }}>Kaydet</Button>
                     </div>
                     <p className="text-xs text-muted-foreground">Örn: C0123456789 (kanal detaylarından ID&#39;yi kopyalayın)</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Aktif Diller</Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-fit">Dilleri Seç</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56">
+                        {(['tr','en','de','es','fr','ar','zh-CN'] as Locale[]).map(code => (
+                          <DropdownMenuCheckboxItem
+                            key={code}
+                            checked={enabledLocales.includes(code)}
+                            onCheckedChange={(checked) => {
+                              const set = new Set(enabledLocales)
+                              if (checked) set.add(code); else set.delete(code)
+                              setEnabledLocales(Array.from(set))
+                            }}
+                          >
+                            {code}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <p className="text-xs text-muted-foreground">Dil seçici sadece seçilen dilleri gösterir. Boşsa tüm diller görünür.</p>
                   </div>
                 </div>
               </TabsContent>

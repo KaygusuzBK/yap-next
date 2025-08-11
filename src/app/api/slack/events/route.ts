@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+export const runtime = 'nodejs'
 import { verifySlackSignature } from '@/lib/slack'
 import { getSupabaseAdmin } from '@/lib/supabase'
 
