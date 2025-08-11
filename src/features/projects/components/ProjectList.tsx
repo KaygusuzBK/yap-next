@@ -85,13 +85,17 @@ export default function ProjectList({ refreshKey }: { refreshKey?: number }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-muted-foreground">Projeler yükleniyor...</p>
+      <div className="py-8">
+        <div className="grid gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-4 border rounded-lg">
+              <div className="h-5 w-40 bg-muted rounded animate-pulse mb-2" />
+              <div className="h-4 w-3/5 bg-muted rounded animate-pulse" />
+            </div>
+          ))}
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -112,15 +116,16 @@ export default function ProjectList({ refreshKey }: { refreshKey?: number }) {
   if (projects.length === 0) {
     return (
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-10 pb-10">
           <div className="text-center text-muted-foreground">
             <Folder className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium mb-2">Henüz proje yok</h3>
+            <h3 className="text-lg font-medium mb-1">Henüz proje yok</h3>
             <p className="mb-4">İlk projenizi oluşturarak başlayın</p>
+            {/* CTA dışarıdan sağlanmıyor; sadece boş durum mesajı */}
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (

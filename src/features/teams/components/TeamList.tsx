@@ -51,9 +51,18 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
     })();
   }, [refreshKey]);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Yükleniyor...</p>;
+  if (loading) return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="p-4 border rounded">
+          <div className="h-5 w-32 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
   if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!items.length) return <p className="text-sm text-muted-foreground">Henüz takım yok.</p>;
+  if (!items.length) return <p className="text-sm text-muted-foreground py-8">Henüz takım yok. İlk takımınızı oluşturun.</p>;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">

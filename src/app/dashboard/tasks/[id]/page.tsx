@@ -34,6 +34,7 @@ import {
 } from '../../../../components/ui/dialog';
 import { useI18n } from '@/i18n/I18nProvider';
 import DashboardHeader from '@/components/layout/DashboardHeader';
+import Image from 'next/image';
 
 export default function TaskDetailPage() {
   const { t, locale } = useI18n();
@@ -55,6 +56,10 @@ export default function TaskDetailPage() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [files, setFiles] = useState<TaskFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [ogPreview, setOgPreview] = useState<{ url: string; title?: string; description?: string; image?: string; siteName?: string } | null>(null)
+  const [showEmoji, setShowEmoji] = useState(false)
+  const [mentionRecents, setMentionRecents] = useState<string[]>([])
 
   const loadTask = useCallback(async () => {
     try {
@@ -121,6 +126,7 @@ export default function TaskDetailPage() {
       const created = await addComment(task.id, content);
       setComments((prev) => [...prev, created]);
       setNewComment('');
+      setOgPreview(null)
     } catch {
       toast.error('Yorum eklenemedi');
     } finally {
@@ -133,9 +139,16 @@ export default function TaskDetailPage() {
     if (!mentionOpen) return [] as Array<{ id: string; label: string; email: string }>
     const q = mentionQuery.trim().toLowerCase()
     const base = projectMembers.map((m) => ({ id: m.id, label: m.name || (m.email?.split('@')[0] ?? ''), email: m.email ?? '' }))
-    if (!q) return base.slice(0, 6)
+    if (!q) {
+      // put recents first
+      const byId: Record<string, { id: string; label: string; email: string }> = Object.fromEntries(base.map(x => [x.id, x]))
+      const ordered: Array<{ id: string; label: string; email: string }> = []
+      for (const id of mentionRecents) { if (byId[id]) ordered.push(byId[id]) }
+      for (const item of base) { if (!mentionRecents.includes(item.id)) ordered.push(item) }
+      return ordered.slice(0, 6)
+    }
     return base.filter((c) => c.label.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)).slice(0, 6)
-  }, [mentionOpen, mentionQuery, projectMembers])
+  }, [mentionOpen, mentionQuery, projectMembers, mentionRecents])
 
   const handleCommentInput = (val: string) => {
     setNewComment(val)
@@ -162,6 +175,14 @@ export default function TaskDetailPage() {
     const mentionText = `@${candidate.label}`
     setNewComment(prefix + mentionText + ' ')
     setMentionOpen(false)
+    // update recents in localStorage
+    try {
+      const key = 'mentionRecents'
+      const prev: string[] = JSON.parse(localStorage.getItem(key) || '[]')
+      const next = [candidate.id, ...prev.filter((x) => x !== candidate.id)].slice(0, 8)
+      localStorage.setItem(key, JSON.stringify(next))
+      setMentionRecents(next)
+    } catch { /* ignore */ }
   }
 
   function renderCommentText(text: string) {
@@ -192,6 +213,40 @@ export default function TaskDetailPage() {
     if (lastIndex < replaced.length) parts.push(replaced.slice(lastIndex))
     return parts
   }
+
+  // Try to fetch OG preview when a URL is present in comment box
+  useEffect(() => {
+    const urlMatch = newComment.match(/https?:\/\/[^\s]+/)
+    if (!urlMatch) { setOgPreview(null); return }
+    const url = urlMatch[0]
+    let active = true
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/og/preview?url=${encodeURIComponent(url)}`)
+        const data = await res.json()
+        if (!active) return
+        if (data && (data.title || data.description || data.image)) {
+          setOgPreview(data)
+        } else {
+          setOgPreview(null)
+        }
+      } catch {
+        if (active) setOgPreview(null)
+      }
+    }
+    // debounce slightly
+    const id = setTimeout(run, 450)
+    return () => { active = false; clearTimeout(id) }
+  }, [newComment])
+
+  // Load mention recents once
+  useEffect(() => {
+    try {
+      const key = 'mentionRecents'
+      const prev: string[] = JSON.parse(localStorage.getItem(key) || '[]')
+      setMentionRecents(prev)
+    } catch { /* ignore */ }
+  }, [])
 
   const handleDeleteComment = async (id: string) => {
     try {
@@ -448,10 +503,18 @@ export default function TaskDetailPage() {
                             if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, Math.max(mentionCandidates.length - 1, 0))) }
                             if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)) }
                             if (e.key === 'Escape') { setMentionOpen(false) }
-                            if (e.key === 'Tab') { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c) }
+                            if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c) }
                           }
                         }}
                       />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="Emoji"
+                          className="text-muted-foreground hover:text-foreground text-sm"
+                          onClick={() => setShowEmoji((s) => !s)}
+                        >😊</button>
+                      </div>
                       {mentionOpen && mentionCandidates.length > 0 && (
                         <div className="absolute z-20 mt-1 w-full max-w-[20rem] rounded-md border bg-popover text-popover-foreground shadow">
                           {mentionCandidates.map((c, idx) => (
@@ -463,6 +526,13 @@ export default function TaskDetailPage() {
                             >
                               @{c.label} <span className="text-xs text-muted-foreground">{c.email}</span>
                             </button>
+                          ))}
+                        </div>
+                      )}
+                      {showEmoji && (
+                        <div className="absolute z-20 mt-1 right-0 w-48 rounded-md border bg-popover text-popover-foreground shadow p-1 grid grid-cols-6 gap-1">
+                          {['😀','😅','😂','🙂','😍','🤔','🙌','🔥','👍','👀','✅','❗️','🎉','❤️','🚀','🧠','💡','📝','📌','⏰'].map(ch => (
+                            <button key={ch} type="button" className="p-1 hover:bg-accent rounded" onMouseDown={(e) => { e.preventDefault(); setNewComment((v) => v + ' ' + ch); setShowEmoji(false) }}>{ch}</button>
                           ))}
                         </div>
                       )}
@@ -484,6 +554,21 @@ export default function TaskDetailPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                {ogPreview && (
+                  <div className="border rounded-md p-2 mb-3 flex gap-3">
+                    {ogPreview.image && (
+                      <div className="relative w-16 h-16 shrink-0 overflow-hidden rounded">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={ogPreview.image} alt="" className="object-cover w-16 h-16" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <a href={ogPreview.url} target="_blank" rel="noreferrer" className="font-medium underline line-clamp-1 break-all">{ogPreview.title || ogPreview.url}</a>
+                      {ogPreview.description && <p className="text-sm text-muted-foreground line-clamp-2">{ogPreview.description}</p>}
+                      {ogPreview.siteName && <p className="text-xs text-muted-foreground mt-1">{ogPreview.siteName}</p>}
+                    </div>
+                  </div>
+                )}
                   {/* Mobile add button under input */}
                   <div className="px-2 pb-2 md:hidden">
                     <Button size="sm" className="w-full" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
@@ -527,7 +612,29 @@ export default function TaskDetailPage() {
             </TabsContent>
             
             <TabsContent value="files" className="mt-6">
-              <Card>
+              <Card
+                onDragEnter={(e) => { e.preventDefault(); setDragActive(true) }}
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+                onDragLeave={(e) => { e.preventDefault(); setDragActive(false) }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setDragActive(false)
+                  if (!task) return
+                  const fileList = Array.from(e.dataTransfer.files || [])
+                  if (fileList.length === 0) return
+                  setUploading(true)
+                  try {
+                    for (const f of fileList) {
+                      const saved = await uploadTaskFile(task.id, f)
+                      setFiles((prev) => [...prev, saved])
+                    }
+                  } catch {
+                    toast.error('Dosya yüklenemedi')
+                  } finally {
+                    setUploading(false)
+                  }
+                }}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                 {t('task.tabs.files')}
@@ -550,6 +657,9 @@ export default function TaskDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className={`mb-3 text-xs rounded border-dashed border p-3 ${dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'}`}>
+                    Dosyaları buraya sürükleyip bırakın ya da butonla seçin
+                  </div>
                   {files.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
