@@ -93,11 +93,41 @@ export default function ThemeCustomizer() {
   ]
 
   const randomHex = () => `#${Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0')}`
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random()*arr.length)]
   const generateRandom = () => {
-    const lp = { primary: randomHex(), accent: randomHex(), ring: randomHex() }
-    const dp = { primary: randomHex(), accent: randomHex(), ring: randomHex() }
+    // Light palette
+    const lightBgCandidates = ['#ffffff', '#f9fafb', '#f8fafc', '#f1f5f9']
+    const lightFgCandidates = ['#0f172a', '#111827', '#0b1220']
+    const lp = {
+      background: pick(lightBgCandidates),
+      foreground: pick(lightFgCandidates),
+      primary: randomHex(),
+      accent: randomHex(),
+      ring: randomHex(),
+      // sidebar share same style as light, with slight variations
+      sidebar: pick(['#ffffff', '#f8fafc', '#f1f5f9']),
+      sidebarForeground: pick(lightFgCandidates),
+      sidebarPrimary: randomHex(),
+    }
+    // Dark palette
+    const darkBgCandidates = ['#0b1220', '#0f172a', '#111827', '#0a0f1a']
+    const darkFgCandidates = ['#e5e7eb', '#f3f4f6', '#f9fafb']
+    const dp = {
+      background: pick(darkBgCandidates),
+      foreground: pick(darkFgCandidates),
+      primary: randomHex(),
+      accent: randomHex(),
+      ring: randomHex(),
+      sidebar: pick(['#0f172a', '#111827', '#0b1220']),
+      sidebarForeground: pick(darkFgCandidates),
+      sidebarPrimary: randomHex(),
+    }
     setLight((p) => ({ ...p, ...lp }))
     setDark((p) => ({ ...p, ...dp }))
+    // Random transition
+    setTransitionEnabled(true)
+    setTransitionDuration(pick([150, 200, 250, 300, 400, 500, 600]))
+    setTransitionEasing(pick(['ease-in-out','ease-out','ease-in','linear']))
     setMessage(null)
   }
 
