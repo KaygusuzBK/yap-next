@@ -3,6 +3,11 @@
 import * as React from 'react'
 import { saveUserTheme, getUserTheme, type UserTheme } from '@/lib/services/preferences/userTheme'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Calendar, Folder, User } from 'lucide-react'
 
 function ColorInput({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
   const id = React.useId()
@@ -129,6 +134,75 @@ export default function ThemeCustomizer() {
           <ColorInput label="Accent" value={dark?.accent} onChange={(v) => setDark((p) => ({ ...p, accent: v }))} />
           <ColorInput label="Accent Text" value={dark?.accentForeground} onChange={(v) => setDark((p) => ({ ...p, accentForeground: v }))} />
           <ColorInput label="Ring" value={dark?.ring} onChange={(v) => setDark((p) => ({ ...p, ring: v }))} />
+        </div>
+      </div>
+
+      {/* Canlı Önizleme */}
+      <div className="space-y-3 rounded border p-3">
+        <div className="text-sm font-medium">Önizleme</div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Kart Başlığı</CardTitle>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Folder className="h-4 w-4" />
+              </span>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div>Bu bir kart gövdesi. Temanızın arka plan ve yazı rengi burada görünür.</div>
+              <div className="flex items-center gap-2">
+                <Badge>Etiket</Badge>
+                <Badge variant="secondary">İkincil</Badge>
+                <Badge variant="outline">Outline</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm">Primary</Button>
+                <Button size="sm" variant="outline">Outline</Button>
+                <Button size="sm" variant="destructive">Danger</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-sm font-medium">Form Örneği</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Takvim • {new Date().toLocaleDateString('tr-TR')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <User className="h-4 w-4" />
+                <span>Kullanıcı • Önizleme</span>
+              </div>
+              <Input placeholder="Bir şeyler yazın..." />
+              <div className="flex items-center gap-2">
+                <Button size="sm">Kaydet</Button>
+                <Button size="sm" variant="outline">İptal</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Sekmeler</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="one" className="space-y-3">
+                <TabsList>
+                  <TabsTrigger value="one">Bir</TabsTrigger>
+                  <TabsTrigger value="two">İki</TabsTrigger>
+                </TabsList>
+                <TabsContent value="one" className="text-sm text-muted-foreground">
+                  İlk sekme içeriği. Accent ve ring renkleri burada da uygulanır.
+                </TabsContent>
+                <TabsContent value="two" className="text-sm text-muted-foreground">
+                  İkinci sekme içeriği.
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
       </div>
       <div className="flex items-center gap-2">
