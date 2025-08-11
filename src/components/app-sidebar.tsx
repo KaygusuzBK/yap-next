@@ -535,7 +535,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Note: I'm using state to show active item.
   // IRL you should use the url/router.
   const [activeItem, setActiveItem] = React.useState(data.navMain[0])
-  const [mails, setMails] = React.useState(data.mails)
+  const [mails] = React.useState(data.mails)
   const { setOpen } = useSidebar()
   const router = useRouter()
   const authUser = useAuthStore(s => s.user)
@@ -787,9 +787,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const handleNavClick = React.useCallback(
     (item: (typeof data.navMain)[number]) => {
       setActiveItem(item)
-      const shuffled = [...data.mails].sort(() => Math.random() - 0.5)
-      setMails(shuffled.slice(0, Math.max(5, Math.floor(Math.random() * 10) + 1)))
-      // URL'yi değiştirmiyoruz, sadece sidebar içeriğini değiştiriyoruz
+      // keep demo mails stable to reduce jank
       setOpen(true)
     },
     [setOpen]
