@@ -425,7 +425,7 @@ const data = {
   user: {
     name: "",
     email: "",
-    avatar: "/vercel.svg",
+    avatar: "/YAP-Proje-Yönetimi-Logosu.svg",
   },
   navMain: [
     {

@@ -8,6 +8,8 @@ import Logo from '@/components/Logo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/i18n/I18nProvider';
 import ThemeToggle from '@/components/theme/ThemeToggle';
+import React from 'react';
+import NotificationsBell from '@/components/NotificationsBell';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -24,7 +26,10 @@ export default function Navbar() {
         <nav className="flex items-center gap-3 text-sm">
           <Link className="opacity-80 hover:opacity-100" href="/dashboard">{t('common.dashboard')}</Link>
           {user ? (
-            <Button size="sm" variant="outline" onClick={() => signOut()}>{t('common.signOut')}</Button>
+            <>
+              <NotificationsBell userId={user.id} />
+              <Button size="sm" variant="outline" onClick={() => signOut()}>{t('common.signOut')}</Button>
+            </>
           ) : (
             <>
               <Link className="opacity-80 hover:opacity-100" href="/login">{t('common.signIn')}</Link>

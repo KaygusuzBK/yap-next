@@ -34,7 +34,7 @@ import {
 } from '../../../../components/ui/dialog';
 import { useI18n } from '@/i18n/I18nProvider';
 import DashboardHeader from '@/components/layout/DashboardHeader';
-import Image from 'next/image';
+// import Image from 'next/image';
 
 export default function TaskDetailPage() {
   const { t, locale } = useI18n();
@@ -127,6 +127,24 @@ export default function TaskDetailPage() {
       setComments((prev) => [...prev, created]);
       setNewComment('');
       setOgPreview(null)
+
+      // Detect mentions and notify server (best-effort)
+      try {
+        const ids = projectMembers
+          .filter((m) => {
+            const label = m.name || (m.email?.split('@')[0] ?? '')
+            return content.includes(`@${label}`)
+          })
+          .map((m) => m.id)
+        if (ids.length > 0) {
+          const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || ''
+          const url = baseUrl ? `${baseUrl}/dashboard/tasks/${task.id}` : undefined
+          await fetch('/api/notifications/mention', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task_id: task.id, comment_id: created.id, comment_text: content, mentioned_user_ids: ids, task_url: url })
+          }).catch(() => {})
+        }
+      } catch {}
     } catch {
       toast.error('Yorum eklenemedi');
     } finally {
@@ -496,14 +514,15 @@ export default function TaskDetailPage() {
                         placeholder="Yorum yaz... (@ ile kişi önerisi)"
                         className="border rounded px-2 py-1 text-sm w-full min-w-0 md:w-64"
                         onKeyDown={(e) => {
+                          if (mentionOpen) {
+                            if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, Math.max(mentionCandidates.length - 1, 0))); return }
+                            if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)); return }
+                            if (e.key === 'Escape') { setMentionOpen(false); return }
+                            if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c); return }
+                          }
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             handleAddComment();
-                          } else if (mentionOpen) {
-                            if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, Math.max(mentionCandidates.length - 1, 0))) }
-                            if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)) }
-                            if (e.key === 'Escape') { setMentionOpen(false) }
-                            if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c) }
                           }
                         }}
                       />

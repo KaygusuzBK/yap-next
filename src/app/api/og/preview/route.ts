@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const image = extractMeta(html, 'og:image')
     const siteName = extractMeta(html, 'og:site_name')
     return Response.json({ url, title, description, image, siteName })
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: 'fetch_failed' }), { status: 200 })
   }
 }
