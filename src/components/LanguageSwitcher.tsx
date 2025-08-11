@@ -3,6 +3,7 @@
 import { Button } from "./ui/button";
 import { useI18n } from "@/i18n/I18nProvider";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { usePreferencesStore } from "@/lib/store/preferences";
 
 const LOCALES = [
   { code: 'tr', label: 'Türkçe' },
@@ -30,7 +31,11 @@ function getFlag(code: LocaleCode): string {
 
 export default function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
+  const enabled = usePreferencesStore(s => s.enabledLocales)
   const current = LOCALES.find(l => l.code === locale) || LOCALES[0];
+  const list = (enabled && enabled.length > 0)
+    ? LOCALES.filter(l => enabled.includes(l.code as unknown as import('@/lib/store/preferences').Locale))
+    : LOCALES
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -45,7 +50,7 @@ export default function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        {LOCALES.map((l) => (
+        {list.map((l) => (
           <DropdownMenuItem
             key={l.code}
             onClick={() => setLocale(l.code as LocaleCode)}
