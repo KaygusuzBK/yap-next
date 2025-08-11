@@ -3,6 +3,7 @@
 import { useAuth } from '@/components/auth/AuthProvider'
 import DashboardHeader from '@/components/layout/DashboardHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import ThemeCustomizer from '@/components/theme/ThemeCustomizer'
 
 export default function AccountPage() {
   const { user } = useAuth()
@@ -29,6 +30,15 @@ export default function AccountPage() {
               <div className="text-muted-foreground">E-posta</div>
               <div>{email}</div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tema Özelleştirme</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ThemeCustomizer />
           </CardContent>
         </Card>
       </div>
