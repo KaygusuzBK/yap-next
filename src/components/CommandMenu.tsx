@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   CommandDialog,
   CommandEmpty,
@@ -93,6 +94,19 @@ export default function CommandMenu() {
       <CommandInput placeholder="Ara veya komut yaz... (⌘K, ↑↓ gezin, Enter aç)" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>Sonuç yok</CommandEmpty>
+        {!q && (
+          <CommandGroup heading="Hızlı navigasyon">
+            <CommandItem asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </CommandItem>
+            <CommandItem asChild>
+              <Link href="/dashboard#projects">Projeler</Link>
+            </CommandItem>
+            <CommandItem asChild>
+              <Link href="/dashboard#teams">Takımlar</Link>
+            </CommandItem>
+          </CommandGroup>
+        )}
         {!q && recents.length > 0 && (
           <CommandGroup heading="Son açılanlar">
             {recents.slice(0, 6).map((r) => (

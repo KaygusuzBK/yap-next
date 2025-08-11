@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -77,7 +78,9 @@ export default function DashboardHeader({
                       {isLast || !c.href ? (
                         <BreadcrumbPage>{c.label}</BreadcrumbPage>
                       ) : (
-                        <BreadcrumbLink href={c.href}>{c.label}</BreadcrumbLink>
+                        <BreadcrumbLink asChild>
+                          <Link href={c.href}>{c.label}</Link>
+                        </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
                     {!isLast && <BreadcrumbSeparator />}
@@ -92,7 +95,21 @@ export default function DashboardHeader({
       <section className="flex items-center justify-between">
         <div className="flex items-start gap-2 min-w-0">
           {backHref && (
-            <Button aria-label="Geri" title="Geri" variant="ghost" size="sm" onClick={() => router.push(backHref)}>
+            <Button
+              aria-label="Geri"
+              title="Geri"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back()
+                } else if (backHref) {
+                  router.push(backHref)
+                } else {
+                  router.push('/dashboard')
+                }
+              }}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
