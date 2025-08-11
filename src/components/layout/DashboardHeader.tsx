@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Breadcrumb,
@@ -34,15 +34,43 @@ export default function DashboardHeader({
   meta,
 }: DashboardHeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
+
+  // Eğer breadcrumb prop verilmediyse, otomatik üret
+  const autoBreadcrumb: Crumb[] = React.useMemo(() => {
+    if (breadcrumb.length > 0) return breadcrumb
+    const path = pathname || ""
+    if (!path.startsWith("/dashboard")) return []
+    const segments = path.split("/").filter(Boolean)
+    const mapLabel = (seg: string, idx: number): Crumb => {
+      // Bilinen segmentlere TR etiketler
+      if (seg === "dashboard") return { label: "Dashboard", href: "/dashboard" }
+      if (seg === "projects") return { label: "Projeler", href: "/dashboard/projects" }
+      if (seg === "tasks") return { label: "Görevler", href: "/dashboard/tasks" }
+      if (seg === "teams") return { label: "Takımlar", href: "/dashboard/teams" }
+      // Dinamik segment veya id → Detay
+      const base = "/" + segments.slice(0, idx + 1).join("/")
+      return { label: "Detay", href: base }
+    }
+    const crumbs: Crumb[] = segments.map((seg, idx) => mapLabel(seg, idx))
+    // Yinelenenleri kaldır (ör. birden fazla Detay)
+    const dedup: Crumb[] = []
+    const seen = new Set<string>()
+    for (const c of crumbs) {
+      const key = `${c.label}:${c.href ?? ""}`
+      if (!seen.has(key)) { seen.add(key); dedup.push(c) }
+    }
+    return dedup
+  }, [breadcrumb, pathname])
 
   return (
     <div className="w-full space-y-3">
-      {breadcrumb.length > 0 && (
+      {autoBreadcrumb.length > 0 && (
         <section>
           <Breadcrumb>
             <BreadcrumbList>
-              {breadcrumb.map((c, idx) => {
-                const isLast = idx === breadcrumb.length - 1
+              {autoBreadcrumb.map((c, idx) => {
+                const isLast = idx === autoBreadcrumb.length - 1
                 return (
                   <React.Fragment key={`${c.label}-${idx}`}>
                     <BreadcrumbItem>
