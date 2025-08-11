@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import DashboardHeader from '@/components/layout/DashboardHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
