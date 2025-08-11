@@ -123,7 +123,7 @@ export default function ThemeCustomizer() {
           <Button variant="outline" className="h-7 text-xs" onClick={generateRandom}>Rastgele üret</Button>
         </div>
       </div>
-      <div className="grid gap-6 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
         {/* LIGHT */}
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Açık Tema</div>

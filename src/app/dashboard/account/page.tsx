@@ -10,7 +10,7 @@ export default function AccountPage() {
   const name = user?.user_metadata?.full_name || user?.user_metadata?.name || 'Kullanıcı'
   const email = user?.email || '—'
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
       <DashboardHeader
         title="Hesap"
         backHref="/dashboard"
