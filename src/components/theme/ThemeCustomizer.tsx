@@ -58,6 +58,15 @@ export default function ThemeCustomizer() {
     if (pal?.accent) root.style.setProperty('--accent', pal.accent)
     if (pal?.accentForeground) root.style.setProperty('--accent-foreground', pal.accentForeground)
     if (pal?.ring) root.style.setProperty('--ring', pal.ring)
+    // sidebar scoped tokens for instant preview
+    if (pal?.sidebar) root.style.setProperty('--sidebar', pal.sidebar)
+    if (pal?.sidebarForeground) root.style.setProperty('--sidebar-foreground', pal.sidebarForeground)
+    if (pal?.sidebarPrimary) root.style.setProperty('--sidebar-primary', pal.sidebarPrimary)
+    if (pal?.sidebarPrimaryForeground) root.style.setProperty('--sidebar-primary-foreground', pal.sidebarPrimaryForeground)
+    if (pal?.sidebarAccent) root.style.setProperty('--sidebar-accent', pal.sidebarAccent)
+    if (pal?.sidebarAccentForeground) root.style.setProperty('--sidebar-accent-foreground', pal.sidebarAccentForeground)
+    if (pal?.sidebarBorder) root.style.setProperty('--sidebar-border', pal.sidebarBorder)
+    if (pal?.sidebarRing) root.style.setProperty('--sidebar-ring', pal.sidebarRing)
   }, [light, dark])
 
   const suggestions: Array<{ name: string; light: NonNullable<UserTheme['light']>; dark: NonNullable<UserTheme['dark']> }> = [
