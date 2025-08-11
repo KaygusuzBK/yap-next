@@ -112,7 +112,7 @@ export default function AccountPage() {
               </div>
               <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">Açılış</div>
-                <Select value={prefs.general?.defaultLanding || '/dashboard'} onValueChange={(v) => setPrefs((p) => ({ ...p, general: { ...p.general, defaultLanding: v as any } }))}>
+                <Select value={prefs.general?.defaultLanding || '/dashboard'} onValueChange={(v: '/dashboard' | '/dashboard#projects' | '/dashboard#tasks') => setPrefs((p) => ({ ...p, general: { ...p.general, defaultLanding: v } }))}>
                   <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
@@ -133,7 +133,7 @@ export default function AccountPage() {
               </div>
               <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">E-posta özeti</div>
-                <Select value={prefs.notifications?.emailDigest || 'off'} onValueChange={(v) => setPrefs((p) => ({ ...p, notifications: { ...p.notifications, emailDigest: v as any } }))}>
+                <Select value={prefs.notifications?.emailDigest || 'off'} onValueChange={(v: 'off' | 'daily' | 'weekly') => setPrefs((p) => ({ ...p, notifications: { ...p.notifications, emailDigest: v } }))}>
                   <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
@@ -147,7 +147,7 @@ export default function AccountPage() {
               <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">Geçiş Süresi</div>
                 <div className="px-1">
-                  <Slider min={0} max={1000} step={50} value={[200]} onValueChange={(vals) => {/* optional: live demo */}} />
+                  <Slider min={0} max={1000} step={50} value={[200]} onValueChange={() => {}} />
                 </div>
               </div>
             </div>
