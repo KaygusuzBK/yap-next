@@ -3,7 +3,7 @@
 import { create } from 'zustand'
 
 export type Theme = 'light' | 'dark'
-export type Locale = 'tr' | 'en'
+export type Locale = 'tr' | 'en' | 'de' | 'es' | 'fr' | 'ar' | 'zh-CN'
 
 type PreferencesState = {
   theme: Theme
