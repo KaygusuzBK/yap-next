@@ -36,6 +36,31 @@ export async function postSlackMessage(channel: string, text: string) {
     body: JSON.stringify({ channel, text }),
   })
   const json = await res.json().catch(() => ({}))
+  // If bot is not in channel, try to join (public channels only) and retry once
+  if (!json.ok && json.error === 'not_in_channel') {
+    try {
+      await fetch('https://slack.com/api/conversations.join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ channel }),
+      })
+      const retry = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ channel, text }),
+      })
+      const retryJson = await retry.json().catch(() => ({}))
+      return retryJson
+    } catch {
+      // fallthrough
+    }
+  }
   return json
 }
 

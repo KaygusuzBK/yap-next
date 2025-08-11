@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const runtime = 'nodejs'
 import { postSlackMessage } from '@/lib/slack'
 import { getSupabaseAdmin } from '@/lib/supabase'
 
@@ -42,6 +43,9 @@ export async function POST(req: NextRequest) {
   if (body.url) lines.push(`<${body.url}|Göreve git>`)  
   const text = lines.join('\n')
   const res = await postSlackMessage(channel, text)
+  if (!res.ok) {
+    console.error('Slack task-updated failed:', res)
+  }
   return NextResponse.json({ ok: !!res.ok, response: res })
 }
 
