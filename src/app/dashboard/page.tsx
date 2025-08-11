@@ -71,10 +71,8 @@ export default function Page() {
           setProjects(projectsData)
           setTeams(teamsData)
         }
-      } catch (e) {
-        if (mounted) {
-          console.error("Veri yükleme hatası:", e)
-        }
+      } catch {
+        // noop
       } finally {
         if (mounted) {
           setLoadingProjects(false)
@@ -95,8 +93,8 @@ export default function Page() {
         } else if (mounted) {
           setStatusesByProject({})
         }
-      } catch (e) {
-        if (mounted) console.error("Görevler yüklenemedi:", e)
+      } catch {
+        // noop
       } finally {
         if (mounted) setLoadingTasks(false)
       }
