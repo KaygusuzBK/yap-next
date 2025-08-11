@@ -13,6 +13,11 @@ export type ModePalette = {
 export type UserTheme = {
   light?: ModePalette
   dark?: ModePalette
+  transition?: {
+    enabled?: boolean
+    durationMs?: number
+    easing?: string
+  }
 }
 
 export async function getUserTheme(): Promise<UserTheme | null> {

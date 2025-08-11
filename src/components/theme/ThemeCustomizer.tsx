@@ -27,6 +27,9 @@ export default function ThemeCustomizer() {
   const [dark, setDark] = React.useState<UserTheme['dark']>({})
   const [saving, setSaving] = React.useState(false)
   const [message, setMessage] = React.useState<string | null>(null)
+  const [transitionEnabled, setTransitionEnabled] = React.useState(true)
+  const [transitionDuration, setTransitionDuration] = React.useState(200)
+  const [transitionEasing, setTransitionEasing] = React.useState('ease-in-out')
 
   React.useEffect(() => {
     ;(async () => {
@@ -34,6 +37,11 @@ export default function ThemeCustomizer() {
       setInitial(t)
       setLight(t?.light || {})
       setDark(t?.dark || {})
+      if (t?.transition) {
+        setTransitionEnabled(Boolean(t.transition.enabled))
+        setTransitionDuration(typeof t.transition.durationMs === 'number' ? t.transition.durationMs : 200)
+        setTransitionEasing(t.transition.easing || 'ease-in-out')
+      }
     })()
   }, [])
 
@@ -87,7 +95,7 @@ export default function ThemeCustomizer() {
     setSaving(true)
     setMessage(null)
     try {
-      await saveUserTheme({ light, dark })
+      await saveUserTheme({ light, dark, transition: { enabled: transitionEnabled, durationMs: transitionDuration, easing: transitionEasing } })
       setMessage('Kaydedildi')
     } catch (e) {
       setMessage('Kaydedilemedi')
@@ -135,6 +143,26 @@ export default function ThemeCustomizer() {
           <ColorInput label="Accent Text" value={dark?.accentForeground} onChange={(v) => setDark((p) => ({ ...p, accentForeground: v }))} />
           <ColorInput label="Ring" value={dark?.ring} onChange={(v) => setDark((p) => ({ ...p, ring: v }))} />
         </div>
+      </div>
+      <div className="space-y-3 rounded border p-3">
+        <div className="text-sm font-medium">Geçiş (Transition)</div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
+          Etkin
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <span className="w-40 text-muted-foreground">Süre (ms)</span>
+          <input type="number" min={0} max={3000} value={transitionDuration} onChange={(e) => setTransitionDuration(Number(e.target.value))} className="h-8 w-28 rounded border px-2 text-xs" />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <span className="w-40 text-muted-foreground">Easing</span>
+          <select value={transitionEasing} onChange={(e) => setTransitionEasing(e.target.value)} className="h-8 rounded border px-2 text-xs">
+            <option value="ease-in-out">ease-in-out</option>
+            <option value="ease-out">ease-out</option>
+            <option value="ease-in">ease-in</option>
+            <option value="linear">linear</option>
+          </select>
+        </label>
       </div>
 
       {/* Canlı Önizleme */}

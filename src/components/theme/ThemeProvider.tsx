@@ -33,6 +33,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const mode: keyof UserTheme = themeStore === 'dark' ? 'dark' : 'light'
       const pal = stored?.[mode]
       const root = document.documentElement
+      // transitions
+      if (stored?.transition?.enabled) {
+        const dur = Math.max(0, Math.min(3000, stored.transition.durationMs ?? 200))
+        const easing = stored.transition.easing || 'ease-in-out'
+        root.style.setProperty('--_theme-transition', `background-color ${dur}ms ${easing}, color ${dur}ms ${easing}, border-color ${dur}ms ${easing}`)
+      } else {
+        root.style.removeProperty('--_theme-transition')
+      }
       if (pal?.background) {
         root.style.setProperty('--background', pal.background)
         if (pal?.foreground) root.style.setProperty('--foreground', pal.foreground)
