@@ -1,6 +1,8 @@
 import { getSupabase } from "@/lib/supabase"
 
 export type ModePalette = {
+  background?: string
+  foreground?: string
   primary?: string
   primaryForeground?: string
   accent?: string

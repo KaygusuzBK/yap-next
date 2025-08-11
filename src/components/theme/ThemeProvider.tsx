@@ -33,6 +33,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const mode: keyof UserTheme = themeStore === 'dark' ? 'dark' : 'light'
       const pal = stored?.[mode]
       const root = document.documentElement
+      if (pal?.background) {
+        root.style.setProperty('--background', pal.background)
+        if (pal?.foreground) root.style.setProperty('--foreground', pal.foreground)
+      }
       if (pal?.primary) {
         root.style.setProperty('--primary', pal.primary)
         root.style.setProperty('--primary-foreground', pal.primaryForeground || pickReadableForeground(pal.primary) || 'oklch(0.985 0 0)')

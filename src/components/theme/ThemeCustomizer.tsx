@@ -37,6 +37,8 @@ export default function ThemeCustomizer() {
     const root = document.documentElement
     const isDark = root.classList.contains('dark')
     const pal = isDark ? dark : light
+    if (pal?.background) root.style.setProperty('--background', pal.background)
+    if (pal?.foreground) root.style.setProperty('--foreground', pal.foreground)
     if (pal?.primary) root.style.setProperty('--primary', pal.primary)
     if (pal?.primaryForeground) root.style.setProperty('--primary-foreground', pal.primaryForeground)
     if (pal?.accent) root.style.setProperty('--accent', pal.accent)
@@ -110,6 +112,8 @@ export default function ThemeCustomizer() {
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Açık Tema</div>
+          <ColorInput label="Background" value={light?.background} onChange={(v) => setLight((p) => ({ ...p, background: v }))} />
+          <ColorInput label="Foreground" value={light?.foreground} onChange={(v) => setLight((p) => ({ ...p, foreground: v }))} />
           <ColorInput label="Primary" value={light?.primary} onChange={(v) => setLight((p) => ({ ...p, primary: v }))} />
           <ColorInput label="Primary Text" value={light?.primaryForeground} onChange={(v) => setLight((p) => ({ ...p, primaryForeground: v }))} />
           <ColorInput label="Accent" value={light?.accent} onChange={(v) => setLight((p) => ({ ...p, accent: v }))} />
@@ -118,6 +122,8 @@ export default function ThemeCustomizer() {
         </div>
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Koyu Tema</div>
+          <ColorInput label="Background" value={dark?.background} onChange={(v) => setDark((p) => ({ ...p, background: v }))} />
+          <ColorInput label="Foreground" value={dark?.foreground} onChange={(v) => setDark((p) => ({ ...p, foreground: v }))} />
           <ColorInput label="Primary" value={dark?.primary} onChange={(v) => setDark((p) => ({ ...p, primary: v }))} />
           <ColorInput label="Primary Text" value={dark?.primaryForeground} onChange={(v) => setDark((p) => ({ ...p, primaryForeground: v }))} />
           <ColorInput label="Accent" value={dark?.accent} onChange={(v) => setDark((p) => ({ ...p, accent: v }))} />
