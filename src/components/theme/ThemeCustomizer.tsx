@@ -149,37 +149,10 @@ export default function ThemeCustomizer() {
           <ColorInput label="Sidebar Text" value={light?.sidebarForeground} onChange={(v) => { setLight((p) => ({ ...p, sidebarForeground: v })); setDark((p) => ({ ...p, sidebarForeground: v })) }} />
           <ColorInput label="Sidebar Primary" value={light?.sidebarPrimary} onChange={(v) => { setLight((p) => ({ ...p, sidebarPrimary: v })); setDark((p) => ({ ...p, sidebarPrimary: v })) }} />
         </div>
-        {/* TRANSITIONS */}
-        <div className="space-y-3 rounded border p-3">
-          <div className="text-sm font-medium">Geçiş</div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
-            Etkin
-          </label>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="w-16 text-muted-foreground">Süre</span>
-            {[{l:'Kısa',v:150},{l:'Orta',v:250},{l:'Uzun',v:400}].map(p => (
-              <button key={p.v} type="button" onClick={() => setTransitionDuration(p.v)} className={`rounded border px-2 py-1 ${transitionDuration===p.v? 'bg-accent' : ''}`}>{p.l}</button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="w-16 text-muted-foreground">Easing</span>
-            {['ease-in-out','ease-out','ease-in','linear'].map(ez => (
-              <button key={ez} type="button" onClick={() => setTransitionEasing(ez)} className={`rounded border px-2 py-1 ${transitionEasing===ez? 'bg-accent' : ''}`}>{ez}</button>
-            ))}
-          </div>
-          <div className="mt-1">
-            <div className={`rounded-md border p-2 text-xs flex items-center justify-between ${demoOn? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}
-              style={{ transition: `background-color ${transitionDuration}ms ${transitionEasing}, color ${transitionDuration}ms ${transitionEasing}, border-color ${transitionDuration}ms ${transitionEasing}` }}
-            >
-              <span>Geçiş demo</span>
-              <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test</Button>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Canlı Önizleme */}
+      {/* Canlı Önizleme */
+      }
       <div className="space-y-3 rounded border p-3">
         <div className="text-sm font-medium">Önizleme</div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -245,6 +218,54 @@ export default function ThemeCustomizer() {
               </Tabs>
             </CardContent>
           </Card>
+        </div>
+      </div>
+      {/* Geçiş (altta, daha geniş) */}
+      <div className="space-y-3 rounded border p-3">
+        <div className="text-sm font-medium">Geçiş (Transition)</div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
+          Etkin
+        </label>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground w-24">Süre: {transitionDuration} ms</span>
+          <input type="range" min={0} max={1000} step={50} value={transitionDuration} onChange={(e) => setTransitionDuration(Number(e.target.value))} className="flex-1" />
+        </div>
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">Easing</div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {['ease-in-out','ease-out','ease-in','linear'].map((ez) => (
+              <button
+                key={ez}
+                type="button"
+                onClick={() => setTransitionEasing(ez)}
+                className={`rounded border p-2 text-xs text-left ${transitionEasing===ez? 'bg-accent' : ''}`}
+              >
+                <div className="mb-1 font-medium">{ez}</div>
+                <div className="h-2 overflow-hidden rounded bg-muted">
+                  <div
+                    className="h-2 w-full bg-primary"
+                    style={{
+                      transformOrigin: 'left',
+                      animation: `easeDemo 1200ms ${ez} infinite`,
+                    }}
+                  />
+                </div>
+              </button>
+            ))}
+          </div>
+          {/* simple keyframes */}
+          <style jsx>{`
+            @keyframes easeDemo { from { transform: scaleX(0.05); } 50% { transform: scaleX(1); } to { transform: scaleX(0.05); } }
+          `}</style>
+        </div>
+        <div className="mt-2">
+          <div className={`rounded-md border p-3 text-sm flex items-center justify-between ${demoOn? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}
+            style={{ transition: `background-color ${transitionDuration}ms ${transitionEasing}, color ${transitionDuration}ms ${transitionEasing}, border-color ${transitionDuration}ms ${transitionEasing}` }}
+          >
+            <span>Geçiş demo</span>
+            <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test</Button>
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-2">
