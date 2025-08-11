@@ -85,16 +85,20 @@ export async function POST(req: NextRequest) {
   }
 
   // Channel-based path (preferred): use project's slack_channel_id or fallback channel
-  const supabaseAdmin = getSupabaseAdmin()
   let targetChannel = process.env.SLACK_DEFAULT_CHANNEL || ''
-  if (task.project_id) {
-    const { data: project, error: projError } = await supabaseAdmin
-      .from('projects')
-      .select('slack_channel_id')
-      .eq('id', task.project_id)
-      .single()
-    if (projError) console.error('Error fetching project for Slack channel (created):', projError)
-    if (project?.slack_channel_id) targetChannel = project.slack_channel_id
+  try {
+    if (task.project_id) {
+      const supabaseAdmin = getSupabaseAdmin()
+      const { data: project, error: projError } = await supabaseAdmin
+        .from('projects')
+        .select('slack_channel_id')
+        .eq('id', task.project_id)
+        .single()
+      if (projError) console.error('Error fetching project for Slack channel (created):', projError)
+      if (project?.slack_channel_id) targetChannel = project.slack_channel_id
+    }
+  } catch (e) {
+    console.error('Supabase admin unavailable, using default channel for task-created:', e)
   }
 
   if (!targetChannel) {
@@ -103,10 +107,11 @@ export async function POST(req: NextRequest) {
 
   const result = await postSlackMessage(targetChannel, text)
   if (!result.ok) {
-    return NextResponse.json({ ok: false, error: 'slack_error', status: result.status }, { status: 200 })
+    console.error('Slack task-created failed:', result)
+    return NextResponse.json({ ok: false, error: 'slack_error', response: result }, { status: 200 })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, response: result })
 }
 
 
