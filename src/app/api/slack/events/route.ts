@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
       const project_id = match[1]
       const title = match[2].trim().slice(0, 200)
       const supabase = getSupabaseAdmin()
-      await supabase.from('project_tasks').insert({ project_id, title, status: 'todo', priority: 'medium' })
+      const automationUserId = process.env.SUPABASE_AUTOMATION_USER_ID || ''
+      await supabase.from('project_tasks').insert({ project_id, title, status: 'todo', priority: 'medium', created_by: automationUserId })
     }
   }
 

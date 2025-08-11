@@ -24,14 +24,18 @@ export async function POST(req: NextRequest) {
   const userId = new URLSearchParams(raw).get('user_id') || ''
   const responseUrl = new URLSearchParams(raw).get('response_url') || ''
 
-  // Parse command: `/yap yeni-görev ProjeID | Başlık | öncelik:high | bitiş:2025-01-01`
-  const [projectIdPart, titlePart, ...rest] = text.split('|').map((s) => s.trim())
-  const project_id = projectIdPart || ''
-  const title = titlePart || ''
+  // Parse command (robust): Proje ID olarak metin içindeki ilk UUID'i bul
+  // Örnek metinler:
+  //  - "yeni-görev slackten proje oluşturuldu 7440dd35-... | Başlık | ..."
+  //  - "7440dd35-... | Başlık | ..."
+  const uuidInText = text.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)?.[0] || ''
+  const [firstSeg, titlePartRaw, ...rest] = text.split('|').map((s) => s.trim())
+  const project_id = uuidInText
+  const title = (titlePartRaw || '').trim()
   if (!project_id || !title) {
     return Response.json({
       response_type: 'ephemeral',
-      text: 'Kullanım: /yap yeni-görev <proje-id> | <başlık> | öncelik:high | bitiş:2025-01-01'
+      text: 'Kullanım: /yap yeni-görev <proje-id> | <başlık> | öncelik:high | bitiş:2025-01-01\nÖrnek: /yap yeni-görev 7440dd35-66be-46b9-ae76-61679b807b3b | Prod test görevi | öncelik:high | bitiş:2025-02-01'
     })
   }
   let priority: 'low'|'medium'|'high'|'urgent' = 'medium'
@@ -49,9 +53,13 @@ export async function POST(req: NextRequest) {
 
   // Create task using admin client (server-side)
   const supabase = getSupabaseAdmin()
+  const automationUserId = process.env.SUPABASE_AUTOMATION_USER_ID || ''
+  if (!automationUserId) {
+    return Response.json({ response_type: 'ephemeral', text: 'Sunucu yapılandırma eksik: SUPABASE_AUTOMATION_USER_ID tanımlı değil.' })
+  }
   const { data: task, error } = await supabase
     .from('project_tasks')
-    .insert({ project_id, title, priority, status: 'todo', due_date })
+    .insert({ project_id, title, priority, status: 'todo', due_date, created_by: automationUserId })
     .select('id')
     .single()
   if (error) {
