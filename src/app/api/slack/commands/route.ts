@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
   }
 
   const text = new URLSearchParams(raw).get('text') || ''
-  const userId = new URLSearchParams(raw).get('user_id') || ''
   const responseUrl = new URLSearchParams(raw).get('response_url') || ''
 
   // Parse command (robust): Proje ID olarak metin içindeki ilk UUID'i bul
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
   //  - "yeni-görev slackten proje oluşturuldu 7440dd35-... | Başlık | ..."
   //  - "7440dd35-... | Başlık | ..."
   const uuidInText = text.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)?.[0] || ''
-  const [firstSeg, titlePartRaw, ...rest] = text.split('|').map((s) => s.trim())
+  const [, titlePartRaw, ...rest] = text.split('|').map((s) => s.trim())
   const project_id = uuidInText
   const title = (titlePartRaw || '').trim()
   if (!project_id || !title) {
