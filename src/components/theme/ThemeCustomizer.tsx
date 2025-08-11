@@ -1,0 +1,321 @@
+"use client"
+
+import * as React from 'react'
+import { saveUserTheme, getUserTheme, type UserTheme } from '@/lib/services/preferences/userTheme'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Calendar, Folder, User } from 'lucide-react'
+
+function ColorInput({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
+  const id = React.useId()
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <span className="w-40 text-muted-foreground">{label}</span>
+      <input id={id} type="color" value={value || '#000000'} onChange={(e) => onChange(e.target.value)} className="h-8 w-10 cursor-pointer" />
+      <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="#RRGGBB"
+        className="h-8 flex-1 rounded border px-2 text-xs" />
+    </label>
+  )
+}
+
+export default function ThemeCustomizer() {
+  const [initial, setInitial] = React.useState<UserTheme | null>(null)
+  const [light, setLight] = React.useState<UserTheme['light']>({})
+  const [dark, setDark] = React.useState<UserTheme['dark']>({})
+  const [saving, setSaving] = React.useState(false)
+  const [message, setMessage] = React.useState<string | null>(null)
+  const [transitionEnabled, setTransitionEnabled] = React.useState(true)
+  const [transitionDuration, setTransitionDuration] = React.useState(200)
+  const [transitionEasing, setTransitionEasing] = React.useState('ease-in-out')
+  const [demoOn, setDemoOn] = React.useState(false)
+
+  React.useEffect(() => {
+    ;(async () => {
+      const t = await getUserTheme().catch(() => null)
+      setInitial(t)
+      setLight(t?.light || {})
+      setDark(t?.dark || {})
+      if (t?.transition) {
+        setTransitionEnabled(Boolean(t.transition.enabled))
+        setTransitionDuration(typeof t.transition.durationMs === 'number' ? t.transition.durationMs : 200)
+        setTransitionEasing(t.transition.easing || 'ease-in-out')
+      }
+    })()
+  }, [])
+
+  // Live preview: apply current mode palette to CSS vars
+  React.useEffect(() => {
+    const root = document.documentElement
+    const isDark = root.classList.contains('dark')
+    const pal = isDark ? dark : light
+    if (pal?.background) root.style.setProperty('--background', pal.background)
+    if (pal?.foreground) root.style.setProperty('--foreground', pal.foreground)
+    if (pal?.primary) root.style.setProperty('--primary', pal.primary)
+    if (pal?.primaryForeground) root.style.setProperty('--primary-foreground', pal.primaryForeground)
+    if (pal?.accent) root.style.setProperty('--accent', pal.accent)
+    if (pal?.accentForeground) root.style.setProperty('--accent-foreground', pal.accentForeground)
+    if (pal?.ring) root.style.setProperty('--ring', pal.ring)
+    // sidebar scoped tokens for instant preview
+    if (pal?.sidebar) root.style.setProperty('--sidebar', pal.sidebar)
+    if (pal?.sidebarForeground) root.style.setProperty('--sidebar-foreground', pal.sidebarForeground)
+    if (pal?.sidebarPrimary) root.style.setProperty('--sidebar-primary', pal.sidebarPrimary)
+    if (pal?.sidebarPrimaryForeground) root.style.setProperty('--sidebar-primary-foreground', pal.sidebarPrimaryForeground)
+    if (pal?.sidebarAccent) root.style.setProperty('--sidebar-accent', pal.sidebarAccent)
+    if (pal?.sidebarAccentForeground) root.style.setProperty('--sidebar-accent-foreground', pal.sidebarAccentForeground)
+    if (pal?.sidebarBorder) root.style.setProperty('--sidebar-border', pal.sidebarBorder)
+    if (pal?.sidebarRing) root.style.setProperty('--sidebar-ring', pal.sidebarRing)
+  }, [light, dark])
+
+  const suggestions: Array<{ name: string; light: NonNullable<UserTheme['light']>; dark: NonNullable<UserTheme['dark']> }> = [
+    {
+      name: 'Deniz',
+      light: { primary: '#0ea5e9', primaryForeground: '#ffffff', accent: '#a5f3fc', accentForeground: '#0f172a', ring: '#38bdf8' },
+      dark: { primary: '#38bdf8', primaryForeground: '#0b1220', accent: '#0ea5e9', accentForeground: '#0b1220', ring: '#7dd3fc' },
+    },
+    {
+      name: 'Orman',
+      light: { primary: '#16a34a', primaryForeground: '#ffffff', accent: '#bbf7d0', accentForeground: '#052e16', ring: '#22c55e' },
+      dark: { primary: '#22c55e', primaryForeground: '#08180f', accent: '#16a34a', accentForeground: '#08180f', ring: '#86efac' },
+    },
+    {
+      name: 'Günbatımı',
+      light: { primary: '#f97316', primaryForeground: '#1a130b', accent: '#fed7aa', accentForeground: '#1a130b', ring: '#fb923c' },
+      dark: { primary: '#fb923c', primaryForeground: '#140f0a', accent: '#f97316', accentForeground: '#140f0a', ring: '#fdba74' },
+    },
+    {
+      name: 'Erguvan',
+      light: { primary: '#8b5cf6', primaryForeground: '#0b0620', accent: '#ddd6fe', accentForeground: '#0b0620', ring: '#a78bfa' },
+      dark: { primary: '#a78bfa', primaryForeground: '#0b0620', accent: '#8b5cf6', accentForeground: '#0b0620', ring: '#c4b5fd' },
+    },
+  ]
+
+  const randomHex = () => `#${Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0')}`
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random()*arr.length)]
+  const generateRandom = () => {
+    // Light palette
+    const lightBgCandidates = ['#ffffff', '#f9fafb', '#f8fafc', '#f1f5f9']
+    const lightFgCandidates = ['#0f172a', '#111827', '#0b1220']
+    const lp = {
+      background: pick(lightBgCandidates),
+      foreground: pick(lightFgCandidates),
+      primary: randomHex(),
+      accent: randomHex(),
+      ring: randomHex(),
+      // sidebar share same style as light, with slight variations
+      sidebar: pick(['#ffffff', '#f8fafc', '#f1f5f9']),
+      sidebarForeground: pick(lightFgCandidates),
+      sidebarPrimary: randomHex(),
+    }
+    // Dark palette
+    const darkBgCandidates = ['#0b1220', '#0f172a', '#111827', '#0a0f1a']
+    const darkFgCandidates = ['#e5e7eb', '#f3f4f6', '#f9fafb']
+    const dp = {
+      background: pick(darkBgCandidates),
+      foreground: pick(darkFgCandidates),
+      primary: randomHex(),
+      accent: randomHex(),
+      ring: randomHex(),
+      sidebar: pick(['#0f172a', '#111827', '#0b1220']),
+      sidebarForeground: pick(darkFgCandidates),
+      sidebarPrimary: randomHex(),
+    }
+    setLight((p) => ({ ...p, ...lp }))
+    setDark((p) => ({ ...p, ...dp }))
+    // Random transition
+    setTransitionEnabled(true)
+    setTransitionDuration(pick([150, 200, 250, 300, 400, 500, 600]))
+    setTransitionEasing(pick(['ease-in-out','ease-out','ease-in','linear']))
+    setMessage(null)
+  }
+
+  const onSave = async () => {
+    setSaving(true)
+    setMessage(null)
+    try {
+      await saveUserTheme({ light, dark, transition: { enabled: transitionEnabled, durationMs: transitionDuration, easing: transitionEasing } })
+      setMessage('Kaydedildi')
+    } catch (e) {
+      setMessage('Kaydedilemedi')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6 mx-auto w-full max-w-6xl">
+      <div className="space-y-2 rounded border p-3">
+        <div className="text-sm font-medium">Önerilen temalar</div>
+        <div className="flex flex-wrap gap-2">
+          {suggestions.map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              className="rounded border px-2 py-1 text-xs hover:bg-accent"
+              onClick={() => { setLight(s.light); setDark(s.dark); setMessage(`Öneri uygulandı: ${s.name}`) }}
+            >
+              {s.name}
+            </button>
+          ))}
+          <Button variant="outline" className="h-7 text-xs" onClick={generateRandom}>Rastgele üret</Button>
+        </div>
+      </div>
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+        {/* LIGHT */}
+        <div className="space-y-3 rounded border p-3">
+          <div className="text-sm font-medium">Açık Tema</div>
+          <ColorInput label="Background" value={light?.background} onChange={(v) => setLight((p) => ({ ...p, background: v }))} />
+          <ColorInput label="Foreground" value={light?.foreground} onChange={(v) => setLight((p) => ({ ...p, foreground: v }))} />
+          <ColorInput label="Primary" value={light?.primary} onChange={(v) => setLight((p) => ({ ...p, primary: v }))} />
+          <ColorInput label="Accent" value={light?.accent} onChange={(v) => setLight((p) => ({ ...p, accent: v }))} />
+          <ColorInput label="Ring" value={light?.ring} onChange={(v) => setLight((p) => ({ ...p, ring: v }))} />
+        </div>
+        {/* DARK */}
+        <div className="space-y-3 rounded border p-3">
+          <div className="text-sm font-medium">Koyu Tema</div>
+          <ColorInput label="Background" value={dark?.background} onChange={(v) => setDark((p) => ({ ...p, background: v }))} />
+          <ColorInput label="Foreground" value={dark?.foreground} onChange={(v) => setDark((p) => ({ ...p, foreground: v }))} />
+          <ColorInput label="Primary" value={dark?.primary} onChange={(v) => setDark((p) => ({ ...p, primary: v }))} />
+          <ColorInput label="Accent" value={dark?.accent} onChange={(v) => setDark((p) => ({ ...p, accent: v }))} />
+          <ColorInput label="Ring" value={dark?.ring} onChange={(v) => setDark((p) => ({ ...p, ring: v }))} />
+        </div>
+        {/* SIDEBAR */}
+        <div className="space-y-3 rounded border p-3">
+          <div className="text-sm font-medium">Sidebar</div>
+          <ColorInput label="Sidebar" value={light?.sidebar} onChange={(v) => { setLight((p) => ({ ...p, sidebar: v })); setDark((p) => ({ ...p, sidebar: v })) }} />
+          <ColorInput label="Sidebar Text" value={light?.sidebarForeground} onChange={(v) => { setLight((p) => ({ ...p, sidebarForeground: v })); setDark((p) => ({ ...p, sidebarForeground: v })) }} />
+          <ColorInput label="Sidebar Primary" value={light?.sidebarPrimary} onChange={(v) => { setLight((p) => ({ ...p, sidebarPrimary: v })); setDark((p) => ({ ...p, sidebarPrimary: v })) }} />
+        </div>
+      </div>
+
+      {/* Canlı Önizleme */
+      }
+      <div className="space-y-3 rounded border p-3">
+        <div className="text-sm font-medium">Önizleme</div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Kart Başlığı</CardTitle>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Folder className="h-4 w-4" />
+              </span>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div>Bu bir kart gövdesi. Temanızın arka plan ve yazı rengi burada görünür.</div>
+              <div className="flex items-center gap-2">
+                <Badge>Etiket</Badge>
+                <Badge variant="secondary">İkincil</Badge>
+                <Badge variant="outline">Outline</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm">Primary</Button>
+                <Button size="sm" variant="outline">Outline</Button>
+                <Button size="sm" variant="destructive">Danger</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-sm font-medium">Form Örneği</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Takvim • {new Date().toLocaleDateString('tr-TR')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <User className="h-4 w-4" />
+                <span>Kullanıcı • Önizleme</span>
+              </div>
+              <Input placeholder="Bir şeyler yazın..." />
+              <div className="flex items-center gap-2">
+                <Button size="sm">Kaydet</Button>
+                <Button size="sm" variant="outline">İptal</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Sekmeler</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="one" className="space-y-3">
+                <TabsList>
+                  <TabsTrigger value="one">Bir</TabsTrigger>
+                  <TabsTrigger value="two">İki</TabsTrigger>
+                </TabsList>
+                <TabsContent value="one" className="text-sm text-muted-foreground">
+                  İlk sekme içeriği. Accent ve ring renkleri burada da uygulanır.
+                </TabsContent>
+                <TabsContent value="two" className="text-sm text-muted-foreground">
+                  İkinci sekme içeriği.
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      {/* Geçiş (altta, daha geniş) */}
+      <div className="space-y-3 rounded border p-3">
+        <div className="text-sm font-medium">Geçiş (Transition)</div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
+          Etkin
+        </label>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground w-24">Süre: {transitionDuration} ms</span>
+          <input type="range" min={0} max={1000} step={50} value={transitionDuration} onChange={(e) => setTransitionDuration(Number(e.target.value))} className="flex-1" />
+        </div>
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">Easing</div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {['ease-in-out','ease-out','ease-in','linear'].map((ez) => (
+              <button
+                key={ez}
+                type="button"
+                onClick={() => setTransitionEasing(ez)}
+                className={`rounded border p-2 text-xs text-left ${transitionEasing===ez? 'bg-accent' : ''}`}
+              >
+                <div className="mb-1 font-medium">{ez}</div>
+                <div className="h-2 overflow-hidden rounded bg-muted">
+                  <div
+                    className="h-2 w-full bg-primary"
+                    style={{
+                      transformOrigin: 'left',
+                      animation: `easeDemo 1200ms ${ez} infinite`,
+                    }}
+                  />
+                </div>
+              </button>
+            ))}
+          </div>
+          {/* simple keyframes */}
+          <style jsx>{`
+            @keyframes easeDemo { from { transform: scaleX(0.05); } 50% { transform: scaleX(1); } to { transform: scaleX(0.05); } }
+          `}</style>
+        </div>
+        <div className="mt-2">
+          <div className={`rounded-md border p-3 text-sm flex items-center justify-between ${demoOn? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}
+            style={{ transition: `background-color ${transitionDuration}ms ${transitionEasing}, color ${transitionDuration}ms ${transitionEasing}, border-color ${transitionDuration}ms ${transitionEasing}` }}
+          >
+            <span>Geçiş demo</span>
+            <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test</Button>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={onSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</Button>
+        {message && <span className="text-sm text-muted-foreground">{message}</span>}
+      </div>
+      {initial && (
+        <div className="text-xs text-muted-foreground">Mevcut kayıtlı tema yüklendi.</div>
+      )}
+    </div>
+  )
+}
+
+

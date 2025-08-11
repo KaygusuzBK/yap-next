@@ -25,6 +25,10 @@ export default function Navbar() {
         </Link>
         <nav className="flex items-center gap-3 text-sm">
           <Link className="opacity-80 hover:opacity-100" href="/dashboard">{t('common.dashboard')}</Link>
+          {/* Hızlı geri dönüş: eğer dashboard altı bir sayfadaysa küçük back butonu */}
+          {pathname.startsWith('/dashboard/') && (
+            <Link href="/dashboard" className="opacity-80 hover:opacity-100">Geri</Link>
+          )}
           {user ? (
             <>
               <NotificationsBell userId={user.id} />

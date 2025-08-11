@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from "next/link"
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -112,9 +113,11 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/upgrade">
+                  <Sparkles />
+                  Upgrade to Pro
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -124,17 +127,23 @@ export function NavUser({
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/account">
+                  <BadgeCheck />
+                  Account
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/billing">
+                  <CreditCard />
+                  Billing
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/notifications">
+                  <Bell />
+                  Notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
