@@ -106,7 +106,7 @@ export default function ThemeCustomizer() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 mx-auto w-full max-w-6xl">
       <div className="space-y-2 rounded border p-3">
         <div className="text-sm font-medium">Önerilen temalar</div>
         <div className="flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export default function ThemeCustomizer() {
           <Button variant="outline" className="h-7 text-xs" onClick={generateRandom}>Rastgele üret</Button>
         </div>
       </div>
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
         {/* LIGHT */}
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Açık Tema</div>
