@@ -45,6 +45,19 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { loadPrefs() }, [loadPrefs])
   useEffect(() => { setLocaleState(prefLocale) }, [prefLocale])
 
+  // Keep html lang/dir in sync with current locale (RTL for Arabic)
+  useEffect(() => {
+    try {
+      const html = document.documentElement
+      if (!html) return
+      const isRtl = locale === 'ar'
+      html.setAttribute('lang', locale)
+      html.setAttribute('dir', isRtl ? 'rtl' : 'ltr')
+    } catch {
+      // no-op on SSR
+    }
+  }, [locale])
+
   const setLocale = useCallback((next: Locale) => {
     // First update local state to avoid cross-render setState warnings
     setLocaleState(next)

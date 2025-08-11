@@ -180,12 +180,22 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="text-muted-foreground">Yükleniyor...</div>
+          <div className="space-y-3">
+            <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+            <div className="grid grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+              ))}
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   if (error) {
@@ -283,15 +293,13 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
 
           {/* Görev Listesi */}
           {sortedTasks.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-muted-foreground mb-2">
+            <div className="text-center py-12">
+              <div className="text-muted-foreground mb-3">
                 {tasks.length === 0 ? 'Henüz görev yok' : 'Filtrelere uygun görev bulunamadı'}
               </div>
-              {tasks.length === 0 && (
-                <Button onClick={onCreateNew} variant="outline">
-                  İlk Görevi Oluştur
-                </Button>
-              )}
+              <Button onClick={onCreateNew} variant="outline">
+                {tasks.length === 0 ? 'İlk Görevi Oluştur' : 'Yeni Görev Oluştur'}
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
