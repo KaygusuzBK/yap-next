@@ -514,14 +514,15 @@ export default function TaskDetailPage() {
                         placeholder="Yorum yaz... (@ ile kişi önerisi)"
                         className="border rounded px-2 py-1 text-sm w-full min-w-0 md:w-64"
                         onKeyDown={(e) => {
+                          if (mentionOpen) {
+                            if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, Math.max(mentionCandidates.length - 1, 0))); return }
+                            if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)); return }
+                            if (e.key === 'Escape') { setMentionOpen(false); return }
+                            if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c); return }
+                          }
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             handleAddComment();
-                          } else if (mentionOpen) {
-                            if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, Math.max(mentionCandidates.length - 1, 0))) }
-                            if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)) }
-                            if (e.key === 'Escape') { setMentionOpen(false) }
-                            if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); const c = mentionCandidates[mentionIndex]; if (c) insertMention(c) }
                           }
                         }}
                       />
