@@ -41,7 +41,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { setLocaleState(prefLocale) }, [prefLocale])
 
   const setLocale = useCallback((next: Locale) => {
-    setPrefLocale(next)
+    // First update local state to avoid cross-render setState warnings
+    setLocaleState(next)
+    // Then persist to store (async-ish side effect)
+    Promise.resolve().then(() => setPrefLocale(next))
   }, [setPrefLocale]);
 
   const t = useMemo(() => {
