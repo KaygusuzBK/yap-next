@@ -123,110 +123,60 @@ export default function ThemeCustomizer() {
           <Button variant="outline" className="h-7 text-xs" onClick={generateRandom}>Rastgele üret</Button>
         </div>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* LIGHT */}
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Açık Tema</div>
           <ColorInput label="Background" value={light?.background} onChange={(v) => setLight((p) => ({ ...p, background: v }))} />
           <ColorInput label="Foreground" value={light?.foreground} onChange={(v) => setLight((p) => ({ ...p, foreground: v }))} />
-          <ColorInput label="Secondary" value={light?.secondary} onChange={(v) => setLight((p) => ({ ...p, secondary: v }))} />
-          <ColorInput label="Secondary Text" value={light?.secondaryForeground} onChange={(v) => setLight((p) => ({ ...p, secondaryForeground: v }))} />
-          <ColorInput label="Muted" value={light?.muted} onChange={(v) => setLight((p) => ({ ...p, muted: v }))} />
-          <ColorInput label="Muted Text" value={light?.mutedForeground} onChange={(v) => setLight((p) => ({ ...p, mutedForeground: v }))} />
           <ColorInput label="Primary" value={light?.primary} onChange={(v) => setLight((p) => ({ ...p, primary: v }))} />
-          <ColorInput label="Primary Text" value={light?.primaryForeground} onChange={(v) => setLight((p) => ({ ...p, primaryForeground: v }))} />
           <ColorInput label="Accent" value={light?.accent} onChange={(v) => setLight((p) => ({ ...p, accent: v }))} />
-          <ColorInput label="Accent Text" value={light?.accentForeground} onChange={(v) => setLight((p) => ({ ...p, accentForeground: v }))} />
-          <ColorInput label="Destructive" value={light?.destructive} onChange={(v) => setLight((p) => ({ ...p, destructive: v }))} />
-          <ColorInput label="Border" value={light?.border} onChange={(v) => setLight((p) => ({ ...p, border: v }))} />
-          <ColorInput label="Input" value={light?.input} onChange={(v) => setLight((p) => ({ ...p, input: v }))} />
           <ColorInput label="Ring" value={light?.ring} onChange={(v) => setLight((p) => ({ ...p, ring: v }))} />
-          <div className="text-sm font-medium mt-2">Sidebar</div>
-          <ColorInput label="Sidebar" value={light?.sidebar} onChange={(v) => setLight((p) => ({ ...p, sidebar: v }))} />
-          <ColorInput label="Sidebar Text" value={light?.sidebarForeground} onChange={(v) => setLight((p) => ({ ...p, sidebarForeground: v }))} />
-          <ColorInput label="Sidebar Primary" value={light?.sidebarPrimary} onChange={(v) => setLight((p) => ({ ...p, sidebarPrimary: v }))} />
-          <ColorInput label="Sidebar Primary Text" value={light?.sidebarPrimaryForeground} onChange={(v) => setLight((p) => ({ ...p, sidebarPrimaryForeground: v }))} />
-          <ColorInput label="Sidebar Accent" value={light?.sidebarAccent} onChange={(v) => setLight((p) => ({ ...p, sidebarAccent: v }))} />
-          <ColorInput label="Sidebar Accent Text" value={light?.sidebarAccentForeground} onChange={(v) => setLight((p) => ({ ...p, sidebarAccentForeground: v }))} />
-          <ColorInput label="Sidebar Border" value={light?.sidebarBorder} onChange={(v) => setLight((p) => ({ ...p, sidebarBorder: v }))} />
-          <ColorInput label="Sidebar Ring" value={light?.sidebarRing} onChange={(v) => setLight((p) => ({ ...p, sidebarRing: v }))} />
         </div>
+        {/* DARK */}
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Koyu Tema</div>
           <ColorInput label="Background" value={dark?.background} onChange={(v) => setDark((p) => ({ ...p, background: v }))} />
           <ColorInput label="Foreground" value={dark?.foreground} onChange={(v) => setDark((p) => ({ ...p, foreground: v }))} />
-          <ColorInput label="Secondary" value={dark?.secondary} onChange={(v) => setDark((p) => ({ ...p, secondary: v }))} />
-          <ColorInput label="Secondary Text" value={dark?.secondaryForeground} onChange={(v) => setDark((p) => ({ ...p, secondaryForeground: v }))} />
-          <ColorInput label="Muted" value={dark?.muted} onChange={(v) => setDark((p) => ({ ...p, muted: v }))} />
-          <ColorInput label="Muted Text" value={dark?.mutedForeground} onChange={(v) => setDark((p) => ({ ...p, mutedForeground: v }))} />
           <ColorInput label="Primary" value={dark?.primary} onChange={(v) => setDark((p) => ({ ...p, primary: v }))} />
-          <ColorInput label="Primary Text" value={dark?.primaryForeground} onChange={(v) => setDark((p) => ({ ...p, primaryForeground: v }))} />
           <ColorInput label="Accent" value={dark?.accent} onChange={(v) => setDark((p) => ({ ...p, accent: v }))} />
-          <ColorInput label="Accent Text" value={dark?.accentForeground} onChange={(v) => setDark((p) => ({ ...p, accentForeground: v }))} />
-          <ColorInput label="Destructive" value={dark?.destructive} onChange={(v) => setDark((p) => ({ ...p, destructive: v }))} />
-          <ColorInput label="Border" value={dark?.border} onChange={(v) => setDark((p) => ({ ...p, border: v }))} />
-          <ColorInput label="Input" value={dark?.input} onChange={(v) => setDark((p) => ({ ...p, input: v }))} />
           <ColorInput label="Ring" value={dark?.ring} onChange={(v) => setDark((p) => ({ ...p, ring: v }))} />
-          <div className="text-sm font-medium mt-2">Sidebar</div>
-          <ColorInput label="Sidebar" value={dark?.sidebar} onChange={(v) => setDark((p) => ({ ...p, sidebar: v }))} />
-          <ColorInput label="Sidebar Text" value={dark?.sidebarForeground} onChange={(v) => setDark((p) => ({ ...p, sidebarForeground: v }))} />
-          <ColorInput label="Sidebar Primary" value={dark?.sidebarPrimary} onChange={(v) => setDark((p) => ({ ...p, sidebarPrimary: v }))} />
-          <ColorInput label="Sidebar Primary Text" value={dark?.sidebarPrimaryForeground} onChange={(v) => setDark((p) => ({ ...p, sidebarPrimaryForeground: v }))} />
-          <ColorInput label="Sidebar Accent" value={dark?.sidebarAccent} onChange={(v) => setDark((p) => ({ ...p, sidebarAccent: v }))} />
-          <ColorInput label="Sidebar Accent Text" value={dark?.sidebarAccentForeground} onChange={(v) => setDark((p) => ({ ...p, sidebarAccentForeground: v }))} />
-          <ColorInput label="Sidebar Border" value={dark?.sidebarBorder} onChange={(v) => setDark((p) => ({ ...p, sidebarBorder: v }))} />
-          <ColorInput label="Sidebar Ring" value={dark?.sidebarRing} onChange={(v) => setDark((p) => ({ ...p, sidebarRing: v }))} />
         </div>
-      </div>
-      <div className="space-y-3 rounded border p-3">
-        <div className="text-sm font-medium">Geçiş (Transition)</div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
-          Etkin
-        </label>
-        {/* Ön ayarlar: Süre */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="w-40 text-muted-foreground">Süre (ön ayar)</span>
-          {[{l:'Kısa',v:150},{l:'Orta',v:250},{l:'Uzun',v:400}].map(p => (
-            <button key={p.v}
-              type="button"
-              onClick={() => setTransitionDuration(p.v)}
-              className={`rounded border px-2 py-1 ${transitionDuration===p.v? 'bg-accent' : ''}`}
-            >{p.l}</button>
-          ))}
+        {/* SIDEBAR */}
+        <div className="space-y-3 rounded border p-3">
+          <div className="text-sm font-medium">Sidebar</div>
+          <ColorInput label="Sidebar" value={light?.sidebar} onChange={(v) => { setLight((p) => ({ ...p, sidebar: v })); setDark((p) => ({ ...p, sidebar: v })) }} />
+          <ColorInput label="Sidebar Text" value={light?.sidebarForeground} onChange={(v) => { setLight((p) => ({ ...p, sidebarForeground: v })); setDark((p) => ({ ...p, sidebarForeground: v })) }} />
+          <ColorInput label="Sidebar Primary" value={light?.sidebarPrimary} onChange={(v) => { setLight((p) => ({ ...p, sidebarPrimary: v })); setDark((p) => ({ ...p, sidebarPrimary: v })) }} />
         </div>
-        {/* Ön ayarlar: Easing */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="w-40 text-muted-foreground">Easing</span>
-          {['ease-in-out','ease-out','ease-in','linear'].map(ez => (
-            <button key={ez}
-              type="button"
-              onClick={() => setTransitionEasing(ez)}
-              className={`rounded border px-2 py-1 ${transitionEasing===ez? 'bg-accent' : ''}`}
-            >{ez}</button>
-          ))}
-        </div>
-        {/* Canlı Geçiş Önizleme */}
-        <div className="mt-2">
-          <div className={`mb-2 rounded-md border p-3 text-sm flex items-center justify-between ${demoOn? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}
-            style={{ transition: `background-color ${transitionDuration}ms ${transitionEasing}, color ${transitionDuration}ms ${transitionEasing}, border-color ${transitionDuration}ms ${transitionEasing}` }}
-          >
-            <span>Geçiş önizleme kutusu</span>
-            <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test Et</Button>
+        {/* TRANSITIONS */}
+        <div className="space-y-3 rounded border p-3">
+          <div className="text-sm font-medium">Geçiş</div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
+            Etkin
+          </label>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="w-16 text-muted-foreground">Süre</span>
+            {[{l:'Kısa',v:150},{l:'Orta',v:250},{l:'Uzun',v:400}].map(p => (
+              <button key={p.v} type="button" onClick={() => setTransitionDuration(p.v)} className={`rounded border px-2 py-1 ${transitionDuration===p.v? 'bg-accent' : ''}`}>{p.l}</button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="w-16 text-muted-foreground">Easing</span>
+            {['ease-in-out','ease-out','ease-in','linear'].map(ez => (
+              <button key={ez} type="button" onClick={() => setTransitionEasing(ez)} className={`rounded border px-2 py-1 ${transitionEasing===ez? 'bg-accent' : ''}`}>{ez}</button>
+            ))}
+          </div>
+          <div className="mt-1">
+            <div className={`rounded-md border p-2 text-xs flex items-center justify-between ${demoOn? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}
+              style={{ transition: `background-color ${transitionDuration}ms ${transitionEasing}, color ${transitionDuration}ms ${transitionEasing}, border-color ${transitionDuration}ms ${transitionEasing}` }}
+            >
+              <span>Geçiş demo</span>
+              <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test</Button>
+            </div>
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-40 text-muted-foreground">Süre (ms)</span>
-          <input type="number" min={0} max={3000} value={transitionDuration} onChange={(e) => setTransitionDuration(Number(e.target.value))} className="h-8 w-28 rounded border px-2 text-xs" />
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-40 text-muted-foreground">Easing</span>
-          <select value={transitionEasing} onChange={(e) => setTransitionEasing(e.target.value)} className="h-8 rounded border px-2 text-xs">
-            <option value="ease-in-out">ease-in-out</option>
-            <option value="ease-out">ease-out</option>
-            <option value="ease-in">ease-in</option>
-            <option value="linear">linear</option>
-          </select>
-        </label>
       </div>
 
       {/* Canlı Önizleme */}
