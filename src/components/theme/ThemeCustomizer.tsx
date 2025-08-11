@@ -32,6 +32,50 @@ export default function ThemeCustomizer() {
     })()
   }, [])
 
+  // Live preview: apply current mode palette to CSS vars
+  React.useEffect(() => {
+    const root = document.documentElement
+    const isDark = root.classList.contains('dark')
+    const pal = isDark ? dark : light
+    if (pal?.primary) root.style.setProperty('--primary', pal.primary)
+    if (pal?.primaryForeground) root.style.setProperty('--primary-foreground', pal.primaryForeground)
+    if (pal?.accent) root.style.setProperty('--accent', pal.accent)
+    if (pal?.accentForeground) root.style.setProperty('--accent-foreground', pal.accentForeground)
+    if (pal?.ring) root.style.setProperty('--ring', pal.ring)
+  }, [light, dark])
+
+  const suggestions: Array<{ name: string; light: NonNullable<UserTheme['light']>; dark: NonNullable<UserTheme['dark']> }> = [
+    {
+      name: 'Deniz',
+      light: { primary: '#0ea5e9', primaryForeground: '#ffffff', accent: '#a5f3fc', accentForeground: '#0f172a', ring: '#38bdf8' },
+      dark: { primary: '#38bdf8', primaryForeground: '#0b1220', accent: '#0ea5e9', accentForeground: '#0b1220', ring: '#7dd3fc' },
+    },
+    {
+      name: 'Orman',
+      light: { primary: '#16a34a', primaryForeground: '#ffffff', accent: '#bbf7d0', accentForeground: '#052e16', ring: '#22c55e' },
+      dark: { primary: '#22c55e', primaryForeground: '#08180f', accent: '#16a34a', accentForeground: '#08180f', ring: '#86efac' },
+    },
+    {
+      name: 'Günbatımı',
+      light: { primary: '#f97316', primaryForeground: '#1a130b', accent: '#fed7aa', accentForeground: '#1a130b', ring: '#fb923c' },
+      dark: { primary: '#fb923c', primaryForeground: '#140f0a', accent: '#f97316', accentForeground: '#140f0a', ring: '#fdba74' },
+    },
+    {
+      name: 'Erguvan',
+      light: { primary: '#8b5cf6', primaryForeground: '#0b0620', accent: '#ddd6fe', accentForeground: '#0b0620', ring: '#a78bfa' },
+      dark: { primary: '#a78bfa', primaryForeground: '#0b0620', accent: '#8b5cf6', accentForeground: '#0b0620', ring: '#c4b5fd' },
+    },
+  ]
+
+  const randomHex = () => `#${Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0')}`
+  const generateRandom = () => {
+    const lp = { primary: randomHex(), accent: randomHex(), ring: randomHex() }
+    const dp = { primary: randomHex(), accent: randomHex(), ring: randomHex() }
+    setLight((p) => ({ ...p, ...lp }))
+    setDark((p) => ({ ...p, ...dp }))
+    setMessage(null)
+  }
+
   const onSave = async () => {
     setSaving(true)
     setMessage(null)
@@ -47,6 +91,22 @@ export default function ThemeCustomizer() {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2 rounded border p-3">
+        <div className="text-sm font-medium">Önerilen temalar</div>
+        <div className="flex flex-wrap gap-2">
+          {suggestions.map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              className="rounded border px-2 py-1 text-xs hover:bg-accent"
+              onClick={() => { setLight(s.light); setDark(s.dark); setMessage(`Öneri uygulandı: ${s.name}`) }}
+            >
+              {s.name}
+            </button>
+          ))}
+          <Button variant="outline" className="h-7 text-xs" onClick={generateRandom}>Rastgele üret</Button>
+        </div>
+      </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Açık Tema</div>
