@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
 import { saveUserPrefs, getUserPrefs, updateProfileName, changePassword, type UserPrefs, generateToken } from '@/lib/services/account'
 import ThemeCustomizer from '@/components/theme/ThemeCustomizer'
 
@@ -80,28 +83,72 @@ export default function AccountPage() {
             <CardTitle>Tercihler</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="grid gap-2 sm:grid-cols-3">
-              <div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">Dil</div>
-                <Input className="h-8" value={prefs.general?.language || ''} onChange={(e) => setPrefs((p) => ({ ...p, general: { ...p.general, language: e.target.value } }))} placeholder="tr, en..." />
+                <Select value={prefs.general?.language || ''} onValueChange={(v) => setPrefs((p) => ({ ...p, general: { ...p.general, language: v } }))}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['tr','en','de','es','fr','ar','zh-CN'].map(l => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">Saat dilimi</div>
-                <Input className="h-8" value={prefs.general?.timezone || ''} onChange={(e) => setPrefs((p) => ({ ...p, general: { ...p.general, timezone: e.target.value } }))} placeholder="Europe/Istanbul" />
+                <Select value={prefs.general?.timezone || ''} onValueChange={(v) => setPrefs((p) => ({ ...p, general: { ...p.general, timezone: v } }))}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Europe/Istanbul','UTC','Europe/Berlin','America/New_York','Asia/Dubai','Asia/Shanghai'].map(tz => (
+                      <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">Açılış</div>
-                <Input className="h-8" value={prefs.general?.defaultLanding || '/dashboard'} onChange={(e) => setPrefs((p) => ({ ...p, general: { ...p.general, defaultLanding: e.target.value as any } }))} />
+                <Select value={prefs.general?.defaultLanding || '/dashboard'} onValueChange={(v) => setPrefs((p) => ({ ...p, general: { ...p.general, defaultLanding: v as any } }))}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="/dashboard">Dashboard</SelectItem>
+                    <SelectItem value="/dashboard#projects">Projeler</SelectItem>
+                    <SelectItem value="/dashboard#tasks">Görevler</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <div>
-                <div className="text-xs text-muted-foreground">Mention DM</div>
-                <Input className="h-8" value={String(prefs.notifications?.mentionDm ?? true)} onChange={(e) => setPrefs((p) => ({ ...p, notifications: { ...p.notifications, mentionDm: e.target.value === 'true' } }))} />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">Mention DM</div>
+                  <Switch checked={Boolean(prefs.notifications?.mentionDm ?? true)} onCheckedChange={(v) => setPrefs((p) => ({ ...p, notifications: { ...p.notifications, mentionDm: Boolean(v) } }))} />
+                </div>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <div className="text-xs text-muted-foreground">E-posta özeti</div>
-                <Input className="h-8" value={prefs.notifications?.emailDigest || 'off'} onChange={(e) => setPrefs((p) => ({ ...p, notifications: { ...p.notifications, emailDigest: e.target.value as any } }))} />
+                <Select value={prefs.notifications?.emailDigest || 'off'} onValueChange={(v) => setPrefs((p) => ({ ...p, notifications: { ...p.notifications, emailDigest: v as any } }))}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="off">Kapalı</SelectItem>
+                    <SelectItem value="daily">Günlük</SelectItem>
+                    <SelectItem value="weekly">Haftalık</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-xs text-muted-foreground">Geçiş Süresi</div>
+                <div className="px-1">
+                  <Slider min={0} max={1000} step={50} value={[200]} onValueChange={(vals) => {/* optional: live demo */}} />
+                </div>
               </div>
             </div>
             <div>
