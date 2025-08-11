@@ -74,7 +74,11 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+                {user.avatar ? (
+                  <AvatarImage src={user.avatar} alt={displayName} />
+                ) : (
+                  <AvatarImage src="/YAP-Proje-Yönetimi-Logosu.svg" alt="YAP" />
+                )}
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -93,7 +97,11 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+                  {user.avatar ? (
+                    <AvatarImage src={user.avatar} alt={displayName} />
+                  ) : (
+                    <AvatarImage src="/YAP-Proje-Yönetimi-Logosu.svg" alt="YAP" />
+                  )}
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
