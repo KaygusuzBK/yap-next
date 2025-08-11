@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseAdmin } from '@/lib/supabase'
+import { postSlackMessage } from '@/lib/slack'
 
 type TaskPayload = {
   id: string
@@ -24,11 +26,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'missing_task' }, { status: 400 })
   }
 
-  // Choose webhook URL: user-provided takes precedence, fallback to env
-  const candidateUrl = body.webhookUrl || process.env.SLACK_WEBHOOK_URL || ''
-  // Very basic allow-list check
-  if (!candidateUrl.startsWith('https://hooks.slack.com/services/')) {
-    return NextResponse.json({ ok: false, error: 'invalid_webhook' }, { status: 400 })
+  // If a webhook URL is explicitly provided, use legacy webhook path
+  const candidateUrl = body.webhookUrl || ''
+  if (candidateUrl) {
+    if (!candidateUrl.startsWith('https://hooks.slack.com/services/')) {
+      return NextResponse.json({ ok: false, error: 'invalid_webhook' }, { status: 400 })
+    }
   }
 
   const formatPriority = (p?: TaskPayload['priority']) => {
@@ -65,19 +68,41 @@ export async function POST(req: NextRequest) {
 
   const text = lines.join('\n')
 
-  const payload = {
-    text,
+  // Webhook path
+  if (candidateUrl) {
+    const payload = { text }
+    const res = await fetch(candidateUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '')
+      return NextResponse.json({ ok: false, error: 'slack_error', status: res.status, body: errText }, { status: 200 })
+    }
+    return NextResponse.json({ ok: true })
   }
 
-  const res = await fetch(candidateUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  // Channel-based path (preferred): use project's slack_channel_id or fallback channel
+  const supabaseAdmin = getSupabaseAdmin()
+  let targetChannel = process.env.SLACK_DEFAULT_CHANNEL || ''
+  if (task.project_id) {
+    const { data: project, error: projError } = await supabaseAdmin
+      .from('projects')
+      .select('slack_channel_id')
+      .eq('id', task.project_id)
+      .single()
+    if (projError) console.error('Error fetching project for Slack channel (created):', projError)
+    if (project?.slack_channel_id) targetChannel = project.slack_channel_id
+  }
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '')
-    return NextResponse.json({ ok: false, error: 'slack_error', status: res.status, body: errText }, { status: 200 })
+  if (!targetChannel) {
+    return NextResponse.json({ ok: false, error: 'no_slack_channel_configured' }, { status: 400 })
+  }
+
+  const result = await postSlackMessage(targetChannel, text)
+  if (!result.ok) {
+    return NextResponse.json({ ok: false, error: 'slack_error', status: result.status }, { status: 200 })
   }
 
   return NextResponse.json({ ok: true })

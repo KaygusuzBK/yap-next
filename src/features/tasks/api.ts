@@ -129,7 +129,7 @@ export async function createTask(input: {
   const task = data as Task;
 
   // Notify Slack (best-effort, non-blocking)
-  if (input.notifySlack && input.slackWebhookUrl) {
+  if (input.notifySlack) {
     try {
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || ''
       const url = baseUrl ? `${baseUrl}/dashboard/tasks/${task.id}` : undefined
