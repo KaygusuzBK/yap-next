@@ -40,6 +40,18 @@ psql "$DATABASE_URL" -f sql/06_tasks_complete.sql
 psql "$DATABASE_URL" -f sql/10_task_management_complete.sql
 ```
 
+### 5. Konsolide Güncellemeler ve Bildirimler (Opsiyonel ama önerilir)
+```bash
+# RLS/policy/trigger konsolidasyonu
+psql "$DATABASE_URL" -f sql/updates/017-consolidated-rls-and-triggers.sql
+
+# Proje → Slack kanal eşlemesi
+psql "$DATABASE_URL" -f sql/updates/016-project-slack-channel.sql
+
+# In‑app bildirimler (notifications tablosu + RLS)
+psql "$DATABASE_URL" -f sql/updates/018-notifications.sql
+```
+
 ### 5. RLS Düzeltmeleri (Gerekirse)
 ```bash
 # 9. RLS düzeltmeleri (sadece hata alırsanız)
@@ -76,6 +88,7 @@ psql "$DATABASE_URL" -f sql/10_task_management_complete.sql
 2. **Hata Durumu**: Eğer RLS hatası alırsanız, `fix-rls.sh` scriptini çalıştırın
 3. **Yedekleme**: Önemli verileriniz varsa, uygulamadan önce yedek alın
 4. **Test**: Her adımdan sonra uygulamanızı test edin
+5. **ENV**: `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SLACK_*`, `SUPABASE_AUTOMATION_USER_ID` değerlerini doğru ortamda ayarlayın
 
 ## 🔧 Hızlı Uygulama
 
@@ -106,6 +119,11 @@ echo $DATABASE_URL
 # Veya doğru yetkilere sahip kullanıcı ile bağlanın
 ```
 
+### Slack Bildirimleri Gitmiyor
+- Bot token/scopes doğru mu (`chat:write`, `channels:read`, `groups:read`, `channels:join`)?
+- Bot kanalda mı? Gerekirse davet edin
+- Request URL'ler doğru endpointleri gösteriyor mu (`/api/slack/...`)?
+
 ## 📊 Veritabanı Yapısı
 
 ### 🗂️ Veritabanı Şeması
@@ -134,6 +152,7 @@ Uygulama sonrası şu tablolar oluşacak:
 - `task_activities` - Aktivite geçmişi
 - `task_tags` - Görev etiketleri
 - `task_tag_relations` - Görev-etiket ilişkileri
+ - `notifications` - In‑app bildirimler (kullanıcıya özel RLS)
 
 ### 🔗 İlişki Yapısı
 
@@ -149,6 +168,8 @@ projects ← project_members → auth.users
 project_tasks ← task_assignments → auth.users
     ↓ (1:N)
 task_comments, task_time_logs, task_files, task_activities
+    ↓ (1:N)
+notifications (user_id → auth.users)
 ```
 
 ## 🎯 Sonraki Adımlar
@@ -159,3 +180,4 @@ SQL uygulaması tamamlandıktan sonra:
 2. Görev oluşturma ve atama özelliklerini test edin
 3. Sidebar'da görev listesini kontrol edin
 4. Görev detay sayfasını test edin
+5. Yorumlarda `@mention` ile bildirim üretimini doğrulayın

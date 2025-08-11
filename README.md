@@ -66,15 +66,36 @@ npm install
 ### 3. Environment Variables
 `.env.local` dosyası oluşturun:
 ```env
+# Supabase (client)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-DATABASE_URL=your_database_url
+
+# Supabase (server/admin)
+# Sunucu tarafında güvenilir işlemler için kullanılır (RLS bypass)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# DB bağlantısı (psql/scriptler için)
+DATABASE_URL=postgres://user:pass@host:5432/dbname
+
+# Slack
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=...
+# Varsayılan kanal (proje kanalı tanımlı değilse kullanılır)
+SLACK_DEFAULT_CHANNEL=C0123456789
+
+# Otomasyon kullanıcısı (Slack üzerinden açılan görevlerde created_by olarak kullanılır)
+SUPABASE_AUTOMATION_USER_ID=00000000-0000-0000-0000-000000000000
 ```
 
 ### 4. Veritabanı Kurulumu
 ```bash
-# SQL dosyalarını uygulayın
+# Temel şemayı uygula
 ./sql/apply.sh
+
+# Güncellemeler (updates) – gerekiyorsa sırayla uygula
+psql "$DATABASE_URL" -f sql/updates/017-consolidated-rls-and-triggers.sql
+psql "$DATABASE_URL" -f sql/updates/016-project-slack-channel.sql
+psql "$DATABASE_URL" -f sql/updates/018-notifications.sql
 ```
 
 ### 5. Uygulamayı Başlatın
@@ -159,6 +180,16 @@ npm run lint
 - `DATABASE_URL` environment variable'ını kontrol edin
 - Supabase Dashboard'dan SQL Editor'ü kullanın
 
+### Slack Mesaj Gitmiyor
+- `SLACK_BOT_TOKEN` ve `SLACK_SIGNING_SECRET` değerlerini doğrulayın
+- Slack uygulamasında gerekli OAuth kapsamları: `chat:write`, `channels:read`, `groups:read`, `channels:join`
+- Botu ilgili kanala davet edin (public kanallarda otomatik katılma denemesi yapılır)
+- Komut ve Event Request URL'leri doğru mu?
+  - Slash Command: `/api/slack/commands`
+  - Events (URL Verification dahil): `/api/slack/events`
+  - Bildirim webhook'ları: `/api/slack/task-created`, `/api/slack/task-updated`
+  - Next.js Node.js runtime kullanılır
+
 ## 📊 Veritabanı Yapısı
 
 ### Temel Tablolar
@@ -185,6 +216,10 @@ npm run lint
 2. Environment variables'ları ayarlayın
 3. Deploy edin
 
+### Vercel Environment Variables
+- `NEXT_PUBLIC_*` anahtarlarını Production/Preview ortamlarına ekleyin
+- `SUPABASE_SERVICE_ROLE_KEY`, `SLACK_*`, `SUPABASE_AUTOMATION_USER_ID` değerlerini Server-side olarak ekleyin
+
 ### Diğer Platformlar
 - Netlify
 - Railway
@@ -210,3 +245,18 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 ---
 
 **YAP** - Proje yönetiminde yeni bir yaklaşım 🚀
+
+---
+
+## 📡 Slack Entegrasyonu (Özet)
+
+- Slash Command: `POST /api/slack/commands` – serbest metinden proje UUID, başlık ve alanları ayrıştırır
+- Events API: `POST /api/slack/events` – kanal mesajlarından görev oluşturmayı destekler (URL verification dahil)
+- Bildirimler: `POST /api/slack/task-created`, `POST /api/slack/task-updated` – görev oluşturma/güncelleme sonrası kanala mesaj
+- Proje kanalı eşlemesi: `projects.slack_channel_id` alanı üzerinden kanal yönlendirme; yoksa `SLACK_DEFAULT_CHANNEL`
+
+## 🔔 Anlık Bildirimler
+
+- In‑app bildirimler için `notifications` tablosu (RLS ile)
+- Realtime abonelik ile Navbar'da bildirim çanı ve okunmamış sayacı
+- Mention (`@kullanıcı`) yorumlarında hem in‑app bildirim hem isteğe bağlı Slack DM ping
