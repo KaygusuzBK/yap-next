@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ response_type: 'ephemeral', text: `Görev oluşturulamadı: ${error.message}` })
   }
 
-  // Acknowledge in Slack
+  // Acknowledge in Slack (in_channel)
   await fetch(responseUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

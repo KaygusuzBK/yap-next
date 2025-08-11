@@ -11,6 +11,7 @@ export type Project = {
   status: 'active' | 'archived' | 'completed';
   created_at: string;
   updated_at: string;
+  slack_channel_id?: string | null;
 };
 
 export async function fetchProjects(): Promise<Project[]> {
@@ -121,6 +122,21 @@ export async function getProjectById(projectId: string): Promise<Project | null>
     .single();
   
   if (error) return null;
+  return data as Project;
+}
+
+export async function updateProjectSlackChannel(input: { id: string; slack_channel_id: string | null }): Promise<Project> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış');
+
+  const { data, error } = await supabase
+    .from('projects')
+    .update({ slack_channel_id: input.slack_channel_id, updated_at: new Date().toISOString() })
+    .eq('id', input.id)
+    .select('*')
+    .single();
+  if (error) throw error;
   return data as Project;
 }
 

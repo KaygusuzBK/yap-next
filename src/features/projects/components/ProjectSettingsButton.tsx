@@ -5,17 +5,26 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import ProjectStatusManager from '@/features/tasks/components/ProjectStatusManager'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { updateProjectSlackChannel, getProjectById } from '@/features/projects/api'
+import { toast } from 'sonner'
 import { Settings } from 'lucide-react'
 
 export default function ProjectSettingsButton({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false)
+  const [channel, setChannel] = useState('')
+
+  async function load() {
+    try { const p = await getProjectById(projectId); setChannel(p?.slack_channel_id ?? '') } catch {}
+  }
   return (
     <>
       <Button variant="outline" size="icon" onClick={() => setOpen(true)} className="h-8 w-8 rounded-full">
         <Settings className="h-4 w-4" />
         <span className="sr-only">Proje ayarları</span>
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v)=>{ setOpen(v); if (v) load() }}>
         <DialogContent className="max-w-screen-2xl w-[99vw] md:w-[96vw] p-0 overflow-hidden max-h-[95vh]">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle>Proje Ayarları</DialogTitle>
@@ -27,8 +36,17 @@ export default function ProjectSettingsButton({ projectId }: { projectId: string
                 <TabsTrigger value="statuses">Durumlar</TabsTrigger>
               </TabsList>
               <TabsContent value="general">
-                <div className="text-sm text-muted-foreground">
-                  Proje başlığı, açıklama ve ekip ayarlarını proje sayfasındaki düzenle ile değiştirebilirsiniz.
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>Slack Kanal ID</Label>
+                    <div className="flex gap-2">
+                      <Input placeholder="C0123456789" value={channel} onChange={(e)=>setChannel(e.target.value)} />
+                      <Button onClick={async()=>{
+                        try { await updateProjectSlackChannel({ id: projectId, slack_channel_id: channel.trim() || null }); toast.success('Slack kanalı kaydedildi') } catch(e){ toast.error(e instanceof Error ? e.message : 'Kaydedilemedi') }
+                      }}>Kaydet</Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Örn: C0123456789 (kanal detaylarından ID&#39;yi kopyalayın)</p>
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="statuses">
