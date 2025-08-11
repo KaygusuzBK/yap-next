@@ -8,6 +8,22 @@ export type ModePalette = {
   accent?: string
   accentForeground?: string
   ring?: string
+  secondary?: string
+  secondaryForeground?: string
+  muted?: string
+  mutedForeground?: string
+  destructive?: string
+  border?: string
+  input?: string
+  // Sidebar scoped tokens
+  sidebar?: string
+  sidebarForeground?: string
+  sidebarPrimary?: string
+  sidebarPrimaryForeground?: string
+  sidebarAccent?: string
+  sidebarAccentForeground?: string
+  sidebarBorder?: string
+  sidebarRing?: string
 }
 
 export type UserTheme = {
@@ -18,6 +34,7 @@ export type UserTheme = {
     durationMs?: number
     easing?: string
   }
+  radius?: number // px
 }
 
 export async function getUserTheme(): Promise<UserTheme | null> {

@@ -128,21 +128,53 @@ export default function ThemeCustomizer() {
           <div className="text-sm font-medium">Açık Tema</div>
           <ColorInput label="Background" value={light?.background} onChange={(v) => setLight((p) => ({ ...p, background: v }))} />
           <ColorInput label="Foreground" value={light?.foreground} onChange={(v) => setLight((p) => ({ ...p, foreground: v }))} />
+          <ColorInput label="Secondary" value={light?.secondary} onChange={(v) => setLight((p) => ({ ...p, secondary: v }))} />
+          <ColorInput label="Secondary Text" value={light?.secondaryForeground} onChange={(v) => setLight((p) => ({ ...p, secondaryForeground: v }))} />
+          <ColorInput label="Muted" value={light?.muted} onChange={(v) => setLight((p) => ({ ...p, muted: v }))} />
+          <ColorInput label="Muted Text" value={light?.mutedForeground} onChange={(v) => setLight((p) => ({ ...p, mutedForeground: v }))} />
           <ColorInput label="Primary" value={light?.primary} onChange={(v) => setLight((p) => ({ ...p, primary: v }))} />
           <ColorInput label="Primary Text" value={light?.primaryForeground} onChange={(v) => setLight((p) => ({ ...p, primaryForeground: v }))} />
           <ColorInput label="Accent" value={light?.accent} onChange={(v) => setLight((p) => ({ ...p, accent: v }))} />
           <ColorInput label="Accent Text" value={light?.accentForeground} onChange={(v) => setLight((p) => ({ ...p, accentForeground: v }))} />
+          <ColorInput label="Destructive" value={light?.destructive} onChange={(v) => setLight((p) => ({ ...p, destructive: v }))} />
+          <ColorInput label="Border" value={light?.border} onChange={(v) => setLight((p) => ({ ...p, border: v }))} />
+          <ColorInput label="Input" value={light?.input} onChange={(v) => setLight((p) => ({ ...p, input: v }))} />
           <ColorInput label="Ring" value={light?.ring} onChange={(v) => setLight((p) => ({ ...p, ring: v }))} />
+          <div className="text-sm font-medium mt-2">Sidebar</div>
+          <ColorInput label="Sidebar" value={light?.sidebar} onChange={(v) => setLight((p) => ({ ...p, sidebar: v }))} />
+          <ColorInput label="Sidebar Text" value={light?.sidebarForeground} onChange={(v) => setLight((p) => ({ ...p, sidebarForeground: v }))} />
+          <ColorInput label="Sidebar Primary" value={light?.sidebarPrimary} onChange={(v) => setLight((p) => ({ ...p, sidebarPrimary: v }))} />
+          <ColorInput label="Sidebar Primary Text" value={light?.sidebarPrimaryForeground} onChange={(v) => setLight((p) => ({ ...p, sidebarPrimaryForeground: v }))} />
+          <ColorInput label="Sidebar Accent" value={light?.sidebarAccent} onChange={(v) => setLight((p) => ({ ...p, sidebarAccent: v }))} />
+          <ColorInput label="Sidebar Accent Text" value={light?.sidebarAccentForeground} onChange={(v) => setLight((p) => ({ ...p, sidebarAccentForeground: v }))} />
+          <ColorInput label="Sidebar Border" value={light?.sidebarBorder} onChange={(v) => setLight((p) => ({ ...p, sidebarBorder: v }))} />
+          <ColorInput label="Sidebar Ring" value={light?.sidebarRing} onChange={(v) => setLight((p) => ({ ...p, sidebarRing: v }))} />
         </div>
         <div className="space-y-3 rounded border p-3">
           <div className="text-sm font-medium">Koyu Tema</div>
           <ColorInput label="Background" value={dark?.background} onChange={(v) => setDark((p) => ({ ...p, background: v }))} />
           <ColorInput label="Foreground" value={dark?.foreground} onChange={(v) => setDark((p) => ({ ...p, foreground: v }))} />
+          <ColorInput label="Secondary" value={dark?.secondary} onChange={(v) => setDark((p) => ({ ...p, secondary: v }))} />
+          <ColorInput label="Secondary Text" value={dark?.secondaryForeground} onChange={(v) => setDark((p) => ({ ...p, secondaryForeground: v }))} />
+          <ColorInput label="Muted" value={dark?.muted} onChange={(v) => setDark((p) => ({ ...p, muted: v }))} />
+          <ColorInput label="Muted Text" value={dark?.mutedForeground} onChange={(v) => setDark((p) => ({ ...p, mutedForeground: v }))} />
           <ColorInput label="Primary" value={dark?.primary} onChange={(v) => setDark((p) => ({ ...p, primary: v }))} />
           <ColorInput label="Primary Text" value={dark?.primaryForeground} onChange={(v) => setDark((p) => ({ ...p, primaryForeground: v }))} />
           <ColorInput label="Accent" value={dark?.accent} onChange={(v) => setDark((p) => ({ ...p, accent: v }))} />
           <ColorInput label="Accent Text" value={dark?.accentForeground} onChange={(v) => setDark((p) => ({ ...p, accentForeground: v }))} />
+          <ColorInput label="Destructive" value={dark?.destructive} onChange={(v) => setDark((p) => ({ ...p, destructive: v }))} />
+          <ColorInput label="Border" value={dark?.border} onChange={(v) => setDark((p) => ({ ...p, border: v }))} />
+          <ColorInput label="Input" value={dark?.input} onChange={(v) => setDark((p) => ({ ...p, input: v }))} />
           <ColorInput label="Ring" value={dark?.ring} onChange={(v) => setDark((p) => ({ ...p, ring: v }))} />
+          <div className="text-sm font-medium mt-2">Sidebar</div>
+          <ColorInput label="Sidebar" value={dark?.sidebar} onChange={(v) => setDark((p) => ({ ...p, sidebar: v }))} />
+          <ColorInput label="Sidebar Text" value={dark?.sidebarForeground} onChange={(v) => setDark((p) => ({ ...p, sidebarForeground: v }))} />
+          <ColorInput label="Sidebar Primary" value={dark?.sidebarPrimary} onChange={(v) => setDark((p) => ({ ...p, sidebarPrimary: v }))} />
+          <ColorInput label="Sidebar Primary Text" value={dark?.sidebarPrimaryForeground} onChange={(v) => setDark((p) => ({ ...p, sidebarPrimaryForeground: v }))} />
+          <ColorInput label="Sidebar Accent" value={dark?.sidebarAccent} onChange={(v) => setDark((p) => ({ ...p, sidebarAccent: v }))} />
+          <ColorInput label="Sidebar Accent Text" value={dark?.sidebarAccentForeground} onChange={(v) => setDark((p) => ({ ...p, sidebarAccentForeground: v }))} />
+          <ColorInput label="Sidebar Border" value={dark?.sidebarBorder} onChange={(v) => setDark((p) => ({ ...p, sidebarBorder: v }))} />
+          <ColorInput label="Sidebar Ring" value={dark?.sidebarRing} onChange={(v) => setDark((p) => ({ ...p, sidebarRing: v }))} />
         </div>
       </div>
       <div className="space-y-3 rounded border p-3">

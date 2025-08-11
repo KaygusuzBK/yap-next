@@ -45,6 +45,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         root.style.setProperty('--background', pal.background)
         if (pal?.foreground) root.style.setProperty('--foreground', pal.foreground)
       }
+      if (pal?.secondary) {
+        root.style.setProperty('--secondary', pal.secondary)
+        if (pal?.secondaryForeground) root.style.setProperty('--secondary-foreground', pal.secondaryForeground)
+      }
+      if (pal?.muted) {
+        root.style.setProperty('--muted', pal.muted)
+        if (pal?.mutedForeground) root.style.setProperty('--muted-foreground', pal.mutedForeground)
+      }
+      if (pal?.destructive) root.style.setProperty('--destructive', pal.destructive)
+      if (pal?.border) root.style.setProperty('--border', pal.border)
+      if (pal?.input) root.style.setProperty('--input', pal.input)
       if (pal?.primary) {
         root.style.setProperty('--primary', pal.primary)
         root.style.setProperty('--primary-foreground', pal.primaryForeground || pickReadableForeground(pal.primary) || 'oklch(0.985 0 0)')
@@ -56,6 +67,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (pal?.ring) {
         root.style.setProperty('--ring', pal.ring)
       }
+      // Sidebar scoped tokens
+      if (pal?.sidebar) root.style.setProperty('--sidebar', pal.sidebar)
+      if (pal?.sidebarForeground) root.style.setProperty('--sidebar-foreground', pal.sidebarForeground)
+      if (pal?.sidebarPrimary) root.style.setProperty('--sidebar-primary', pal.sidebarPrimary)
+      if (pal?.sidebarPrimaryForeground) root.style.setProperty('--sidebar-primary-foreground', pal.sidebarPrimaryForeground)
+      if (pal?.sidebarAccent) root.style.setProperty('--sidebar-accent', pal.sidebarAccent)
+      if (pal?.sidebarAccentForeground) root.style.setProperty('--sidebar-accent-foreground', pal.sidebarAccentForeground)
+      if (pal?.sidebarBorder) root.style.setProperty('--sidebar-border', pal.sidebarBorder)
+      if (pal?.sidebarRing) root.style.setProperty('--sidebar-ring', pal.sidebarRing)
     })()
     return () => { mounted = false }
   }, [themeStore])
