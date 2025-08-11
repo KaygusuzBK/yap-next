@@ -30,6 +30,7 @@ export default function ThemeCustomizer() {
   const [transitionEnabled, setTransitionEnabled] = React.useState(true)
   const [transitionDuration, setTransitionDuration] = React.useState(200)
   const [transitionEasing, setTransitionEasing] = React.useState('ease-in-out')
+  const [demoOn, setDemoOn] = React.useState(false)
 
   React.useEffect(() => {
     ;(async () => {
@@ -150,6 +151,37 @@ export default function ThemeCustomizer() {
           <input type="checkbox" checked={transitionEnabled} onChange={(e) => setTransitionEnabled(e.target.checked)} />
           Etkin
         </label>
+        {/* Ön ayarlar: Süre */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="w-40 text-muted-foreground">Süre (ön ayar)</span>
+          {[{l:'Kısa',v:150},{l:'Orta',v:250},{l:'Uzun',v:400}].map(p => (
+            <button key={p.v}
+              type="button"
+              onClick={() => setTransitionDuration(p.v)}
+              className={`rounded border px-2 py-1 ${transitionDuration===p.v? 'bg-accent' : ''}`}
+            >{p.l}</button>
+          ))}
+        </div>
+        {/* Ön ayarlar: Easing */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="w-40 text-muted-foreground">Easing</span>
+          {['ease-in-out','ease-out','ease-in','linear'].map(ez => (
+            <button key={ez}
+              type="button"
+              onClick={() => setTransitionEasing(ez)}
+              className={`rounded border px-2 py-1 ${transitionEasing===ez? 'bg-accent' : ''}`}
+            >{ez}</button>
+          ))}
+        </div>
+        {/* Canlı Geçiş Önizleme */}
+        <div className="mt-2">
+          <div className={`mb-2 rounded-md border p-3 text-sm flex items-center justify-between ${demoOn? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}
+            style={{ transition: `background-color ${transitionDuration}ms ${transitionEasing}, color ${transitionDuration}ms ${transitionEasing}, border-color ${transitionDuration}ms ${transitionEasing}` }}
+          >
+            <span>Geçiş önizleme kutusu</span>
+            <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test Et</Button>
+          </div>
+        </div>
         <label className="flex items-center gap-2 text-sm">
           <span className="w-40 text-muted-foreground">Süre (ms)</span>
           <input type="number" min={0} max={3000} value={transitionDuration} onChange={(e) => setTransitionDuration(Number(e.target.value))} className="h-8 w-28 rounded border px-2 text-xs" />
