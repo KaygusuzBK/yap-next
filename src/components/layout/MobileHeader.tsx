@@ -7,7 +7,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { LogOut, Bell } from "lucide-react"
+import { LogOut, Bell, Plus } from "lucide-react"
 import NotificationsBell from "@/components/NotificationsBell"
 
 function getTitle(pathname: string | null): string {
@@ -40,6 +40,11 @@ export default function MobileHeader() {
           <Link href="/dashboard" className="font-semibold text-sm">{getTitle(pathname)}</Link>
         </div>
         <div className="flex items-center gap-1">
+          <Link href="/dashboard#new-task">
+            <Button size="icon" variant="outline" aria-label="Yeni Görev" className="h-8 w-8">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </Link>
           {user ? <NotificationsBell userId={user.id} /> : <Button size="icon" variant="ghost" aria-label="Bildirimler"><Bell className="h-5 w-5" /></Button>}
           {user ? (
             <DropdownMenu>
