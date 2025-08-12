@@ -45,7 +45,6 @@ export default function MobileHeader() {
               <Plus className="h-4 w-4" />
             </Button>
           </Link>
-          {user ? <NotificationsBell userId={user.id} /> : <Button size="icon" variant="ghost" aria-label="Bildirimler"><Bell className="h-5 w-5" /></Button>}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
