@@ -45,6 +45,12 @@ Modern ve kullanıcı dostu bir proje yönetimi uygulaması. Next.js, TypeScript
 - **Database**: PostgreSQL with Row Level Security (RLS)
 - **Deployment**: Vercel
 
+## 🎯 UI/UX Çalışmaları (branch: ui-ux)
+
+- Boş durum, hata durumu ve yükleme (skeleton) için ortak bileşenler eklenecek.
+- Dashboard liste/görünümlerinde durum mesajları ve aksiyon butonları standardize edilecek.
+- Form akışlarında daha belirgin buton hiyerarşisi ve girdiler için ipuçları sağlanacak.
+
 ## 📦 Kurulum
 
 ### Gereksinimler
