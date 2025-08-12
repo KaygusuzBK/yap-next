@@ -8,6 +8,7 @@ import CommandMenu from "@/components/CommandMenu";
 import Navbar from "@/components/layout/Navbar";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import AppFrame from "@/components/layout/AppFrame";
+import QueryProvider from "@/components/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ChatWidget from "@/components/ChatWidget";
@@ -43,7 +44,9 @@ export default function RootLayout({
           {/* MobileHeader will self-hide on non-dashboard paths */}
           {/* eslint-disable-next-line react/jsx-no-undef */}
           {/* <MobileHeader /> */}
-          <AppFrame>{children}</AppFrame>
+          <QueryProvider>
+            <AppFrame>{children}</AppFrame>
+          </QueryProvider>
           <CommandMenu />
           <ChatWidget />
         </AuthTree>

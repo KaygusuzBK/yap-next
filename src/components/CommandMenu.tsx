@@ -13,9 +13,9 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { fetchProjects } from "@/features/projects/api";
-import { fetchMyTasks } from "@/features/tasks/api";
-import { fetchTeams } from "@/features/teams/api";
+import { useProjects } from "@/features/projects/queries";
+import { useMyTasks } from "@/features/tasks/queries";
+import { useTeams } from "@/features/teams/queries";
 import { useCommandMenuStore } from "@/lib/store/commandMenu";
 
 export default function CommandMenu() {
@@ -26,9 +26,9 @@ export default function CommandMenu() {
   const recents = useCommandMenuStore(s => s.recents);
   const loadRecents = useCommandMenuStore(s => s.loadRecents);
   const addRecent = useCommandMenuStore(s => s.addRecent);
-  const [projects, setProjects] = React.useState<Array<{ id: string; title: string }>>([]);
-  const [tasks, setTasks] = React.useState<Array<{ id: string; title: string; project_title?: string }>>([]);
-  const [teams, setTeams] = React.useState<Array<{ id: string; name: string }>>([]);
+  const { data: projectsData = [] } = useProjects();
+  const { data: tasksData = [] } = useMyTasks();
+  const { data: teamsData = [] } = useTeams();
   // recents now come from store
   const router = useRouter();
 
@@ -45,18 +45,8 @@ export default function CommandMenu() {
 
   React.useEffect(() => {
     if (!open) return;
-    // Load recents from store
-    loadRecents()
-    if (projects.length || tasks.length || teams.length) return;
-    (async () => {
-      try {
-        const [p, t, tm] = await Promise.all([fetchProjects(), fetchMyTasks(), fetchTeams()]);
-        setProjects(p.map(pr => ({ id: pr.id, title: pr.title })));
-        setTasks(t.map(ts => ({ id: ts.id, title: ts.title, project_title: ts.project_title })));
-        setTeams(tm.map(team => ({ id: team.id, name: team.name })));
-      } catch {}
-    })();
-  }, [open, projects.length, tasks.length, teams.length, loadRecents]);
+    loadRecents();
+  }, [open, loadRecents]);
 
   const go = (href: string, recent?: { label: string; sub?: string; type: 'task' | 'project' | 'team' }) => {
     setOpen(false);
@@ -85,6 +75,9 @@ export default function CommandMenu() {
     return t.includes(q) || fuzzy(q, t)
   }
 
+  const projects = projectsData.map(pr => ({ id: pr.id, title: pr.title }));
+  const tasks = tasksData.map(ts => ({ id: ts.id, title: ts.title, project_title: ts.project_title }));
+  const teams = teamsData.map(team => ({ id: team.id, name: team.name }));
   const filteredProjects = q ? projects.filter(p => match(p.title)) : projects.slice(0, 8);
   const filteredTasks = q ? tasks.filter(t => (match(t.title) || match(t.project_title || ''))) : tasks.slice(0, 10);
   const filteredTeams = q ? teams.filter(tm => match(tm.name)) : teams.slice(0, 8);

@@ -32,6 +32,13 @@ export const en = {
     sections: {
       teams: "Teams",
       projects: "Projects",
+      tasks: "Tasks",
+    },
+    toasts: {
+      moveError: "Task could not be moved",
+    },
+    empty: {
+      backlog: "Backlog is empty",
     },
   },
   project: {
@@ -94,8 +101,9 @@ export const en = {
     loading: "Loading...",
     notFound: "Team not found.",
     mainProject: { label: "Main project:", selected: "Selected", none: "—" },
-    projects: { title: "Projects", empty: "This team has no projects." },
+    projects: { title: "Projects", empty: "This team has no projects.", createCta: "Create Project" },
     invited: { title: "Invited", role: "Role:", invitedAt: "Invited:", accepted: "Accepted", expired: "Expired", pending: "Pending" },
+    members: { empty: "No members yet.", inviteCta: "Invite Member" },
   },
   landing: {
     hero: {
