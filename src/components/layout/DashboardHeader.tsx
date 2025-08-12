@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Breadcrumb,
@@ -34,7 +34,6 @@ export default function DashboardHeader({
   backHref,
   meta,
 }: DashboardHeaderProps) {
-  const router = useRouter()
   const pathname = usePathname()
 
   // Eğer breadcrumb prop verilmediyse, otomatik üret
@@ -95,23 +94,11 @@ export default function DashboardHeader({
       <section className="flex items-center justify-between">
         <div className="flex items-start gap-2 min-w-0">
           {backHref && (
-            <Button
-              aria-label="Geri"
-              title="Geri"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back()
-                } else if (backHref) {
-                  router.push(backHref)
-                } else {
-                  router.push('/dashboard')
-                }
-              }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <Link href={backHref || '/dashboard'}>
+              <Button aria-label="Geri" title="Geri" variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
           )}
           <div className="min-w-0">
             <h1 className="text-2xl font-bold truncate">{title}</h1>

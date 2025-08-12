@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/context-menu"
 
 import { NavUser } from "@/components/nav-user"
+import NotificationsBell from "@/components/NotificationsBell"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -974,6 +975,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
+          <div className="px-2 pb-1">
+            <NotificationsBell userId={authUser?.id || ''} />
+          </div>
           <NavUser user={{
             name: profileName || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || 'Kullanıcı',
             email: profileEmail || authUser?.email || '—',

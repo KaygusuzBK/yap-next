@@ -19,6 +19,7 @@ function timeAgo(dateString: string): string {
 
 export default function NotificationsBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false)
+  const [anim, setAnim] = useState(false)
   const [items, setItems] = useState<AppNotification[]>([])
   const unreadCount = useMemo(() => items.filter(i => !i.read_at).length, [items])
 
@@ -35,6 +36,17 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     }, { userId })
     return () => { mounted = false; try { unsub() } catch {} }
   }, [userId])
+
+  useEffect(() => {
+    let raf = 0
+    if (open) {
+      setAnim(false)
+      raf = window.requestAnimationFrame(() => setAnim(true))
+    } else {
+      setAnim(false)
+    }
+    return () => window.cancelAnimationFrame(raf)
+  }, [open])
 
   const handleMarkRead = async (id: string) => {
     try {
@@ -59,7 +71,11 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow">
+        <div
+          className={`absolute right-0 bottom-full mb-2 z-50 w-80 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow transition-all duration-150 ease-out
+            ${anim ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-[0.98]'}
+          `}
+        >
           <div className="border-b px-3 py-2 text-sm font-medium">Bildirimler</div>
           <div className="max-h-80 overflow-auto">
             {items.length === 0 ? (
@@ -80,7 +96,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                     </div>
                   )
                   return (
-                    <li key={n.id} className="px-3 py-2 hover:bg-accent/40">
+                    <li key={n.id} className="px-3 py-2 hover:bg-accent/40 transition-colors">
                       {url ? (
                         <Link href={url} onClick={() => handleMarkRead(n.id)}>{content}</Link>
                       ) : (

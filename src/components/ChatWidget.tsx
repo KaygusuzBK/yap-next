@@ -1,10 +1,11 @@
 "use client"
 
 import React from "react"
-import { MessageSquare, X, Send, Loader2 } from "lucide-react"
+import { MessageSquare, X, Send, Loader2, Bot, UserRound, Smile, Paperclip, Image as ImageIcon, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { usePathname } from "next/navigation"
@@ -17,6 +18,14 @@ export default function ChatWidget() {
   const { user } = useAuth()
   const pathname = usePathname()
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
+  const botName = React.useMemo(() => process.env.NEXT_PUBLIC_BOT_NAME || "YAP_BOT", [])
+  const userDisplay = React.useMemo(() => {
+    const email = user?.email || ""
+    type Meta = { full_name?: string; name?: string }
+    const meta = (user?.user_metadata || {}) as Meta
+    const full = meta.full_name || meta.name || ""
+    return full || (email ? email.split("@")[0] : "Kullanıcı")
+  }, [user])
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -122,32 +131,56 @@ export default function ChatWidget() {
   return (
     <div className="fixed bottom-4 right-4 z-[60]">
       {isOpen && (
-        <Card className="w-[320px] sm:w-[360px] shadow-xl border bg-background/95 backdrop-blur">
+        <Card className="w-[380px] sm:w-[420px] shadow-xl border bg-background/95 backdrop-blur">
           <CardHeader className="py-3 px-4 flex-row items-center justify-between">
-            <CardTitle className="text-base">YAP_BOT</CardTitle>
-            <Button variant="ghost" size="icon" aria-label="Kapat" onClick={() => setIsOpen(false)}>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className="text-[10px] bg-primary/10 text-primary"><Bot className="h-3 w-3" /></AvatarFallback>
+              </Avatar>
+              <CardTitle className="text-base flex items-center gap-2">
+                {botName}
+                <Sparkles className="h-4 w-4 text-primary" />
+              </CardTitle>
+            </div>
+            <button aria-label="Kapat" title="Kapat" className="p-2 rounded hover:bg-muted" onClick={() => setIsOpen(false)}>
               <X className="h-4 w-4" />
-            </Button>
+            </button>
           </CardHeader>
           <CardContent className="pt-0 px-4">
-            <div ref={scrollRef} className="mb-3 max-h-60 overflow-auto space-y-2 pr-1">
+            <div ref={scrollRef} className="mb-3 max-h-96 overflow-auto space-y-2 pr-1">
               {messages.map((m, idx) => (
                 <div key={idx} className={m.role === "bot" ? "flex items-start gap-2" : "flex items-start gap-2 justify-end"}>
-                  {m.role === "bot" && (
-                    <div className="shrink-0 rounded-full bg-primary text-primary-foreground h-6 w-6 grid place-items-center text-[10px]">YB</div>
-                  )}
-                  <div className={
-                    m.role === "bot"
-                      ? "rounded-md bg-muted/60 px-3 py-2 text-sm whitespace-pre-wrap break-words max-w-[80%]"
-                      : "rounded-md bg-primary/90 text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words max-w-[80%]"
-                  }>
-                    {m.content}
+                  {m.role === "bot" ? (
+                    <Avatar className="h-6 w-6 shrink-0">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary"><Bot className="h-3 w-3" /></AvatarFallback>
+                    </Avatar>
+                  ) : null}
+                  <div className="max-w-[80%]">
+                    <div className="mb-1 text-[11px] text-muted-foreground">
+                      {m.role === "bot" ? botName : userDisplay}
+                    </div>
+                    <div
+                      className={
+                        m.role === "bot"
+                          ? "rounded-md bg-muted/60 px-3 py-2 text-sm whitespace-pre-wrap break-words"
+                          : "rounded-md bg-primary/90 text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words"
+                      }
+                    >
+                      {m.content}
+                    </div>
                   </div>
+                  {m.role === "user" ? (
+                    <Avatar className="h-6 w-6 shrink-0">
+                      <AvatarFallback className="text-[10px] bg-muted text-foreground"><UserRound className="h-3 w-3" /></AvatarFallback>
+                    </Avatar>
+                  ) : null}
                 </div>
               ))}
               {isSending && (
                 <div className="flex items-start gap-2">
-                  <div className="shrink-0 rounded-full bg-primary text-primary-foreground h-6 w-6 grid place-items-center text-[10px]">YB</div>
+                  <Avatar className="h-6 w-6 shrink-0">
+                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary"><Bot className="h-3 w-3" /></AvatarFallback>
+                  </Avatar>
                   <div className="rounded-md bg-muted/60 px-3 py-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -157,6 +190,17 @@ export default function ChatWidget() {
                 </div>
               )}
             </div>
+          </CardContent>
+          <CardFooter className="pt-0 px-4 pb-4 flex items-center gap-2">
+            <button type="button" className="p-2 rounded-md hover:bg-muted" aria-label="Emoji" disabled={isSending}>
+              <Smile className="h-4 w-4" />
+            </button>
+            <button type="button" className="p-2 rounded-md hover:bg-muted" aria-label="Dosya ekle" disabled={isSending}>
+              <Paperclip className="h-4 w-4" />
+            </button>
+            <button type="button" className="p-2 rounded-md hover:bg-muted" aria-label="Görsel ekle" disabled={isSending}>
+              <ImageIcon className="h-4 w-4" />
+            </button>
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -166,30 +210,16 @@ export default function ChatWidget() {
                   if (!isSending) void handleSend()
                 }
               }}
-              placeholder="Mesajınızı yazın..."
-              className="min-h-[110px]"
+              placeholder="Mesaj yazın..."
+              className="h-12 min-h-0 resize-none flex-1 text-sm"
               maxLength={2000}
             />
-            <div className="mt-2 text-[11px] text-muted-foreground flex flex-col gap-0.5">
-              <span>{user?.email ? `Gönderen: ${user.email}` : "Giriş yapmadınız"}</span>
-              <span>Enter ile gönder, Shift+Enter yeni satır</span>
-            </div>
-          </CardContent>
-          <CardFooter className="pt-0 px-4 pb-4 flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => setIsOpen(false)}
-              disabled={isSending}
-            >
-              Kapat
-            </Button>
-            <Button onClick={handleSend} disabled={isSending}>
+            <Button onClick={handleSend} size="icon" className="h-9 w-9" disabled={isSending}>
               {isSending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-4 w-4 mr-2" />
+                <Send className="h-4 w-4" />
               )}
-              {isSending ? "Gönderiliyor..." : "Gönder"}
             </Button>
           </CardFooter>
         </Card>
