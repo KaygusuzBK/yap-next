@@ -125,7 +125,7 @@ export default function CommandMenu() {
   }
 
   const projects = projectsData.map(pr => ({ id: pr.id, title: pr.title }));
-  const tasks = tasksData.map(ts => ({ id: ts.id, title: ts.title, project_title: ts.project_title }));
+  const tasks = tasksData.map(ts => ({ id: ts.id, title: ts.title, project_title: ts.project_title, project_id: ts.project_id }));
   const teams = teamsData.map(team => ({ id: team.id, name: team.name }));
   const filteredProjects = q ? projects.filter(p => match(p.title)) : projects.slice(0, 8);
   const filteredTasks = q ? tasks.filter(t => (match(t.title) || match(t.project_title || ''))) : tasks.slice(0, 10);
