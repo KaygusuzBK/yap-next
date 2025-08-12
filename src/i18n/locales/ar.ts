@@ -32,6 +32,7 @@ export const ar = {
       sections: {
         teams: "الفرق",
         projects: "المشاريع",
+        tasks: "المهام",
       },
       toasts: {
         moveError: "تعذر نقل المهمة",

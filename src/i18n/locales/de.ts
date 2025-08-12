@@ -32,6 +32,7 @@ export const de = {
       sections: {
         teams: "Teams",
         projects: "Projekte",
+        tasks: "Aufgaben",
       },
       toasts: {
         moveError: "Aufgabe konnte nicht verschoben werden",

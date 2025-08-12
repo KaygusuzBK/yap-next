@@ -32,6 +32,7 @@ export const fr = {
       sections: {
         teams: "Équipes",
         projects: "Projets",
+        tasks: "Tâches",
       },
       toasts: {
         moveError: "Impossible de déplacer la tâche",
