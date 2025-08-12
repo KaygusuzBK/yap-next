@@ -11,8 +11,7 @@ import AppFrame from "@/components/layout/AppFrame";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ChatWidget from "@/components/ChatWidget";
-import dynamic from "next/dynamic";
-const MobileHeader = dynamic(() => import("@/components/layout/MobileHeader"), { ssr: false });
+import MobileHeader from "@/components/layout/MobileHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
