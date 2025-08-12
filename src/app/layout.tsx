@@ -46,9 +46,9 @@ export default function RootLayout({
           {/* <MobileHeader /> */}
           <QueryProvider>
             <AppFrame>{children}</AppFrame>
+            <CommandMenu />
+            <ChatWidget />
           </QueryProvider>
-          <CommandMenu />
-          <ChatWidget />
         </AuthTree>
         <Toaster richColors position="top-center" />
         <Analytics />
