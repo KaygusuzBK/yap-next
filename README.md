@@ -266,3 +266,12 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 - In‑app bildirimler için `notifications` tablosu (RLS ile)
 - Realtime abonelik ile Navbar'da bildirim çanı ve okunmamış sayacı
 - Mention (`@kullanıcı`) yorumlarında hem in‑app bildirim hem isteğe bağlı Slack DM ping
+
+## ⚡ Komut Paleti ve Kısayollar
+
+- Komut Paleti: ⌘K (Windows/Linux: Ctrl+K)
+- Hızlı Aksiyonlar:
+  - Yeni Görev: ⌘⇧T
+  - Yeni Proje: ⌘⇧N
+  - Hızlı Atama: ⌘⇧A
+- Komut Paleti içinde inline formlar ile içerikten çıkmadan oluşturma/atama yapılabilir.
