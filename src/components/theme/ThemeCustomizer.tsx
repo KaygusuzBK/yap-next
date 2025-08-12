@@ -137,7 +137,7 @@ export default function ThemeCustomizer() {
     try {
       await saveUserTheme({ light, dark, transition: { enabled: transitionEnabled, durationMs: transitionDuration, easing: transitionEasing } })
       setMessage('Kaydedildi')
-    } catch (e) {
+    } catch {
       setMessage('Kaydedilemedi')
     } finally {
       setSaving(false)

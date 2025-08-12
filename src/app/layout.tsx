@@ -10,6 +10,7 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import AppFrame from "@/components/layout/AppFrame";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import ChatWidget from "@/components/ChatWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
           <Navbar />
           <AppFrame>{children}</AppFrame>
           <CommandMenu />
+          <ChatWidget />
         </AuthTree>
         <Toaster richColors position="top-center" />
         <Analytics />
