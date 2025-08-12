@@ -1,0 +1,212 @@
+"use client"
+
+import React from "react"
+import { MessageSquare, X, Send, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
+import { useAuth } from "@/components/auth/AuthProvider"
+import { usePathname } from "next/navigation"
+
+export default function ChatWidget() {
+  const [isOpen, setIsOpen] = React.useState(false)
+  const [isSending, setIsSending] = React.useState(false)
+  const [message, setMessage] = React.useState("")
+  const [messages, setMessages] = React.useState<{ role: "user" | "bot"; content: string }[]>([])
+  const { user } = useAuth()
+  const pathname = usePathname()
+  const scrollRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, isOpen])
+
+  const handleSend = async () => {
+    const trimmed = message.trim()
+    if (!trimmed) {
+      toast.error("Lütfen bir mesaj yazın")
+      return
+    }
+    setIsSending(true)
+    // Kullanıcı mesajını anında listeye ekle ve inputu hemen temizle
+    setMessages(prev => [...prev, { role: "user", content: trimmed }])
+    setMessage("")
+    try {
+      // Ortama göre webhook seçimi
+      const vercelEnv = (process.env.NEXT_PUBLIC_VERCEL_ENV || "").toLowerCase()
+      const baseUrl = process.env.NEXT_PUBLIC_N8N_ASSISTANT_WEBHOOK_URL
+      const prodUrl = process.env.NEXT_PUBLIC_N8N_ASSISTANT_WEBHOOK_URL_PROD
+      const testUrl = process.env.NEXT_PUBLIC_N8N_ASSISTANT_WEBHOOK_URL_TEST
+
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
+
+      let webhookUrl: string | undefined
+      if (vercelEnv === 'production') {
+        webhookUrl = prodUrl || baseUrl
+      } else if (isLocalhost) {
+        webhookUrl = baseUrl || testUrl
+      } else {
+        // preview veya diğer ortamlar
+        webhookUrl = testUrl || baseUrl
+      }
+
+      if (!webhookUrl) {
+        throw new Error('Webhook URL tanımlı değil (env değişkenleri eksik)')
+      }
+
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: trimmed,
+          context: {
+            path: pathname,
+            userId: user?.id ?? null,
+            email: user?.email ?? null,
+          },
+        }),
+      })
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "")
+        throw new Error(txt || `İstek başarısız: ${res.status}`)
+      }
+      // Dönen veriyi normalize et: [{ output: "..." }] formatı ve benzerleri desteklenir
+      const normalizeText = (val: unknown): string => {
+        if (typeof val === "string") return val.replaceAll("↵", "\n").trim()
+        if (val && typeof val === "object") return JSON.stringify(val)
+        return ""
+      }
+
+      let botReply = ""
+      try {
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          const parts = data.map(item => {
+            if (typeof item === "string") return item
+            if (item && typeof item === "object" && "output" in item) {
+              const out = (item as Record<string, unknown>)["output"]
+              return typeof out === "string" ? out : normalizeText(out as unknown)
+            }
+            return normalizeText(item)
+          })
+          botReply = parts.join("\n").replaceAll("↵", "\n").trim()
+        } else if (data && typeof data === "object") {
+          const maybe = (data as Record<string, unknown>)["output"]
+            ?? (data as Record<string, unknown>)["reply"]
+            ?? (data as Record<string, unknown>)["message"]
+            ?? (data as Record<string, unknown>)["text"]
+          botReply = normalizeText(maybe)
+        } else if (typeof data === "string") {
+          botReply = normalizeText(data)
+        }
+      } catch {
+        const text = await res.text().catch(() => "")
+        botReply = normalizeText(text)
+      }
+
+      if (!botReply) botReply = "(Yanıt alınamadı)"
+      setMessages(prev => [...prev, { role: "bot", content: botReply }])
+      setMessage("")
+    } catch (err) {
+      const e = err as Error
+      toast.error(e.message || "Bir hata oluştu")
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[60]">
+      {isOpen && (
+        <Card className="w-[320px] sm:w-[360px] shadow-xl border bg-background/95 backdrop-blur">
+          <CardHeader className="py-3 px-4 flex-row items-center justify-between">
+            <CardTitle className="text-base">YAP_BOT</CardTitle>
+            <Button variant="ghost" size="icon" aria-label="Kapat" onClick={() => setIsOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-0 px-4">
+            <div ref={scrollRef} className="mb-3 max-h-60 overflow-auto space-y-2 pr-1">
+              {messages.map((m, idx) => (
+                <div key={idx} className={m.role === "bot" ? "flex items-start gap-2" : "flex items-start gap-2 justify-end"}>
+                  {m.role === "bot" && (
+                    <div className="shrink-0 rounded-full bg-primary text-primary-foreground h-6 w-6 grid place-items-center text-[10px]">YB</div>
+                  )}
+                  <div className={
+                    m.role === "bot"
+                      ? "rounded-md bg-muted/60 px-3 py-2 text-sm whitespace-pre-wrap break-words max-w-[80%]"
+                      : "rounded-md bg-primary/90 text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words max-w-[80%]"
+                  }>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {isSending && (
+                <div className="flex items-start gap-2">
+                  <div className="shrink-0 rounded-full bg-primary text-primary-foreground h-6 w-6 grid place-items-center text-[10px]">YB</div>
+                  <div className="rounded-md bg-muted/60 px-3 py-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Yazıyor...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  if (!isSending) void handleSend()
+                }
+              }}
+              placeholder="Mesajınızı yazın..."
+              className="min-h-[110px]"
+              maxLength={2000}
+            />
+            <div className="mt-2 text-[11px] text-muted-foreground flex flex-col gap-0.5">
+              <span>{user?.email ? `Gönderen: ${user.email}` : "Giriş yapmadınız"}</span>
+              <span>Enter ile gönder, Shift+Enter yeni satır</span>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-0 px-4 pb-4 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setIsOpen(false)}
+              disabled={isSending}
+            >
+              Kapat
+            </Button>
+            <Button onClick={handleSend} disabled={isSending}>
+              {isSending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              {isSending ? "Gönderiliyor..." : "Gönder"}
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      <div className="flex justify-end mt-3">
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-lg"
+          aria-label="Mesaj gönder"
+          onClick={() => setIsOpen((v) => !v)}
+        >
+          <MessageSquare className="h-6 w-6" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+
