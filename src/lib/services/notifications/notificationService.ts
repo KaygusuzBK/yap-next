@@ -31,6 +31,16 @@ export async function markNotificationRead(id: string) {
   if (error) throw error;
 }
 
+export async function markAllNotificationsRead(userId?: string) {
+  const supabase = getSupabase();
+  const q = supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .is("read_at", null)
+  const { error } = userId ? await q.eq("user_id", userId) : await q
+  if (error) throw error;
+}
+
 export function subscribeNotifications(onInsert: (n: AppNotification) => void, opts?: { userId?: string }) {
   const supabase = getSupabase();
   const filter = opts?.userId ? `user_id=eq.${opts.userId}` : undefined
