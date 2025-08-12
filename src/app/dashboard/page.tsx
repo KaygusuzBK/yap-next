@@ -135,8 +135,8 @@ export default function Page() {
   }
 
   return (
-    <main className="flex flex-1 flex-col p-2 gap-4">
-      <div className="w-full space-y-4">
+    <main className="flex flex-1 flex-col w-full px-4 py-3 md:px-6 md:py-4 space-y-6">
+      <div className="w-full space-y-6">
         <DashboardHeader
           title={t('dashboard.breadcrumb.dashboard')}
           breadcrumb={[
@@ -235,14 +235,14 @@ export default function Page() {
 
         {/* Board & Backlog using shadcn Tabs */}
         <Tabs defaultValue="board" className="space-y-4">
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="board">Board</TabsTrigger>
             <TabsTrigger value="backlog">Backlog</TabsTrigger>
           </TabsList>
 
           <TabsContent value="board" className="space-y-3">
             
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 md:overflow-visible overflow-x-auto pb-2 [grid-auto-columns:85%] [grid-auto-flow:column] md:[grid-auto-flow:initial] md:[grid-auto-columns:initial]">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 md:overflow-visible overflow-x-auto pb-2 [grid-auto-columns:90%] [grid-auto-flow:column] md:[grid-auto-flow:initial] md:[grid-auto-columns:initial]">
               {([
                 { key: 'todo', title: 'Yapılacak' },
                 { key: 'in_progress', title: 'Devam Ediyor' },
@@ -299,6 +299,28 @@ export default function Page() {
                                 e.dataTransfer.setDragImage(node, 10, 10)
                                 setTimeout(() => node.remove(), 0)
                               }}
+                              onDragEnter={(e) => {
+                                e.preventDefault()
+                                if (!dragTaskId || dragTaskId === task.id) return
+                                // aynı sütunda yer değiştirme
+                                const dragging = myTasks.find(t => t.id === dragTaskId)
+                                if (!dragging) return
+                                if (getGroupForTask(dragging) !== getGroupForTask(task)) return
+                                setMyTasks(prev => {
+                                  const inSame = prev.filter(t => getGroupForTask(t) === getGroupForTask(task))
+                                  const ids = inSame.map(t => t.id)
+                                  const from = ids.indexOf(dragTaskId)
+                                  const to = ids.indexOf(task.id)
+                                  if (from === -1 || to === -1 || from === to) return prev
+                                  const copy = [...prev]
+                                  const fromIndex = copy.findIndex(t => t.id === dragTaskId)
+                                  const toIndex = copy.findIndex(t => t.id === task.id)
+                                  const [removed] = copy.splice(fromIndex, 1)
+                                  copy.splice(toIndex, 0, removed)
+                                  return copy
+                                })
+                              }}
+                              onDragEnd={() => setDragTaskId(null)}
                               className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                               role="button"
                               tabIndex={0}

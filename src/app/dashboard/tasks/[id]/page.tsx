@@ -389,7 +389,7 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="w-full px-4 py-3 md:px-6 md:py-4 space-y-6">
       <DashboardHeader
         title={task.title}
         backHref="/dashboard"
@@ -417,9 +417,9 @@ export default function TaskDetailPage() {
         )}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Ana İçerik */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* Görev Detayları */}
           <Card>
             <CardHeader>
@@ -473,7 +473,7 @@ export default function TaskDetailPage() {
                     {task.assigned_to ? (
                       (() => {
                         const member = projectMembers.find(m => m.id === task.assigned_to);
-                        return member ? member.name || member.email : t('task.details.unknownUser');
+                        return member ? (member.name || member.email || member.id) : (task.assigned_to);
                       })()
                     ) : (
                       t('task.details.unassigned')
@@ -753,7 +753,7 @@ export default function TaskDetailPage() {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground whitespace-nowrap">Oluşturan:</span>
-                <span className="truncate text-right">{task.creator_name || task.creator_email || task.created_by || 'Bilinmiyor'}</span>
+                <span className="truncate text-right">{task.creator_name || task.creator_email || 'Bilinmiyor'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Oluşturulma:</span>

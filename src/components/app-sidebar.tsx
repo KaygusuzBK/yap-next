@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/context-menu"
 
 import { NavUser } from "@/components/nav-user"
+import NotificationsBell from "@/components/NotificationsBell"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -263,23 +264,49 @@ const TaskRow = React.memo(function TaskRow({
     }
   }, [task.status])
 
+  // Swipe-to-update helpers
+  const firedRef = React.useRef(false)
+  const SWIPE_THRESHOLD = 6
+
   const onMouseDown = (e: React.MouseEvent) => {
     startXRef.current = e.clientX
+    firedRef.current = false
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
   }
   const onMouseMove = (e: MouseEvent) => {
     if (startXRef.current == null) return
     const dx = e.clientX - startXRef.current
-    // Only allow left swipe for stage progression
-    setDragX(Math.min(0, dx))
+    const clamped = Math.max(-140, Math.min(140, dx))
+    setDragX(clamped)
+
+    if (!firedRef.current) {
+      if (clamped < -SWIPE_THRESHOLD) {
+        const nextStatus = getNextStatus(task.status)
+        if (nextStatus) {
+          firedRef.current = true
+          onStatusChange(task.id, nextStatus)
+          setDragX(0)
+        }
+      } else if (clamped > SWIPE_THRESHOLD) {
+        const prevStatus = getPrevStatus(task.status)
+        if (prevStatus) {
+          firedRef.current = true
+          onStatusChange(task.id, prevStatus)
+          setDragX(0)
+        }
+      }
+    }
   }
   const onMouseUp = () => {
     if (startXRef.current != null) {
       const dx = dragX
       const nextStatus = getNextStatus(task.status)
-      if (dx < -80 && nextStatus) {
-        onStatusChange(task.id, nextStatus)
+      const prevStatus = getPrevStatus(task.status)
+      const threshold = SWIPE_THRESHOLD
+      if (!firedRef.current) {
+        if (dx < -threshold && nextStatus) onStatusChange(task.id, nextStatus)
+        else if (dx > threshold && prevStatus) onStatusChange(task.id, prevStatus)
       }
     }
     startXRef.current = null
@@ -290,18 +317,41 @@ const TaskRow = React.memo(function TaskRow({
 
   const onTouchStart = (e: React.TouchEvent) => {
     startXRef.current = e.touches[0].clientX
+    firedRef.current = false
   }
   const onTouchMove = (e: React.TouchEvent) => {
     if (startXRef.current == null) return
     const dx = e.touches[0].clientX - startXRef.current
-    setDragX(Math.min(0, dx))
+    const clamped = Math.max(-140, Math.min(140, dx))
+    setDragX(clamped)
+
+    if (!firedRef.current) {
+      if (clamped < -SWIPE_THRESHOLD) {
+        const nextStatus = getNextStatus(task.status)
+        if (nextStatus) {
+          firedRef.current = true
+          onStatusChange(task.id, nextStatus)
+          setDragX(0)
+        }
+      } else if (clamped > SWIPE_THRESHOLD) {
+        const prevStatus = getPrevStatus(task.status)
+        if (prevStatus) {
+          firedRef.current = true
+          onStatusChange(task.id, prevStatus)
+          setDragX(0)
+        }
+      }
+    }
   }
   const onTouchEnd = () => {
     if (startXRef.current != null) {
       const dx = dragX
       const nextStatus = getNextStatus(task.status)
-      if (dx < -80 && nextStatus) {
-        onStatusChange(task.id, nextStatus)
+      const prevStatus = getPrevStatus(task.status)
+      const threshold = SWIPE_THRESHOLD
+      if (!firedRef.current) {
+        if (dx < -threshold && nextStatus) onStatusChange(task.id, nextStatus)
+        else if (dx > threshold && prevStatus) onStatusChange(task.id, prevStatus)
       }
     }
     startXRef.current = null
@@ -397,7 +447,7 @@ const TaskRow = React.memo(function TaskRow({
           </div>
         </div>
         {/* Labels on top */}
-        {dragX < -40 && getNextStatus(task.status) && (
+        {dragX < -4 && getNextStatus(task.status) && (
           <span className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold drop-shadow-sm ${
             getNextStatus(task.status) === 'in_progress' ? 'text-blue-700' :
             getNextStatus(task.status) === 'review' ? 'text-yellow-700' :
@@ -406,7 +456,7 @@ const TaskRow = React.memo(function TaskRow({
             {getNextStatus(task.status) === 'in_progress' ? 'Devam ediyor' : getNextStatus(task.status) === 'review' ? 'İncelemede' : 'Tamamlandı'}
           </span>
         )}
-        {dragX > 40 && getPrevStatus(task.status) && (
+        {dragX > 4 && getPrevStatus(task.status) && (
           <span className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold drop-shadow-sm ${
             getPrevStatus(task.status) === 'in_progress' ? 'text-blue-700' :
             getPrevStatus(task.status) === 'review' ? 'text-yellow-700' :
@@ -974,10 +1024,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
+          <div className="px-2 pb-1">
+            <NotificationsBell userId={authUser?.id || ''} />
+          </div>
           <NavUser user={{
             name: profileName || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || 'Kullanıcı',
             email: profileEmail || authUser?.email || '—',
-            avatar: data.user.avatar,
+            avatar: '',
           }} />
         </SidebarFooter>
       </Sidebar>
@@ -1037,7 +1090,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroup className="px-0">
             <SidebarGroupContent>
               {isTeamsActive ? (
-                <div className="p-4">
+                <div className="p-4 overflow-auto min-h-0 max-h-[calc(100svh-15px)]">
                   {loadingTeams && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}
@@ -1094,7 +1147,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                 </div>
               ) : isProjectsActive ? (
-                <div className="p-4">
+                <div className="p-4 overflow-auto min-h-0 max-h-[calc(100svh-15px)]">
                   {loadingProjects && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}
@@ -1125,7 +1178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                 </div>
               ) : isTasksActive ? (
-                <div className="p-4">
+                <div className="p-4 overflow-auto min-h-0 max-h-[calc(100svh-15px)]">
                   {loadingTasks && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}

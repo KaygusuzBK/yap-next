@@ -1,18 +1,25 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import { getSupabase } from "../../../../lib/supabase"
 import { Button } from "../../../../components/ui/button"
-import { getTeamInvitations, inviteToTeam, revokeTeamInvitation, resendTeamInvitation, getTeamMembers } from "../../../../features/teams/api"
-import InvitePreview from "@/features/teams/components/InvitePreview"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getTeamInvitations, revokeTeamInvitation, resendTeamInvitation, getTeamMembers } from "../../../../features/teams/api"
+// import InvitePreview from "@/features/teams/components/InvitePreview"
+// import { Input } from "@/components/ui/input"
+// import { Label } from "@/components/ui/label"
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useI18n } from "@/i18n/I18nProvider"
 import DashboardHeader from "@/components/layout/DashboardHeader"
 import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+import { Users, FolderKanban, MailPlus } from "lucide-react"
 
 type TeamRecord = {
   id: string
@@ -52,12 +59,13 @@ export default function TeamDetailPage() {
   const [invitations, setInvitations] = useState<InvitationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState<'member' | 'admin'>("member")
+  // const [inviteEmail, setInviteEmail] = useState("")
+  // const [inviteRole, setInviteRole] = useState<'member' | 'admin'>("member")
   const [members, setMembers] = useState<Array<{ id: string; name: string | null; email: string | null; role: string; joined_at: string }>>([])
-  const [inviting, setInviting] = useState(false)
-  const [preview, setPreview] = useState<{ open: boolean; to: string; url: string } | null>(null)
-  const inviteSectionRef = useRef<HTMLDivElement | null>(null)
+  // const [inviting, setInviting] = useState(false)
+  // const [preview, setPreview] = useState<{ open: boolean; to: string; url: string } | null>(null)
+  // const inviteSectionRef = useRef<HTMLDivElement | null>(null)
+  const [activeTab, setActiveTab] = useState<string>("members")
 
   useEffect(() => {
     if (!teamId) return
@@ -104,6 +112,8 @@ export default function TeamDetailPage() {
     }
   }, [teamId])
 
+  const counts = useMemo(() => ({ members: members.length, projects: projects.length, invites: invitations.length }), [members.length, projects.length, invitations.length])
+
   return (
     <div className="w-full space-y-6">
       <DashboardHeader
@@ -113,163 +123,170 @@ export default function TeamDetailPage() {
           { label: t('dashboard.breadcrumb.dashboard'), href: '/dashboard' },
           { label: t('team.detail') },
         ]}
+        actions={team ? (
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard#projects"><Button size="sm">Yeni proje</Button></Link>
+          </div>
+        ) : null}
       />
+
       {loading ? (
-        <p className="text-sm text-muted-foreground">{t('team.loading')}</p>
+        <div className="grid gap-3">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-64" />
+        </div>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <Card><CardContent className="py-6 text-sm text-red-600">{error}</CardContent></Card>
       ) : !team ? (
-        <p className="text-sm text-muted-foreground">{t('team.notFound')}</p>
+        <EmptyState title={t('team.notFound')} description="Takım bulunamadı veya erişim yok." />
       ) : (
         <>
-          <section className="space-y-1">
-            <h1 className="text-xl font-semibold">{team.name}</h1>
-            <div className="text-sm text-muted-foreground">
-              {t('team.mainProject.label')} {team.primary_project_id ? t('team.mainProject.selected') : t('team.mainProject.none')}
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold">{t('team.projects.title')}</h2>
-            {projects.length === 0 ? (
-              <div className="text-sm text-muted-foreground flex items-center justify-between gap-2 border rounded-md p-3">
-                <span>{t('team.projects.empty')}</span>
-                <Link href="/dashboard#projects" className="text-sm">
-                  <Button size="sm">{t('team.projects.createCta')}</Button>
-                </Link>
+          {/* Özet kartı */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Takım Özeti</CardTitle>
+                  <div className="text-xs text-muted-foreground mt-1">Ana proje: {team.primary_project_id ? 'Seçili' : 'Yok'}</div>
+                </div>
               </div>
-            ) : (
-              <div className="grid gap-2">
-                {projects.map((p) => (
-                  <div key={p.id} className="border rounded-md p-3">
-                    <div className="font-medium">{p.title}</div>
-                    {p.description && (
-                      <div className="text-sm text-muted-foreground">{p.description}</div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">{new Date(p.created_at).toLocaleString()}</div>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20" variant="outline">Üye: {counts.members}</Badge>
+                <Badge className="bg-muted/50" variant="secondary">Proje: {counts.projects}</Badge>
+                {counts.invites > 0 && <Badge variant="outline">Davet: {counts.invites}</Badge>}
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Sekmeler */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+            <TabsList>
+              <TabsTrigger value="members"><Users className="h-4 w-4 mr-2" /> Üyeler ({counts.members})</TabsTrigger>
+              <TabsTrigger value="projects"><FolderKanban className="h-4 w-4 mr-2" /> Projeler ({counts.projects})</TabsTrigger>
+              <TabsTrigger value="invites"><MailPlus className="h-4 w-4 mr-2" /> Davetler ({counts.invites})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="members" className="mt-4">
+              {members.length === 0 ? (
+                <EmptyState
+                  title={t('team.members.empty')}
+                  description="Takımda henüz üye bulunmuyor."
+                />
+              ) : (
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">Toplam üye: {counts.members}</div>
+                    <Button size="sm" variant="outline" onClick={() => toast.info('Üye davet akışı daha sonra eklenecek')}>Üye ekle</Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
+                  {members.map((m) => {
+                    const display = m.name || m.email || '—'
+                    const initials = display.slice(0, 2).toUpperCase()
+                    const roleLabel = m.role === 'owner' ? 'Sahip' : m.role === 'admin' ? 'Admin' : 'Üye'
+                    return (
+                      <Card key={m.id} className="transition-colors hover:bg-muted/50">
+                        <CardContent className="p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8"><AvatarFallback>{initials}</AvatarFallback></Avatar>
+                            <div>
+                              <div className="font-medium leading-none">{display}</div>
+                              <div className="text-xs text-muted-foreground">Katıldı: {new Date(m.joined_at).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <span className={"inline-flex items-center rounded-full border px-2 py-0.5 text-xs " + (m.role === 'owner'
+                            ? 'border-amber-500/30 text-amber-700 bg-amber-100/50'
+                            : m.role === 'admin'
+                              ? 'border-blue-500/30 text-blue-700 bg-blue-100/50'
+                              : 'border-zinc-400/30 text-zinc-700 bg-zinc-100/50')}>{roleLabel}</span>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </TabsContent>
 
-          {/* Members */}
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold">Üyeler</h2>
-            {members.length === 0 ? (
-              <div className="text-sm text-muted-foreground flex items-center justify-between gap-2 border rounded-md p-3">
-                <span>{t('team.members.empty')}</span>
-                <Button size="sm" variant="outline" onClick={() => inviteSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                  {t('team.members.inviteCta')}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                {members.map((m) => {
-                  const roleLabel = m.role === 'owner' ? 'Sahip' : m.role === 'admin' ? 'Admin' : 'Üye'
-                  return (
-                    <div key={m.id} className="border rounded-md p-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{m.name ?? m.email ?? '—'}</div>
-                        <div className="text-xs text-muted-foreground">{new Date(m.joined_at).toLocaleString()}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{roleLabel}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </section>
+            <TabsContent value="projects" className="mt-4">
+              {projects.length === 0 ? (
+                <EmptyState
+                  title={t('team.projects.empty')}
+                  actionLabel={t('team.projects.createCta')}
+                  onAction={() => window.location.assign('/dashboard#projects')}
+                />
+              ) : (
+                <div className="grid gap-2">
+                  {projects.map((p) => (
+                    <Card key={p.id} className="transition-colors hover:bg-muted/50">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div className="font-medium">{p.title}</div>
+                            {p.description && (
+                              <div className="text-sm text-muted-foreground line-clamp-2">{p.description}</div>
+                            )}
+                            <div className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</div>
+                          </div>
+                          <Link href={`/dashboard/projects/${p.id}`}>
+                            <Button size="sm" variant="outline">Aç</Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
 
-          {invitations.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="text-base font-semibold">{t('team.invited.title')}</h2>
-              <div className="grid gap-2">
-                {invitations.map((invitation) => (
-                  <div key={invitation.id} className="border rounded-md p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{invitation.email}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {t('team.invited.role')} {invitation.role === 'member' ? 'Üye' : invitation.role}
+            <TabsContent value="invites" className="mt-4">
+              {invitations.length === 0 ? (
+                <EmptyState
+                  title={t('team.invited.title')}
+                  description="Aktif davet bulunmuyor."
+                />
+              ) : (
+                <div className="grid gap-2">
+                  {invitations.map((invitation) => (
+                    <Card key={invitation.id}>
+                      <CardContent className="p-3 flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="font-medium">{invitation.email}</div>
+                          <div className="text-xs text-muted-foreground">Rol: {invitation.role === 'member' ? 'Üye' : invitation.role}</div>
+                          <div className="text-xs text-muted-foreground">{t('team.invited.invitedAt')} {new Date(invitation.created_at).toLocaleString()}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {invitation.accepted_at ? (
+                              <span className="text-green-600">{t('team.invited.accepted')}</span>
+                            ) : new Date(invitation.expires_at) < new Date() ? (
+                              <span className="text-red-600">{t('team.invited.expired')}</span>
+                            ) : (
+                              <span className="text-yellow-600">{t('team.invited.pending')}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {t('team.invited.invitedAt')} {new Date(invitation.created_at).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {invitation.accepted_at ? (
-                            <span className="text-green-600">{t('team.invited.accepted')}</span>
-                          ) : new Date(invitation.expires_at) < new Date() ? (
-                            <span className="text-red-600">{t('team.invited.expired')}</span>
-                          ) : (
-                            <span className="text-yellow-600">{t('team.invited.pending')}</span>
+                        <div className="flex items-center gap-2">
+                          {!invitation.accepted_at && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                try { await resendTeamInvitation(invitation.id); toast.success('Davet linki yenilendi'); } catch { toast.error('Yeniden gönderilemedi') }
+                              }}>Yeniden Gönder</Button>
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                if (!confirm('Davet iptal edilsin mi?')) return
+                                try { await revokeTeamInvitation(invitation.id); setInvitations(prev => prev.filter(i => i.id !== invitation.id)) } catch { toast.error('İşlem başarısız') }
+                              }}>İptal</Button>
+                            </>
                           )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!invitation.accepted_at && (
-                          <>
-            <Button size="sm" variant="outline" onClick={async () => {
-                              try { await resendTeamInvitation(invitation.id); toast.success('Davet linki yenilendi'); } catch { toast.error('Yeniden gönderilemedi') }
-                            }}>Yeniden Gönder</Button>
-                            <Button size="sm" variant="ghost" onClick={async () => {
-                              if (!confirm('Davet iptal edilsin mi?')) return
-                              try { await revokeTeamInvitation(invitation.id); setInvitations(prev => prev.filter(i => i.id !== invitation.id)) } catch { toast.error('İşlem başarısız') }
-                            }}>İptal</Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
-          {/* Invite form */}
-          <section ref={inviteSectionRef} className="space-y-3">
-            <h2 className="text-base font-semibold">Üye Davet Et</h2>
-            <div className="grid gap-3 md:grid-cols-5">
-              <div className="space-y-1 md:col-span-3">
-                <Label>E-posta</Label>
-                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="ornek@email.com" />
-              </div>
-              <div className="space-y-1 md:col-span-1">
-                <Label>Rol</Label>
-                <Select value={inviteRole} onValueChange={(v: 'member' | 'admin') => setInviteRole(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Üye</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-1 flex items-end">
-                <Button disabled={!inviteEmail.trim() || inviting} onClick={async () => {
-                  try {
-                    setInviting(true)
-                    const res = await inviteToTeam({ team_id: teamId, email: inviteEmail.trim(), role: inviteRole })
-                    setInviteEmail("")
-                    toast.success('Davet oluşturuldu')
-                    setInvitations(await getTeamInvitations(teamId))
-                    setPreview({ open: true, to: inviteEmail.trim(), url: res.inviteUrl })
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : 'Davet gönderilemedi')
-                  } finally {
-                    setInviting(false)
-                  }
-                }} className="w-full md:w-auto">Gönder</Button>
-              </div>
-            </div>
-          </section>
-
-          {preview?.open && (
-            <InvitePreview open={preview.open} onOpenChange={(v) => setPreview(prev => prev ? { ...prev, open: v } : null)} to={preview.to} teamName={team?.name} inviteUrl={preview.url} />
-          )}
+          {/* Üye davet formu kaldırıldı */}
         </>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Bell } from 'lucide-react'
-import { listNotifications, markNotificationRead, subscribeNotifications, type AppNotification } from '@/lib/services/notifications/notificationService'
+import { listNotifications, markNotificationRead, markAllNotificationsRead, subscribeNotifications, type AppNotification } from '@/lib/services/notifications/notificationService'
 import Link from 'next/link'
 
 function timeAgo(dateString: string): string {
@@ -19,6 +19,7 @@ function timeAgo(dateString: string): string {
 
 export default function NotificationsBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false)
+  const [anim, setAnim] = useState(false)
   const [items, setItems] = useState<AppNotification[]>([])
   const unreadCount = useMemo(() => items.filter(i => !i.read_at).length, [items])
 
@@ -36,6 +37,17 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     return () => { mounted = false; try { unsub() } catch {} }
   }, [userId])
 
+  useEffect(() => {
+    let raf = 0
+    if (open) {
+      setAnim(false)
+      raf = window.requestAnimationFrame(() => setAnim(true))
+    } else {
+      setAnim(false)
+    }
+    return () => window.cancelAnimationFrame(raf)
+  }, [open])
+
   const handleMarkRead = async (id: string) => {
     try {
       setItems(prev => prev.map(x => x.id === id ? { ...x, read_at: new Date().toISOString() } : x))
@@ -48,7 +60,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
       <button
         type="button"
         aria-label="Bildirimler"
-        className="relative inline-flex h-8 w-8 items-center justify-center rounded hover:bg-muted"
+        className="relative inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 ease-out"
         onClick={() => setOpen(o => !o)}
       >
         <Bell className="h-5 w-5" />
@@ -59,8 +71,29 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow">
-          <div className="border-b px-3 py-2 text-sm font-medium">Bildirimler</div>
+        <div
+          className={`absolute left-0 bottom-full mb-2 z-50 w-80 origin-bottom-left overflow-hidden rounded-md border bg-popover text-popover-foreground shadow transition-all duration-150 ease-out
+            ${anim ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-[0.98]'}
+          `}
+          style={{ translate: '8px 0' }}
+        >
+          <div className="border-b px-3 py-2 text-sm font-medium flex items-center justify-between">
+            <span>Bildirimler</span>
+            {items.length > 0 && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={async () => {
+                  try {
+                    setItems(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })))
+                    await markAllNotificationsRead(userId)
+                  } catch {}
+                }}
+              >
+                Tümünü okundu yap
+              </button>
+            )}
+          </div>
           <div className="max-h-80 overflow-auto">
             {items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">Henüz bildirim yok</div>
@@ -80,7 +113,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                     </div>
                   )
                   return (
-                    <li key={n.id} className="px-3 py-2 hover:bg-accent/40">
+                    <li key={n.id} className="px-3 py-2 hover:bg-accent/40 transition-colors">
                       {url ? (
                         <Link href={url} onClick={() => handleMarkRead(n.id)}>{content}</Link>
                       ) : (

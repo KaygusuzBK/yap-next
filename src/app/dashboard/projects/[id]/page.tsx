@@ -186,8 +186,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col p-2 gap-4">
-      <div className="w-full space-y-4">
+    <div className="w-full space-y-6">
         <DashboardHeader
           title={project.title}
           backHref="/dashboard"
@@ -445,7 +444,6 @@ export default function ProjectDetailPage() {
         </section>
 
         {/* Diğer Özellikler - kaldırıldı, ayarlar modala taşındı */}
-      </div>
-    </main>
+    </div>
   );
 }
