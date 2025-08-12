@@ -12,6 +12,7 @@ export type Task = {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to: string | null;
   created_by: string;
+  position?: number | null;
   creator_name?: string | null;
   creator_email?: string | null;
   due_date: string | null;
@@ -65,6 +66,7 @@ export async function fetchMyTasks(): Promise<Task[]> {
     priority: Task['priority'];
     assigned_to: string | null;
     created_by: string;
+    position?: number | null;
     due_date: string | null;
     created_at: string;
     updated_at: string;
@@ -88,6 +90,7 @@ export async function fetchMyTasks(): Promise<Task[]> {
     priority: row.priority,
     assigned_to: row.assigned_to,
     created_by: row.created_by,
+    position: row.position ?? null,
     due_date: row.due_date,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -253,6 +256,7 @@ export async function updateTask(input: {
   status?: string;
   assigned_to?: string | null;
   due_date?: string | null;
+  position?: number | null;
 }): Promise<Task> {
   const supabase = getSupabase();
   
@@ -265,6 +269,7 @@ export async function updateTask(input: {
       status: input.status,
       assigned_to: input.assigned_to,
       due_date: input.due_date,
+      position: input.position,
     })
     .eq('id', input.id)
     .select('*')

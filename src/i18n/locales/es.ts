@@ -32,6 +32,7 @@ export const es = {
       sections: {
         teams: "Equipos",
         projects: "Proyectos",
+        tasks: "Tareas",
       },
       toasts: {
         moveError: "No se pudo mover la tarea",

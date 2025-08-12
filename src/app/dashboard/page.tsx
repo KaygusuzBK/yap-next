@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { fetchProjects, type Project } from "@/features/projects/api"
-import { fetchTeams, type Team } from "@/features/teams/api"
-import { fetchMyTasks, updateTask, type Task } from "@/features/tasks/api"
+import { type Project } from "@/features/projects/api"
+import { type Team } from "@/features/teams/api"
+import { type Task } from "@/features/tasks/api"
 import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
 import DashboardHeader from "@/components/layout/DashboardHeader"
@@ -16,15 +16,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
 import { toast } from "sonner"
 import PendingInvitations from "@/components/PendingInvitations"
+import { useProjects } from "@/features/projects/queries"
+import { useTeams } from "@/features/teams/queries"
+import { useMyTasks, useUpdateTask } from "@/features/tasks/queries"
 
 export default function Page() {
   const { t } = useI18n()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [loadingProjects, setLoadingProjects] = useState(false)
-  const [loadingTeams, setLoadingTeams] = useState(false)
-  const [myTasks, setMyTasks] = useState<Task[]>([])
-  const [loadingTasks, setLoadingTasks] = useState(false)
+  const { data: projects = [], isLoading: loadingProjects } = useProjects()
+  const { data: teams = [], isLoading: loadingTeams } = useTeams()
+  const { data: myTasks = [], isLoading: loadingTasks } = useMyTasks()
+  const updateTaskMutation = useUpdateTask()
+
+  // Local board state for drag interactions
+  const [boardTasks, setBoardTasks] = useState<Task[]>([])
   
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<"todo" | "in_progress" | "review" | "completed" | null>(null)
@@ -59,34 +63,12 @@ export default function Page() {
 
   useEffect(() => {
     let mounted = true
+    // Sync board tasks from cache
+    if (mounted) setBoardTasks(myTasks)
     ;(async () => {
       try {
-        setLoadingProjects(true)
-        setLoadingTeams(true)
-        const [projectsData, teamsData] = await Promise.all([
-          fetchProjects(),
-          fetchTeams()
-        ])
-        if (mounted) {
-          setProjects(projectsData)
-          setTeams(teamsData)
-        }
-      } catch {
-        // noop
-      } finally {
-        if (mounted) {
-          setLoadingProjects(false)
-          setLoadingTeams(false)
-        }
-      }
-    })()
-    ;(async () => {
-      try {
-        setLoadingTasks(true)
-        const tasks = await fetchMyTasks()
-        if (mounted) setMyTasks(tasks)
         // Load statuses for involved projects
-        const uniqueProjectIds = Array.from(new Set(tasks.map(t => t.project_id)))
+        const uniqueProjectIds = Array.from(new Set(myTasks.map(t => t.project_id)))
         if (uniqueProjectIds.length > 0) {
           const map = await fetchStatusesForProjects(uniqueProjectIds)
           if (mounted) setStatusesByProject(map)
@@ -95,22 +77,20 @@ export default function Page() {
         }
       } catch {
         // noop
-      } finally {
-        if (mounted) setLoadingTasks(false)
       }
     })()
     const supabase = getSupabase()
     const channel = supabase
       .channel('board_project_tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => {
-        fetchMyTasks().then(setMyTasks).catch(() => {})
+        // cache will update on mutations; could invalidate here if needed
       })
       .subscribe()
     return () => {
       mounted = false
       channel.unsubscribe()
     }
-  }, [])
+  }, [myTasks])
 
   function getGroupForTask(task: Task): "todo" | "in_progress" | "review" | "completed" {
     const statuses = statusesByProject[task.project_id]
@@ -249,7 +229,7 @@ export default function Page() {
                 { key: 'review', title: 'İncelemede' },
                 { key: 'completed', title: 'Tamamlandı' },
               ] as const).map((col) => {
-                const columnTasks = myTasks.filter(t => getGroupForTask(t) === col.key)
+                const columnTasks = boardTasks.filter(t => getGroupForTask(t) === col.key)
                 return (
                   <Card
                     key={col.key}
@@ -257,19 +237,19 @@ export default function Page() {
                     onDragLeave={() => setDragOverStatus(prev => (prev === col.key ? null : prev))}
                     onDrop={async () => {
                       if (!dragTaskId) return
-                      const task = myTasks.find(t => t.id === dragTaskId)
+                      const task = boardTasks.find(t => t.id === dragTaskId)
                       if (!task || task.status === col.key) { setDragOverStatus(null); setDragTaskId(null); return }
                       const prevStatus = task.status
                       // optimistic
-                      setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: col.key } : t))
+                      setBoardTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: col.key } : t))
                       setDragOverStatus(null)
                       setDragTaskId(null)
                       try {
                         const nextKey = getDefaultKeyForGroup(task.project_id, col.key)
-                        await updateTask({ id: task.id, status: nextKey })
+                        await updateTaskMutation.mutateAsync({ id: task.id, status: nextKey })
                       } catch {
                         // revert
-                        setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
+                        setBoardTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: prevStatus } : t))
                         toast.error(t('dashboard.toasts.moveError'))
                       }
                     }}
@@ -286,7 +266,10 @@ export default function Page() {
                         <div className="text-sm text-muted-foreground flex items-center justify-center h-24 border border-dashed rounded-md">Sürükleyip bırakın</div>
                       ) : (
                         <div className="space-y-2">
-                          {columnTasks.slice(0, 50).map(task => (
+                          {columnTasks
+                            .slice(0, 50)
+                            .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
+                            .map((task, idx) => (
                             <div
                               key={task.id}
                               draggable
@@ -306,7 +289,7 @@ export default function Page() {
                                 const dragging = myTasks.find(t => t.id === dragTaskId)
                                 if (!dragging) return
                                 if (getGroupForTask(dragging) !== getGroupForTask(task)) return
-                                setMyTasks(prev => {
+                                setBoardTasks(prev => {
                                   const inSame = prev.filter(t => getGroupForTask(t) === getGroupForTask(task))
                                   const ids = inSame.map(t => t.id)
                                   const from = ids.indexOf(dragTaskId)
@@ -320,7 +303,20 @@ export default function Page() {
                                   return copy
                                 })
                               }}
-                              onDragEnd={() => setDragTaskId(null)}
+                              onDragEnd={async () => {
+                                // Persist relative order by writing incremental positions
+                                const same = boardTasks.filter(t => getGroupForTask(t) === getGroupForTask(task))
+                                const ordered = same
+                                  .slice(0, 50)
+                                  .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
+                                // reassign sequential positions (10,20,30...)
+                                const base = 10
+                                const updates = ordered.map((t, i) => ({ id: t.id, position: base*(i+1) }))
+                                try {
+                                  await Promise.all(updates.map(u => updateTaskMutation.mutateAsync({ id: u.id, position: u.position })))
+                                } catch {}
+                                setDragTaskId(null)
+                              }}
                               className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                               role="button"
                               tabIndex={0}
@@ -332,7 +328,7 @@ export default function Page() {
                                   window.location.href = `/dashboard/tasks/${task.id}`
                                 }
                               }}
-                              onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
+                               onClick={() => { if (!dragTaskId) window.location.href = `/dashboard/tasks/${task.id}` }}
                             >
                                 <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
                                 <div className="flex items-start gap-2">

@@ -32,6 +32,7 @@ export const zhCN = {
       sections: {
         teams: "团队",
         projects: "项目",
+        tasks: "任务",
       },
       toasts: {
         moveError: "无法移动任务",
