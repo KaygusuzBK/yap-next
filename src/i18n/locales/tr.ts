@@ -32,6 +32,7 @@ export const tr = {
     sections: {
       teams: "Takımlar",
       projects: "Projeler",
+      tasks: "Görevler",
     },
     toasts: {
       moveError: "Görev taşınamadı",
