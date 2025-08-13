@@ -61,8 +61,13 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setLocale = useCallback((next: Locale) => {
     // First update local state to avoid cross-render setState warnings
     setLocaleState(next)
-    // Then persist to store (async-ish side effect)
-    Promise.resolve().then(() => setPrefLocale(next))
+    // Persist to store and cookie
+    Promise.resolve().then(() => {
+      setPrefLocale(next)
+      try {
+        document.cookie = `locale=${next}; Path=/; Max-Age=${60 * 60 * 24 * 365}`
+      } catch {}
+    })
   }, [setPrefLocale]);
 
   const t = useMemo(() => {

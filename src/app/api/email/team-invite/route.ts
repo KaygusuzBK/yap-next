@@ -1,28 +1,117 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
+import { z } from 'zod'
+import { createClient } from '@supabase/supabase-js'
+
+export const runtime = 'nodejs'
+
+// Basit, kullanıcı bazlı rate limit (10 e-posta/saat)
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+const RATE_LIMIT_MAX = 10
+const emailRateBucket = new Map<string, { count: number; resetAt: number }>()
 
 // POST /api/email/team-invite
-// body: { to: string; teamName: string; inviteUrl: string }
+// body: { to: string; teamName?: string; inviteUrl: string }
 export async function POST(req: NextRequest) {
   try {
-    const { to, teamName, inviteUrl } = await req.json()
-    if (!to || !inviteUrl) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    const accessToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || ''
+    if (!accessToken) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     }
+
+    // Validate payload
+    const BodySchema = z.object({
+      to: z.string().email(),
+      teamName: z.string().min(1).max(120).optional(),
+      inviteUrl: z.string().url().refine((u) => /\/invite\//.test(u), 'inviteUrl must include /invite/<token>')
+    })
+    const body = BodySchema.parse(await req.json())
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !anon) {
+      return NextResponse.json({ error: 'server_misconfigured' }, { status: 500 })
+    }
+    const supabase = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
+
+    // Get current user
+    const { data: auth } = await supabase.auth.getUser()
+    const user = auth?.user || null
+    if (!user) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit per user
+    const now = Date.now()
+    const bucket = emailRateBucket.get(user.id) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS }
+    if (now > bucket.resetAt) {
+      bucket.count = 0
+      bucket.resetAt = now + RATE_LIMIT_WINDOW_MS
+    }
+    if (bucket.count >= RATE_LIMIT_MAX) {
+      const retry = Math.max(0, Math.ceil((bucket.resetAt - now) / 1000))
+      return NextResponse.json({ error: 'rate_limited', retryAfterSeconds: retry }, { status: 429 })
+    }
+
+    // Extract invitation token from URL
+    const token = (() => {
+      try {
+        const u = new URL(body.inviteUrl)
+        const parts = u.pathname.split('/').filter(Boolean)
+        const idx = parts.indexOf('invite')
+        return idx >= 0 && parts[idx + 1] ? parts[idx + 1] : ''
+      } catch {
+        return ''
+      }
+    })()
+    if (!token) {
+      return NextResponse.json({ error: 'invalid_invite_url' }, { status: 400 })
+    }
+
+    // Authorization via RLS: owner of team (or invited email) can read the invitation
+    const { data: invitation, error: inviteError } = await supabase
+      .from('team_invitations')
+      .select('id, team_id, email, expires_at')
+      .eq('token', token)
+      .single()
+    if (inviteError || !invitation) {
+      return NextResponse.json({ error: 'forbidden_or_not_found' }, { status: 403 })
+    }
+
+    // Optionally: fetch team name server-side to avoid trusting client value
+    let teamName = body.teamName
+    if (!teamName) {
+      const { data: team } = await supabase
+        .from('teams')
+        .select('name')
+        .eq('id', invitation.team_id)
+        .single()
+      teamName = team?.name || undefined
+    }
+
+    // SMTP config check
     const host = process.env.SMTP_HOST
     const port = Number(process.env.SMTP_PORT || 587)
-    const user = process.env.SMTP_USER
-    const pass = process.env.SMTP_PASS
+    const smtpUser = process.env.SMTP_USER
+    const smtpPass = process.env.SMTP_PASS
     const from = process.env.SMTP_FROM || 'no-reply@yap.app'
-    if (!host || !user || !pass) {
+    if (!host || !smtpUser || !smtpPass) {
       return NextResponse.json({ error: 'SMTP config missing' }, { status: 500 })
     }
-    const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
+    const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user: smtpUser, pass: smtpPass } })
 
-    const html = renderInviteEmail({ teamName, inviteUrl })
-    await transporter.sendMail({ to, from, subject: `YAP | ${teamName ?? 'Takım'} daveti`, html })
+    const html = renderInviteEmail({ teamName, inviteUrl: body.inviteUrl })
+    await transporter.sendMail({ to: body.to, from, subject: `YAP | ${teamName ?? 'Takım'} daveti`, html })
+
+    // commit rate bucket
+    bucket.count += 1
+    emailRateBucket.set(user.id, bucket)
+
     return NextResponse.json({ ok: true })
   } catch (e) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json({ error: 'invalid_payload', details: e.flatten() }, { status: 400 })
+    }
     console.error('invite email error', e)
     return NextResponse.json({ error: 'Email send failed' }, { status: 500 })
   }

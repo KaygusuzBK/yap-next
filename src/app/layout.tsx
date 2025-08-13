@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -28,13 +29,22 @@ export const metadata: Metadata = {
   description: "Modern proje yönetimi platformu",
 };
 
-export default function RootLayout({
+export const viewport = {
+  themeColor: '#111827',
+  colorScheme: 'light dark',
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // SSR: read locale cookie to set initial lang/dir
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('locale')?.value || 'tr'
+  const isRtl = locale === 'ar'
   return (
-    <html lang="en">
+    <html lang={locale} dir={isRtl ? 'rtl' : 'ltr'}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
