@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { postSlackMessage } from '@/lib/slack'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
+import { getSupabaseServer } from '@/lib/supabaseServer'
 
 type MentionPayload = {
   task_id: string
@@ -38,7 +39,9 @@ export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !anonKey) return NextResponse.json({ ok: false, error: 'server_misconfigured' }, { status: 500 })
-  const supabase = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
+  const supabase = accessToken
+    ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
+    : await getSupabaseServer()
 
   // Identify user
   const { data: auth } = await supabase.auth.getUser()
