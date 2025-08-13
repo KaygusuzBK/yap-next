@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
+import { corsHeaders, preflight } from '@/lib/api/cors'
+import { rateLimit } from '@/lib/api/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -14,6 +16,14 @@ const emailRateBucket = new Map<string, { count: number; resetAt: number }>()
 // body: { to: string; teamName?: string; inviteUrl: string }
 export async function POST(req: NextRequest) {
   try {
+    // CORS + RateLimit
+    const ip = (req.headers.get('x-forwarded-for')?.split(',')[0]?.trim())
+      || req.headers.get('x-real-ip')
+      || req.headers.get('cf-connecting-ip')
+      || 'unknown'
+    const rlKey = `invite:${ip}`
+    const rl = rateLimit(rlKey, { limit: 30, windowMs: 60 * 60 * 1000 })
+    if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: corsHeaders(req) })
     const accessToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || ''
     if (!accessToken) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -107,14 +117,18 @@ export async function POST(req: NextRequest) {
     bucket.count += 1
     emailRateBucket.set(user.id, bucket)
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true }, { headers: corsHeaders(req) })
   } catch (e) {
     if (e instanceof z.ZodError) {
-      return NextResponse.json({ error: 'invalid_payload', details: e.flatten() }, { status: 400 })
+      return NextResponse.json({ error: 'invalid_payload', details: e.flatten() }, { status: 400, headers: corsHeaders(req) })
     }
     console.error('invite email error', e)
-    return NextResponse.json({ error: 'Email send failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Email send failed' }, { status: 500, headers: corsHeaders(req) })
   }
+}
+
+export function OPTIONS(req: NextRequest) {
+  return preflight(req as unknown as Request)
 }
 
 function renderInviteEmail({ teamName, inviteUrl }: { teamName?: string; inviteUrl: string }) {

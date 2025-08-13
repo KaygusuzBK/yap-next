@@ -6,6 +6,8 @@ import { postSlackMessage } from '@/lib/slack'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 import { getSupabaseServer } from '@/lib/supabaseServer'
+import { corsHeaders, preflight } from '@/lib/api/cors'
+import { rateLimit } from '@/lib/api/rateLimit'
 
 type MentionPayload = {
   task_id: string
@@ -16,9 +18,16 @@ type MentionPayload = {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = (req.headers.get('x-forwarded-for')?.split(',')[0]?.trim())
+    || req.headers.get('x-real-ip')
+    || req.headers.get('cf-connecting-ip')
+    || 'unknown'
+  const rlKey = `mention:${ip}`
+  const rl = rateLimit(rlKey, { limit: 60, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) return NextResponse.json({ ok: false, error: 'rate_limited' }, { status: 429, headers: corsHeaders(req) })
   // Auth: Bearer token required
   const accessToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || ''
-  if (!accessToken) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
+  if (!accessToken) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401, headers: corsHeaders(req) })
 
   // Validate payload
   const Schema = z.object({
@@ -38,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!supabaseUrl || !anonKey) return NextResponse.json({ ok: false, error: 'server_misconfigured' }, { status: 500 })
+  if (!supabaseUrl || !anonKey) return NextResponse.json({ ok: false, error: 'server_misconfigured' }, { status: 500, headers: corsHeaders(req) })
   const supabase = accessToken
     ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
     : await getSupabaseServer()
@@ -46,7 +55,7 @@ export async function POST(req: NextRequest) {
   // Identify user
   const { data: auth } = await supabase.auth.getUser()
   const user = auth?.user || null
-  if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401, headers: corsHeaders(req) })
 
   // Authorization: ensure user can see the task
   const { data: taskRow, error: taskErr } = await supabase
@@ -54,7 +63,7 @@ export async function POST(req: NextRequest) {
     .select('id, project_id')
     .eq('id', body.task_id)
     .single()
-  if (taskErr || !taskRow) return NextResponse.json({ ok: false, error: 'forbidden_or_not_found' }, { status: 403 })
+  if (taskErr || !taskRow) return NextResponse.json({ ok: false, error: 'forbidden_or_not_found' }, { status: 403, headers: corsHeaders(req) })
 
   const mentions = Array.from(new Set(body.mentioned_user_ids))
   const admin = getSupabaseAdmin()
@@ -98,7 +107,11 @@ export async function POST(req: NextRequest) {
     console.error('slack mention ping failed', e)
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true }, { headers: corsHeaders(req) })
+}
+
+export function OPTIONS(req: NextRequest) {
+  return preflight(req as unknown as Request)
 }
 
 
