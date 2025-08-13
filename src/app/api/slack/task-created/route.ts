@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { corsHeaders, preflight } from '@/lib/api/cors'
+import { rateLimit } from '@/lib/api/rateLimit'
 export const runtime = 'nodejs'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { postSlackMessage } from '@/lib/slack'
@@ -15,6 +17,12 @@ type TaskPayload = {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = (req.headers.get('x-forwarded-for')?.split(',')[0]?.trim())
+    || req.headers.get('x-real-ip')
+    || req.headers.get('cf-connecting-ip')
+    || 'unknown'
+  const rl = rateLimit(`slack-task-created:${ip}`, { limit: 120, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) return NextResponse.json({ ok: false, error: 'rate_limited' }, { status: 429, headers: corsHeaders(req as unknown as Request) })
   let body: { task?: TaskPayload; webhookUrl?: string }
   try {
     body = await req.json()
@@ -79,9 +87,9 @@ export async function POST(req: NextRequest) {
     })
     if (!res.ok) {
       const errText = await res.text().catch(() => '')
-      return NextResponse.json({ ok: false, error: 'slack_error', status: res.status, body: errText }, { status: 200 })
+      return NextResponse.json({ ok: false, error: 'slack_error', status: res.status, body: errText }, { status: 200, headers: corsHeaders(req as unknown as Request) })
     }
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true }, { headers: corsHeaders(req as unknown as Request) })
   }
 
   // Channel-based path (preferred): use project's slack_channel_id or fallback channel
@@ -102,16 +110,20 @@ export async function POST(req: NextRequest) {
   }
 
   if (!targetChannel) {
-    return NextResponse.json({ ok: false, error: 'no_slack_channel_configured' }, { status: 400 })
+    return NextResponse.json({ ok: false, error: 'no_slack_channel_configured' }, { status: 400, headers: corsHeaders(req as unknown as Request) })
   }
 
   const result = await postSlackMessage(targetChannel, text)
   if (!result.ok) {
     console.error('Slack task-created failed:', result)
-    return NextResponse.json({ ok: false, error: 'slack_error', response: result }, { status: 200 })
+    return NextResponse.json({ ok: false, error: 'slack_error', response: result }, { status: 200, headers: corsHeaders(req as unknown as Request) })
   }
 
-  return NextResponse.json({ ok: true, response: result })
+  return NextResponse.json({ ok: true, response: result }, { headers: corsHeaders(req as unknown as Request) })
+}
+
+export function OPTIONS(req: NextRequest) {
+  return preflight(req as unknown as Request)
 }
 
 
