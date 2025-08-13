@@ -583,7 +583,14 @@ export async function listTaskFiles(taskId: string): Promise<TaskFile[]> {
 
 export async function uploadTaskFile(taskId: string, file: File): Promise<TaskFile> {
   const supabase = getSupabase();
-  const safeName = file.name.replace(/\s+/g, '_');
+  // Validate size (<= 10MB) and MIME (basic allow list)
+  const maxBytes = 10 * 1024 * 1024
+  if (file.size > maxBytes) throw new Error('Dosya boyutu 10MB sınırını aşıyor')
+  const allowed = ['image/png','image/jpeg','image/gif','application/pdf','text/plain']
+  if (file.type && !allowed.includes(file.type)) throw new Error('İzin verilmeyen içerik türü')
+  // Sanitize filename strictly
+  const base = (file.name || 'file').toLowerCase()
+  const safeName = base.replace(/[^a-z0-9_.-]/g, '_').replace(/_+/g, '_').slice(0, 120)
   const path = `${taskId}/${Date.now()}_${safeName}`;
   const { error } = await supabase.storage
     .from(TASK_FILES_BUCKET)

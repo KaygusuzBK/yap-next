@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { corsHeaders, preflight } from '@/lib/api/cors'
+import { rateLimit } from '@/lib/api/rateLimit'
 
 export async function POST(request: NextRequest) {
+  const ip = (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim())
+    || request.headers.get('x-real-ip')
+    || request.headers.get('cf-connecting-ip')
+    || 'unknown'
+  const rl = rateLimit(`n8n:${ip}`, { limit: 60, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: corsHeaders(request as unknown as Request) })
   try {
     const body = await request.json().catch(() => null)
     const message = body?.message as string | undefined
@@ -24,7 +32,7 @@ export async function POST(request: NextRequest) {
     else webhookUrl = testUrl || baseUrl
 
     if (!webhookUrl) {
-      return NextResponse.json({ error: "N8N webhook URL bulunamadı (env değişkenleri eksik)" }, { status: 500 })
+      return NextResponse.json({ error: "N8N webhook URL bulunamadı (env değişkenleri eksik)" }, { status: 500, headers: corsHeaders(request as unknown as Request) })
     }
 
     const forwardedFor = request.headers.get("x-forwarded-for")
@@ -53,14 +61,18 @@ export async function POST(request: NextRequest) {
       const text = await resp.text().catch(() => "")
       return NextResponse.json(
         { error: "Webhook isteği başarısız", details: text },
-        { status: 502 }
+        { status: 502, headers: corsHeaders(request as unknown as Request) }
       )
     }
 
-    return NextResponse.json({ ok: true }, { status: 200 })
+    return NextResponse.json({ ok: true }, { status: 200, headers: corsHeaders(request as unknown as Request) })
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek" }, { status: 400 })
+    return NextResponse.json({ error: "Geçersiz istek" }, { status: 400, headers: corsHeaders(request as unknown as Request) })
   }
+}
+
+export function OPTIONS(req: NextRequest) {
+  return preflight(req as unknown as Request)
 }
 
 
