@@ -18,6 +18,7 @@ import {
   type TaskFile,
   updateTask,
 } from "./api";
+import { getSupabase } from "@/lib/supabase";
 
 export const keys = {
   tasks: () => ["tasks"] as const,
@@ -167,6 +168,32 @@ export function useTaskFiles(taskId: string) {
     queryFn: () => listTaskFiles(taskId),
     enabled: Boolean(taskId),
   });
+}
+
+export type TaskStatusInterval = {
+  task_id: string;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+  seconds_in_status: number;
+}
+
+export function useTaskStatusTimeline(taskId: string) {
+  return useQuery<TaskStatusInterval[]>({
+    queryKey: ["task", taskId, "status-timeline"],
+    queryFn: async () => {
+      const supabase = getSupabase()
+      const { data, error } = await supabase
+        .from('task_status_intervals')
+        .select('*')
+        .eq('task_id', taskId)
+        .order('started_at', { ascending: true })
+      if (error) throw error
+      return (data as TaskStatusInterval[]) || []
+    },
+    enabled: Boolean(taskId),
+    staleTime: 60_000,
+  })
 }
 
 
