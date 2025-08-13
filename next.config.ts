@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     const isDev = process.env.NODE_ENV !== 'production'
     const scriptSrc = isDev
       ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;"
-      : "script-src 'self' https: 'strict-dynamic';"
+      : "script-src 'self' 'unsafe-inline' https:;"
     const csp = [
       "default-src 'self';",
       "base-uri 'self';",
