@@ -821,12 +821,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
       .subscribe()
 
-    const onFocus = () => fetchTaskStats()
-    window.addEventListener('focus', onFocus)
-
     return () => {
       try { supabase.removeChannel(channel) } catch {}
-      window.removeEventListener('focus', onFocus)
     }
   }, [fetchTaskStats])
 
