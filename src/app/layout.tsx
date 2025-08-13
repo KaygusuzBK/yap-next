@@ -44,7 +44,7 @@ export default async function RootLayout({
   const locale = cookieStore.get('locale')?.value || 'tr'
   const isRtl = locale === 'ar'
   return (
-    <html lang={locale} dir={isRtl ? 'rtl' : 'ltr'}>
+    <html suppressHydrationWarning lang={locale} dir={isRtl ? 'rtl' : 'ltr'}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

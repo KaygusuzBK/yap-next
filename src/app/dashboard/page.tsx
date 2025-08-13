@@ -59,14 +59,18 @@ export default function Page() {
     },
   }
 
+  // Sync board tasks and statuses when myTasks reference actually changes
   useEffect(() => {
     let mounted = true
-    // Sync board tasks from cache
-    if (mounted) setBoardTasks(myTasks)
+    // Avoid unnecessary state updates causing render loops: shallow compare by id/length
+    setBoardTasks(prev => {
+      if (prev.length === myTasks.length && prev.every((p, i) => p.id === myTasks[i]?.id)) return prev
+      return myTasks
+    })
     ;(async () => {
       try {
-        // Load statuses for involved projects
         const uniqueProjectIds = Array.from(new Set(myTasks.map(t => t.project_id)))
+        if (!mounted) return
         if (uniqueProjectIds.length > 0) {
           const map = await fetchStatusesForProjects(uniqueProjectIds)
           if (mounted) setStatusesByProject(map)
@@ -77,6 +81,11 @@ export default function Page() {
         // noop
       }
     })()
+    return () => { mounted = false }
+  }, [myTasks])
+
+  // Set up realtime subscription once
+  useEffect(() => {
     const supabase = getSupabase()
     const channel = supabase
       .channel('board_project_tasks')
@@ -84,11 +93,8 @@ export default function Page() {
         // cache will update on mutations; could invalidate here if needed
       })
       .subscribe()
-    return () => {
-      mounted = false
-      channel.unsubscribe()
-    }
-  }, [myTasks])
+    return () => { channel.unsubscribe() }
+  }, [])
 
   function getGroupForTask(task: Task): "todo" | "in_progress" | "review" | "completed" {
     const statuses = statusesByProject[task.project_id]
