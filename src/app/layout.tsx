@@ -40,8 +40,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // SSR: read locale cookie to set initial lang/dir
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('locale')?.value || 'tr'
+  let locale = 'tr'
+  try {
+    const cookieStore = await cookies()
+    locale = cookieStore.get('locale')?.value || 'tr'
+  } catch {}
   const isRtl = locale === 'ar'
   return (
     <html suppressHydrationWarning lang={locale} dir={isRtl ? 'rtl' : 'ltr'}>
