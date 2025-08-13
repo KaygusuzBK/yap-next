@@ -197,10 +197,12 @@ const TaskRow = React.memo(function TaskRow({
   task,
   onSelect,
   onStatusChange,
+  isCurrent,
 }: {
   task: TaskStat
   onSelect: (taskId: string) => void
   onStatusChange: (taskId: string, status: TaskStat['status']) => void
+  isCurrent?: boolean
 }) {
   const [dragX, setDragX] = React.useState(0)
   const startXRef = React.useRef<number | null>(null)
@@ -417,6 +419,9 @@ const TaskRow = React.memo(function TaskRow({
             task.status === 'completed' ? 'line-through text-muted-foreground' : ''
           }`}>
             {task.title}
+            {isCurrent && (
+              <span className="ml-2 inline-block h-2 w-2 align-middle rounded-full bg-primary" title="Şu an açık" />
+            )}
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
@@ -986,15 +991,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-                <a href="#">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
-                    <Logo size={16} className="scale-180" withLink={false} />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">YAP</span>
-                    <span className="truncate text-xs">Proje Yönetimi</span>
-                  </div>
-                </a>
+                <Logo size={16} className="scale-120" withLink={false} />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -1076,7 +1073,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Button
                 size="icon"
                 variant="outline"
-                onClick={() => { setTaskProjectId(null); setCreateTaskOpen(true) }}
+                onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
                 className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
               >
                 <Plus className="size-4" />
@@ -1314,13 +1311,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           return <p className="text-sm text-muted-foreground">Filtrelere uygun görev yok.</p>
                         }
 
-                        return (
+               return (
                           <div className="flex flex-col">
-                            {filtered.slice(0, 12).map((task) => (
+                    {filtered.slice(0, 12).map((task) => {
+                      const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+                      const isCurrent = pathname === `/dashboard/tasks/${task.id}`
+                      return (
                           <TaskRow
                                 key={task.id}
                                 task={task}
-                            onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
+                        isCurrent={isCurrent}
+                        onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
                             onStatusChange={async (taskId, status) => {
                               try {
                                 await updateTask({ id: taskId, status })
@@ -1330,7 +1331,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                               }
                             }}
                               />
-                            ))}
+                      )
+                    })}
                             {filtered.length > 12 && (
                               <div className="text-center p-2 text-xs text-muted-foreground">+{filtered.length - 12} görev daha...</div>
                             )}
