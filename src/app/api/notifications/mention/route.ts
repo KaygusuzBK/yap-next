@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 
 type MentionPayload = {
   task_id: string
-  comment_id: string
+  comment_id?: string
   comment_text: string
   mentioned_user_ids: string[]
   task_url?: string

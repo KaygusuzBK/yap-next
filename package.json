@@ -7,7 +7,10 @@
     "build": "next build",
     "vercel-build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --cache --write ."
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -62,6 +65,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
+    "prettier": "^3.3.3",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5"
