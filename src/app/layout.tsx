@@ -52,7 +52,6 @@ export default async function RootLayout({
           <Navbar />
           {/* Mobile header is rendered inside dashboard pages by Navbar returning null there; include explicitly */}
           {/* MobileHeader will self-hide on non-dashboard paths */}
-          {/* eslint-disable-next-line react/jsx-no-undef */}
           {/* <MobileHeader /> */}
           <QueryProvider>
             <AppFrame>{children}</AppFrame>

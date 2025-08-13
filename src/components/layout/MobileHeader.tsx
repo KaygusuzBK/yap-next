@@ -7,8 +7,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { LogOut, Bell, Plus } from "lucide-react"
-import NotificationsBell from "@/components/NotificationsBell"
+import { LogOut, Plus } from "lucide-react"
 
 function getTitle(pathname: string | null): string {
   if (!pathname) return "YAP"
