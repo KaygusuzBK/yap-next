@@ -1,8 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { type Project } from "@/features/projects/api"
-import { type Team } from "@/features/teams/api"
 import { type Task } from "@/features/tasks/api"
 import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
@@ -269,7 +267,7 @@ export default function Page() {
                           {columnTasks
                             .slice(0, 50)
                             .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
-                            .map((task, idx) => (
+                            .map((task) => (
                             <div
                               key={task.id}
                               draggable
