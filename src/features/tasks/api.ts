@@ -39,6 +39,30 @@ export type TaskFile = {
   size?: number | null;
 };
 
+export type TaskActivity = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  action: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+  actor_name?: string | null;
+  actor_email?: string | null;
+};
+
+export type TaskTimeLog = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  start_time: string;
+  end_time: string | null;
+  description: string | null;
+  created_at: string;
+  duration_seconds?: number; // computed on client fetch
+  actor_name?: string | null;
+  actor_email?: string | null;
+};
+
 const TASK_FILES_BUCKET = 'task-files';
 
 export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
@@ -600,3 +624,190 @@ export async function deleteTaskFile(path: string): Promise<void> {
 }
 
 
+export async function fetchTaskActivities(taskId: string): Promise<TaskActivity[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('task_activities')
+    .select('id, task_id, user_id, action, details, created_at')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  type Row = { id: string; task_id: string; user_id: string; action: string; details: Record<string, unknown> | null; created_at: string };
+  const rows: Row[] = (data as Row[] | null) ?? [];
+  const userIds = Array.from(new Set(rows.map(r => r.user_id)));
+  let idToProfile: Record<string, { full_name?: string | null; email?: string | null }> = {};
+  if (userIds.length > 0) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', userIds);
+    if (profs) {
+      type Prof = { id: string; full_name?: string | null; email?: string | null };
+      idToProfile = Object.fromEntries((profs as Prof[]).map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+    }
+  }
+  return rows.map(r => ({
+    id: r.id,
+    task_id: r.task_id,
+    user_id: r.user_id,
+    action: r.action,
+    details: r.details ?? null,
+    created_at: r.created_at,
+    actor_name: idToProfile[r.user_id]?.full_name ?? null,
+    actor_email: idToProfile[r.user_id]?.email ?? null,
+  }));
+}
+
+export async function fetchTaskTimeLogs(taskId: string): Promise<TaskTimeLog[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('task_time_logs')
+    .select('id, task_id, user_id, start_time, end_time, description, created_at')
+    .eq('task_id', taskId)
+    .order('start_time', { ascending: true });
+  if (error) throw error;
+  type Row = { id: string; task_id: string; user_id: string; start_time: string; end_time: string | null; description: string | null; created_at: string };
+  const rows: Row[] = (data as Row[] | null) ?? [];
+  const userIds = Array.from(new Set(rows.map(r => r.user_id)));
+  let idToProfile: Record<string, { full_name?: string | null; email?: string | null }> = {};
+  if (userIds.length > 0) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', userIds);
+    if (profs) {
+      type Prof = { id: string; full_name?: string | null; email?: string | null };
+      idToProfile = Object.fromEntries((profs as Prof[]).map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+    }
+  }
+  const nowMs = Date.now();
+  return rows.map(r => {
+    const startMs = new Date(r.start_time).getTime();
+    const endMs = r.end_time ? new Date(r.end_time).getTime() : nowMs;
+    const duration_seconds = Math.max(0, Math.floor((endMs - startMs) / 1000));
+    return {
+      id: r.id,
+      task_id: r.task_id,
+      user_id: r.user_id,
+      start_time: r.start_time,
+      end_time: r.end_time,
+      description: r.description,
+      created_at: r.created_at,
+      duration_seconds,
+      actor_name: idToProfile[r.user_id]?.full_name ?? null,
+      actor_email: idToProfile[r.user_id]?.email ?? null,
+    } as TaskTimeLog;
+  });
+}
+
+export async function addTimeLog(taskId: string, input: { start_time: string; end_time?: string | null; description?: string | null }): Promise<TaskTimeLog> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+
+  const payload = {
+    task_id: taskId,
+    user_id: user.id,
+    start_time: input.start_time,
+    end_time: input.end_time ?? null,
+    description: input.description ?? null,
+  };
+  const { data, error } = await supabase
+    .from('task_time_logs')
+    .insert(payload)
+    .select('id, task_id, user_id, start_time, end_time, description, created_at')
+    .single();
+  if (error) throw error;
+  const row = data as { id: string; task_id: string; user_id: string; start_time: string; end_time: string | null; description: string | null; created_at: string };
+
+  // enrich with profile and duration
+  let actor_name: string | null = null;
+  let actor_email: string | null = null;
+  try {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', row.user_id)
+      .single();
+    if (prof) {
+      actor_name = (prof as { full_name?: string | null }).full_name ?? null;
+      actor_email = (prof as { email?: string | null }).email ?? null;
+    }
+  } catch {}
+  const nowMs = Date.now();
+  const startMs = new Date(row.start_time).getTime();
+  const endMs = row.end_time ? new Date(row.end_time).getTime() : nowMs;
+  const duration_seconds = Math.max(0, Math.floor((endMs - startMs) / 1000));
+  return {
+    id: row.id,
+    task_id: row.task_id,
+    user_id: row.user_id,
+    start_time: row.start_time,
+    end_time: row.end_time,
+    description: row.description,
+    created_at: row.created_at,
+    duration_seconds,
+    actor_name,
+    actor_email,
+  };
+}
+
+export async function startTimeLog(taskId: string): Promise<TaskTimeLog> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+  const startIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('task_time_logs')
+    .insert({ task_id: taskId, user_id: user.id, start_time: startIso })
+    .select('id, task_id, user_id, start_time, end_time, description, created_at')
+    .single();
+  if (error) throw error;
+  return {
+    id: data!.id,
+    task_id: data!.task_id,
+    user_id: data!.user_id,
+    start_time: data!.start_time,
+    end_time: data!.end_time,
+    description: data!.description,
+    created_at: data!.created_at,
+    duration_seconds: 0,
+  } as TaskTimeLog;
+}
+
+export async function stopTimeLog(taskId: string): Promise<TaskTimeLog | null> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+  const { data: openList, error: selErr } = await supabase
+    .from('task_time_logs')
+    .select('id')
+    .eq('task_id', taskId)
+    .eq('user_id', user.id)
+    .is('end_time', null)
+    .order('start_time', { ascending: false })
+    .limit(1);
+  if (selErr) throw selErr;
+  const open = (openList ?? [])[0];
+  if (!open) return null;
+  const endIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('task_time_logs')
+    .update({ end_time: endIso })
+    .eq('id', open.id)
+    .select('id, task_id, user_id, start_time, end_time, description, created_at')
+    .single();
+  if (error) throw error;
+  const startMs = new Date(data!.start_time).getTime();
+  const endMs = data!.end_time ? new Date(data!.end_time).getTime() : Date.now();
+  return {
+    id: data!.id,
+    task_id: data!.task_id,
+    user_id: data!.user_id,
+    start_time: data!.start_time,
+    end_time: data!.end_time,
+    description: data!.description,
+    created_at: data!.created_at,
+    duration_seconds: Math.max(0, Math.floor((endMs - startMs) / 1000)),
+  } as TaskTimeLog;
+}

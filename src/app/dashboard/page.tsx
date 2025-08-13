@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { type Project } from "@/features/projects/api"
-import { type Team } from "@/features/teams/api"
+import { useEffect, useMemo, useRef, useState } from "react"
+// import { type Project } from "@/features/projects/api"
+// import { type Team } from "@/features/teams/api"
 import { type Task } from "@/features/tasks/api"
 import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
@@ -19,6 +20,10 @@ import PendingInvitations from "@/components/PendingInvitations"
 import { useProjects } from "@/features/projects/queries"
 import { useTeams } from "@/features/teams/queries"
 import { useMyTasks, useUpdateTask } from "@/features/tasks/queries"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import NewTaskForm from "@/features/tasks/components/NewTaskForm"
 
 export default function Page() {
   const { t } = useI18n()
@@ -33,6 +38,72 @@ export default function Page() {
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<"todo" | "in_progress" | "review" | "completed" | null>(null)
   const [statusesByProject, setStatusesByProject] = useState<Record<string, ProjectTaskStatus[]>>({})
+  const [projectFilter, setProjectFilter] = useState<string>("all")
+  const [taskModalOpen, setTaskModalOpen] = useState(false)
+  const [newTaskProjectId, setNewTaskProjectId] = useState<string>("")
+
+  // Performance metrics
+  const [perf7, setPerf7] = useState<{ completed: number; seconds: number } | null>(null)
+  const [perf14, setPerf14] = useState<{ completed: number; seconds: number } | null>(null)
+  const [perf30, setPerf30] = useState<{ completed: number; seconds: number } | null>(null)
+
+  function formatDurationBrief(totalSeconds: number): string {
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    if (hours > 0) return `${hours}sa ${minutes}dk`
+    return `${minutes}dk`
+  }
+
+  async function computePerformance(days: number): Promise<{ completed: number; seconds: number }> {
+    const supabase = getSupabase()
+    const { data: auth } = await supabase.auth.getUser()
+    const uid = auth?.user?.id
+    if (!uid) return { completed: 0, seconds: 0 }
+    const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString()
+    // Completed count: status change to completed by this user in period
+    let completed = 0
+    try {
+      const { data: acts } = await supabase
+        .from('task_activities')
+        .select('id, details, created_at')
+        .eq('user_id', uid)
+        .eq('action', 'task_updated')
+        .gte('created_at', since)
+      type Act = { id: string; details: { status?: { old?: string | null; new?: string | null } } | null; created_at: string }
+      const list: Act[] = (acts as Act[] | null) ?? []
+      completed = list.filter(a => a.details?.status?.new === 'completed').length
+    } catch {}
+    // Time spent: sum durations of time logs by this user in period
+    let seconds = 0
+    try {
+      const { data: logs } = await supabase
+        .from('task_time_logs')
+        .select('start_time, end_time')
+        .eq('user_id', uid)
+        .gte('start_time', since)
+        .order('start_time', { ascending: true })
+      const nowMs = Date.now()
+      for (const row of (logs || []) as Array<{ start_time: string; end_time: string | null }>) {
+        const s = new Date(row.start_time).getTime()
+        const e = row.end_time ? new Date(row.end_time).getTime() : nowMs
+        if (e > s) seconds += Math.floor((e - s) / 1000)
+      }
+    } catch {}
+    return { completed, seconds }
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const [w7, w14, w30] = await Promise.all([
+          computePerformance(7),
+          computePerformance(14),
+          computePerformance(30),
+        ])
+        setPerf7(w7); setPerf14(w14); setPerf30(w30)
+      } catch {}
+    })()
+  }, [])
 
   const priorityTheme: Record<NonNullable<Task["priority"]>, { bar: string; chip: string; text: string; dot: string }> = {
     urgent: {
@@ -61,14 +132,26 @@ export default function Page() {
     },
   }
 
+  // Sync board tasks from cache (guard to avoid infinite loops when reference changes)
+  useEffect(() => {
+    setBoardTasks(prev => {
+      if (prev.length === myTasks.length && prev.every((p, i) => p.id === myTasks[i].id && p.updated_at === myTasks[i].updated_at && p.status === myTasks[i].status && (p.position ?? null) === (myTasks[i].position ?? null))) {
+        return prev
+      }
+      return myTasks
+    })
+  }, [myTasks])
+
+  // Load statuses only when involved project ids actually change
+  const lastIdsKeyRef = useRef<string>("")
   useEffect(() => {
     let mounted = true
-    // Sync board tasks from cache
-    if (mounted) setBoardTasks(myTasks)
     ;(async () => {
       try {
-        // Load statuses for involved projects
         const uniqueProjectIds = Array.from(new Set(myTasks.map(t => t.project_id)))
+        const idsKey = uniqueProjectIds.sort().join(',')
+        if (idsKey === lastIdsKeyRef.current) return
+        lastIdsKeyRef.current = idsKey
         if (uniqueProjectIds.length > 0) {
           const map = await fetchStatusesForProjects(uniqueProjectIds)
           if (mounted) setStatusesByProject(map)
@@ -79,6 +162,11 @@ export default function Page() {
         // noop
       }
     })()
+    return () => { mounted = false }
+  }, [myTasks])
+
+  // Subscribe once for realtime project_tasks updates
+  useEffect(() => {
     const supabase = getSupabase()
     const channel = supabase
       .channel('board_project_tasks')
@@ -86,11 +174,8 @@ export default function Page() {
         // cache will update on mutations; could invalidate here if needed
       })
       .subscribe()
-    return () => {
-      mounted = false
-      channel.unsubscribe()
-    }
-  }, [myTasks])
+    return () => { try { channel.unsubscribe() } catch {} }
+  }, [])
 
   function getGroupForTask(task: Task): "todo" | "in_progress" | "review" | "completed" {
     const statuses = statusesByProject[task.project_id]
@@ -113,6 +198,16 @@ export default function Page() {
     // fallback to base key when mapping not available
     return group
   }
+
+  const filteredBoardTasks = useMemo(() => {
+    if (projectFilter === 'all') return boardTasks
+    return boardTasks.filter(t => t.project_id === projectFilter)
+  }, [boardTasks, projectFilter])
+
+  const filteredMyTasks = useMemo(() => {
+    if (projectFilter === 'all') return myTasks
+    return myTasks.filter(t => t.project_id === projectFilter)
+  }, [myTasks, projectFilter])
 
   return (
     <main className="flex flex-1 flex-col w-full px-4 py-3 md:px-6 md:py-4 space-y-6">
@@ -209,16 +304,65 @@ export default function Page() {
             </Card>
           </div>
         </section>
-        <PendingInvitations />
 
-        {/* Teams and Projects sections removed as requested */}
+        {/* Performance section */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">Performans</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Son 7 Gün</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">Tamamlanan Görev</div>
+                <div className="text-2xl font-bold">{perf7 ? perf7.completed : '—'}</div>
+                <div className="mt-2 text-sm text-muted-foreground">Toplam Süre</div>
+                <div className="text-lg font-medium">{perf7 ? formatDurationBrief(perf7.seconds) : '—'}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Son 14 Gün</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">Tamamlanan Görev</div>
+                <div className="text-2xl font-bold">{perf14 ? perf14.completed : '—'}</div>
+                <div className="mt-2 text-sm text-muted-foreground">Toplam Süre</div>
+                <div className="text-lg font-medium">{perf14 ? formatDurationBrief(perf14.seconds) : '—'}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Son 30 Gün</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">Tamamlanan Görev</div>
+                <div className="text-2xl font-bold">{perf30 ? perf30.completed : '—'}</div>
+                <div className="mt-2 text-sm text-muted-foreground">Toplam Süre</div>
+                <div className="text-lg font-medium">{perf30 ? formatDurationBrief(perf30.seconds) : '—'}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+        <PendingInvitations />
 
         {/* Board & Backlog using shadcn Tabs */}
         <Tabs defaultValue="board" className="space-y-4">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="board">Board</TabsTrigger>
-            <TabsTrigger value="backlog">Backlog</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between gap-2">
+            <TabsList className="justify-start overflow-x-auto">
+              <TabsTrigger value="board">Board</TabsTrigger>
+              <TabsTrigger value="backlog">Backlog</TabsTrigger>
+            </TabsList>
+            <div className="flex items-center gap-2">
+              <div className="min-w-[220px]">
+                <select
+                  className="border rounded px-2 py-1 text-sm h-9 bg-background"
+                  value={projectFilter}
+                  onChange={(e) => setProjectFilter(e.target.value)}
+                >
+                  <option value="all">Tüm Projeler</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+              <Button size="sm" onClick={() => { setTaskModalOpen(true) }}>Yeni Görev</Button>
+            </div>
+          </div>
 
           <TabsContent value="board" className="space-y-3">
             
@@ -229,7 +373,7 @@ export default function Page() {
                 { key: 'review', title: 'İncelemede' },
                 { key: 'completed', title: 'Tamamlandı' },
               ] as const).map((col) => {
-                const columnTasks = boardTasks.filter(t => getGroupForTask(t) === col.key)
+                const columnTasks = filteredBoardTasks.filter(t => getGroupForTask(t) === col.key)
                 return (
                   <Card
                     key={col.key}
@@ -266,7 +410,7 @@ export default function Page() {
                         <div className="text-sm text-muted-foreground flex items-center justify-center h-24 border border-dashed rounded-md">Sürükleyip bırakın</div>
                       ) : (
                         <div className="space-y-2">
-                          {columnTasks
+                           {columnTasks
                             .slice(0, 50)
                             .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
                             .map((task, idx) => (
@@ -368,67 +512,107 @@ export default function Page() {
             </div>
           </TabsContent>
 
-          <TabsContent value="backlog">
-            <Card className="overflow-hidden bg-muted/30 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sticky top-0 z-10 bg-gradient-to-b from-background/95 to-background/70 backdrop-blur border-b">
-                <CardTitle className="text-sm font-medium">Yapılacaklar</CardTitle>
-                <Badge variant="outline">{loadingTasks ? '...' : myTasks.filter(t => t.status === 'todo').length}</Badge>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-[70vh] overflow-y-auto pt-2">
-                {loadingTasks ? (
-                  <div className="text-sm text-muted-foreground">Yükleniyor...</div>
-                ) : (
-                  <div className="space-y-2">
-                    {myTasks
-                      .filter(t => t.status === 'todo')
-                      .sort((a, b) => {
-                        const prioRank = { urgent: 4, high: 3, medium: 2, low: 1 } as const
-                        const diff = prioRank[b.priority] - prioRank[a.priority]
-                        if (diff !== 0) return diff
-                        const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity
-                        const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity
-                        return ad - bd
-                      })
-                      .slice(0, 10)
-                      .map(task => (
-                        <Link key={task.id} href={`/dashboard/tasks/${task.id}`} className="block">
-                          <div className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm">
-                            <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium truncate leading-5">{task.title}</div>
-                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                  {task.project_title && (
-                                    <span className="inline-flex items-center max-w-[180px] truncate rounded-full border px-2 py-0.5 bg-muted/40">
-                                      {task.project_title}
-                                    </span>
-                                  )}
-                                  {task.due_date && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
-                                      <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                                      {new Date(task.due_date).toLocaleDateString('tr-TR')}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${priorityTheme[task.priority ?? 'low'].chip}`}>
-                                <span className={`h-2 w-2 rounded-full ${priorityTheme[task.priority ?? 'low'].dot}`} />
-                                {task.priority}
-                              </span>
-                            </div>
+          <TabsContent value="backlog" className="space-y-3">
+            {(["completed","in_progress","review","todo"] as const).map((grp) => {
+              const title = grp === 'completed' ? 'Tamamlananlar' : grp === 'in_progress' ? 'Devam Edilenler' : grp === 'review' ? 'İncelemede' : 'Yapılacaklar'
+              const list = filteredMyTasks.filter(t => getGroupForTask(t) === grp)
+              return (
+                <Collapsible key={grp}>
+                  <Card className="overflow-hidden bg-muted/30 backdrop-blur-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sticky top-0 z-10 bg-gradient-to-b from-background/95 to-background/70 backdrop-blur border-b">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        {title}
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 px-2">Aç/Kapat</Button>
+                        </CollapsibleTrigger>
+                      </CardTitle>
+                      <Badge variant={grp === 'completed' ? 'secondary' : 'outline'}>{loadingTasks ? '...' : list.length}</Badge>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-2 max-h-[70vh] overflow-y-auto pt-2">
+                        {loadingTasks ? (
+                          <div className="text-sm text-muted-foreground">Yükleniyor...</div>
+                        ) : list.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">Bu bölümde görev yok.</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {list
+                              .slice(0, 50)
+                              .map(task => (
+                                <Link key={task.id} href={`/dashboard/tasks/${task.id}`} className="block">
+                                  <div className="group relative rounded-lg border p-3 hover:bg-accent/40 hover:shadow-sm transition-all ring-1 ring-transparent hover:ring-primary/20 bg-card/50 backdrop-blur-sm">
+                                    <span className={`absolute left-0 top-0 h-full w-1 rounded-l-md ${priorityTheme[task.priority ?? 'low'].bar}`} />
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className="text-sm font-medium truncate leading-5">{task.title}</div>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                          {task.project_title && (
+                                            <span className="inline-flex items-center max-w-[180px] truncate rounded-full border px-2 py-0.5 bg-muted/40">{task.project_title}</span>
+                                          )}
+                                          {task.due_date && (
+                                            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                                              <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                                              {new Date(task.due_date).toLocaleDateString('tr-TR')}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${priorityTheme[task.priority ?? 'low'].chip}`}>
+                                        <span className={`h-2 w-2 rounded-full ${priorityTheme[task.priority ?? 'low'].dot}`} />
+                                        {task.priority}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
                           </div>
-                        </Link>
-                    ))}
-                    {myTasks.filter(t => t.status === 'todo').length === 0 && (
-                      <div className="text-sm text-muted-foreground">{t('dashboard.empty.backlog')}</div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )
+            })}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Yeni Görev Modalı */}
+      <Dialog open={taskModalOpen} onOpenChange={(open) => {
+        setTaskModalOpen(open)
+        if (open) {
+          const def = projectFilter !== 'all' ? projectFilter : (projects[0]?.id ?? '')
+          setNewTaskProjectId(def)
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni Görev</DialogTitle>
+          </DialogHeader>
+          {projects.length === 0 ? (
+            <div className="text-sm text-muted-foreground">Önce bir proje oluşturun.</div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Proje</div>
+                <Select value={newTaskProjectId} onValueChange={setNewTaskProjectId}>
+                  <SelectTrigger><SelectValue placeholder="Proje seçin" /></SelectTrigger>
+                  <SelectContent>
+                    {projects.map(p => (<SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {newTaskProjectId && (
+                <NewTaskForm
+                  projectId={newTaskProjectId}
+                  onCreated={() => { setTaskModalOpen(false) }}
+                  onCancel={() => setTaskModalOpen(false)}
+                />
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

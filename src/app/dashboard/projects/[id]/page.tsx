@@ -25,6 +25,12 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from '../../../../components/ui/alert-dialog';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../../../components/ui/dialog';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import { 
   Edit, 
@@ -37,7 +43,8 @@ import {
   Folder,
   Archive,
   CheckCircle,
-  Clock
+  Clock,
+  Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -56,6 +63,8 @@ export default function ProjectDetailPage() {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskListKey, setTaskListKey] = useState(0);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -218,6 +227,10 @@ export default function ProjectDetailPage() {
                 </>
               ) : (
                 <>
+                  <Button onClick={() => setTaskModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('project.tasks.createTitle')}
+                  </Button>
                   <Button onClick={() => setEditing(true)}>
                     <Edit className="h-4 w-4 mr-2" />
                     {t('common.edit')}
@@ -417,31 +430,25 @@ export default function ProjectDetailPage() {
 
         {/* Görevler Bölümü */}
         <section>
-          {showTaskForm ? (
-            <Card>
-              <CardHeader>
-              <CardTitle className="text-lg">{t('project.tasks.createTitle')}</CardTitle>
-              <CardDescription>{t('project.tasks.createDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <NewTaskForm
-                    projectId={projectId}
-                  onCreated={() => {
-                    setShowTaskForm(false);
-                    // Görev listesini yenilemek için key değiştir
-                    setProject({ ...project! });
-                  }}
-                  onCancel={() => setShowTaskForm(false)}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <TaskList
-              projectId={projectId}
-              onCreateNew={() => setShowTaskForm(true)}
-            />
-          )}
+          <TaskList key={taskListKey} projectId={projectId} onCreateNew={() => setTaskModalOpen(true)} />
         </section>
+
+        {/* Yeni Görev Modalı */}
+        <Dialog open={taskModalOpen} onOpenChange={setTaskModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('project.tasks.createTitle')}</DialogTitle>
+            </DialogHeader>
+            <NewTaskForm
+              projectId={projectId}
+              onCreated={() => {
+                setTaskModalOpen(false)
+                setTaskListKey((k) => k + 1)
+              }}
+              onCancel={() => setTaskModalOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Diğer Özellikler - kaldırıldı, ayarlar modala taşındı */}
     </div>

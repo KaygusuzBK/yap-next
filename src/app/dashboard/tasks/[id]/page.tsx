@@ -22,7 +22,7 @@ import {
   Loader2,
   Folder
 } from 'lucide-react';
-import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, type Task, type TaskComment, type TaskFile } from '../../../../features/tasks/api';
+import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, fetchTaskActivities, fetchTaskTimeLogs, fetchProjectStatuses, addTimeLog, startTimeLog, stopTimeLog, type Task, type TaskComment, type TaskFile, type TaskActivity, type TaskTimeLog, type ProjectTaskStatus } from '../../../../features/tasks/api';
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
 import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
@@ -60,6 +60,14 @@ export default function TaskDetailPage() {
   const [ogPreview, setOgPreview] = useState<{ url: string; title?: string; description?: string; image?: string; siteName?: string } | null>(null)
   const [showEmoji, setShowEmoji] = useState(false)
   const [mentionRecents, setMentionRecents] = useState<string[]>([])
+  const [activities, setActivities] = useState<TaskActivity[]>([])
+  const [timeLogs, setTimeLogs] = useState<TaskTimeLog[]>([])
+  const [projectStatuses, setProjectStatuses] = useState<ProjectTaskStatus[]>([])
+  const [logModalOpen, setLogModalOpen] = useState(false)
+  const [logStart, setLogStart] = useState<string>('')
+  const [logEnd, setLogEnd] = useState<string>('')
+  const [logDesc, setLogDesc] = useState<string>('')
+  const [logSaving, setLogSaving] = useState(false)
 
   const loadTask = useCallback(async () => {
     try {
@@ -90,8 +98,28 @@ export default function TaskDetailPage() {
       fetchComments(taskId).then(setComments).catch(() => {});
       // load files
       listTaskFiles(taskId).then(setFiles).catch(() => {});
+      // load history
+      fetchTaskActivities(taskId)
+        .then(setActivities)
+        .catch((e) => { console.error('Aktiviteler yüklenemedi', e); toast.error('Aktiviteler yüklenemedi'); });
+      fetchTaskTimeLogs(taskId)
+        .then(setTimeLogs)
+        .catch((e) => { console.error('Zaman kayıtları yüklenemedi', e); });
     }
   }, [taskId, loadTask]);
+
+  // Load project-specific status definitions for labels/colors
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!task) return
+        const defs = await fetchProjectStatuses(task.project_id)
+        setProjectStatuses(defs)
+      } catch {
+        // noop
+      }
+    })()
+  }, [task])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!task) return;
@@ -294,19 +322,18 @@ export default function TaskDetailPage() {
     }
   };
 
-  const getStatusText = (status: Task['status']) => {
-    switch (status) {
-      case 'todo':
-        return t('taskStatus.todo') || 'Todo';
-      case 'in_progress':
-        return t('taskStatus.in_progress') || 'In Progress';
-      case 'review':
-        return t('taskStatus.review') || 'Review';
-      case 'completed':
-        return t('taskStatus.completed') || 'Completed';
-      default:
-        return status;
-    }
+  const getStatusText = (status: string) => {
+    // Prefer project-defined label
+    const map: Record<string, string> = Object.fromEntries(projectStatuses.map(s => [s.key, s.label]))
+    if (map[status]) return map[status]
+    // i18n keys support
+    if (status.startsWith('taskStatus.')) return t(status)
+    // Fallback to base keys
+    if (status === 'todo') return t('taskStatus.todo') || 'Todo'
+    if (status === 'in_progress') return t('taskStatus.in_progress') || 'In Progress'
+    if (status === 'review') return t('taskStatus.review') || 'Review'
+    if (status === 'completed') return t('taskStatus.completed') || 'Completed'
+    return status
   };
 
   const getPriorityBadge = (priority: Task['priority']) => {
@@ -335,6 +362,13 @@ export default function TaskDetailPage() {
     });
   };
 
+  const getUserLabelById = (userId?: string | null): string => {
+    if (!userId) return '—'
+    const m = projectMembers.find(x => x.id === userId)
+    if (m) return m.name || (m.email?.split('@')[0] ?? m.email) || userId
+    return userId
+  }
+
   const getDaysRemaining = (dueDate: string) => {
     const due = new Date(dueDate);
     const now = new Date();
@@ -358,6 +392,109 @@ export default function TaskDetailPage() {
     if (diffDays <= 3) return 'text-yellow-600';
     return 'text-green-600';
   };
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    if (hours > 0) return `${hours}sa ${minutes}dk ${secs}sn`
+    if (minutes > 0) return `${minutes}dk ${secs}sn`
+    return `${secs}sn`
+  }
+
+  // De-duplicate activities that are effectively the same (double triggers)
+  const cleanActivities = React.useMemo(() => {
+    const seen = new Set<string>()
+    const list: TaskActivity[] = []
+    for (const a of activities) {
+      const det = a.details as Record<string, unknown> | null
+      const st = det && typeof det === 'object' ? (det.status as { old?: string; new?: string } | string | undefined) : undefined
+      let key = `${a.created_at}|${a.action}`
+      if (typeof st === 'string') key += `|${st}`
+      else if (st && typeof st === 'object') key += `|${st.old ?? ''}->${st.new ?? ''}`
+      if (!seen.has(key)) { seen.add(key); list.push(a) }
+    }
+    return list
+  }, [activities])
+
+  const computeStatusDurations = React.useMemo(() => {
+    // derive status change moments from activities where details.status exists
+    type Change = { at: string; from?: string | null; to?: string | null }
+    const changes: Change[] = []
+    for (const a of cleanActivities) {
+      const detailsObj = a.details as Record<string, unknown> | null
+      const stField = detailsObj && typeof detailsObj === 'object' ? (detailsObj.status as { old?: string; new?: string } | string | undefined) : undefined
+      if (stField && typeof stField === 'object' && (stField.old !== stField.new)) {
+        changes.push({ at: a.created_at, from: stField.old ?? undefined, to: stField.new ?? undefined })
+      }
+    }
+    // Include creation as starting point with initial status if available from task
+    if (task) {
+      const createdAt = cleanActivities.find(a => a.action === 'task_created')?.created_at || task.created_at
+      // Try to read initial status from created activity details
+      let initialStatus: string = task.status
+      const created = cleanActivities.find(a => a.action === 'task_created')
+      const d = (created?.details as Record<string, unknown> | null) ?? null
+      const stField = d && typeof d === 'object' ? (d as Record<string, unknown>)['status'] : undefined
+      if (typeof stField === 'string') initialStatus = stField
+      else if (stField && typeof stField === 'object') {
+        const obj = stField as { old?: string; new?: string }
+        if (typeof obj.new === 'string') initialStatus = obj.new
+      }
+      changes.unshift({ at: createdAt, to: initialStatus })
+    }
+    // sort by time
+    changes.sort((a,b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+    // accumulate durations until next change; last segment until now or task.updated_at
+    const durations: Record<string, number> = {}
+    for (let i = 0; i < changes.length; i++) {
+      const current = changes[i]
+      const next = changes[i+1]
+      const statusKey = current.to || task?.status || 'unknown'
+      const start = new Date(current.at).getTime()
+      const end = next ? new Date(next.at).getTime() : Date.now()
+      const delta = Math.max(0, Math.floor((end - start) / 1000))
+      durations[statusKey] = (durations[statusKey] || 0) + delta
+    }
+    return durations
+  }, [cleanActivities, task])
+
+  const historySummary = React.useMemo(() => {
+    if (!task) return null
+    type Change = { at: string; from?: string | null; to?: string | null }
+    const changes: Change[] = []
+    for (const a of cleanActivities) {
+      const detailsObj = a.details as Record<string, unknown> | null
+      const stField = detailsObj && typeof detailsObj === 'object' ? (detailsObj.status as { old?: string; new?: string } | string | undefined) : undefined
+      if (stField && typeof stField === 'object') {
+        const obj = stField as { old?: string; new?: string }
+        if (obj.old !== obj.new) {
+          changes.push({ at: a.created_at, from: obj.old ?? undefined, to: obj.new ?? undefined })
+        }
+      }
+    }
+    const createdAt = cleanActivities.find(a => a.action === 'task_created')?.created_at || task.created_at
+    const initialStatus = (() => {
+      const created = cleanActivities.find(a => a.action === 'task_created')
+      const d = (created?.details as Record<string, unknown> | null) ?? null
+      const sf = d && typeof d === 'object' ? (d as Record<string, unknown>)['status'] : undefined
+      if (typeof sf === 'string') return sf
+      if (sf && typeof sf === 'object') {
+        const obj = sf as { old?: string; new?: string }
+        if (typeof obj.new === 'string') return obj.new
+      }
+      return task.status
+    })()
+    changes.sort((a,b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+    const finished = changes.find(c => c.to === 'completed')
+    const last = changes[changes.length - 1]
+    return {
+      startedAt: createdAt,
+      startedStatus: initialStatus as string,
+      finishedAt: finished ? finished.at : (last ? last.at : task.updated_at),
+      finishedStatus: finished ? 'completed' : (last?.to || task.status),
+    }
+  }, [cleanActivities, task])
 
   if (loading) {
     return (
@@ -707,10 +844,149 @@ export default function TaskDetailPage() {
                   <CardTitle>{t('task.history.title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('task.history.empty')}</p>
-                    <p className="text-sm">{t('task.history.info')}</p>
+                  {/* Brief summary */}
+                  {historySummary && (
+                    <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                      <div className="rounded border p-2">
+                        <div className="text-muted-foreground">Başlangıç</div>
+                        <div className="font-medium">{new Date(historySummary.startedAt).toLocaleString('tr-TR')}</div>
+                        <div className="text-xs text-muted-foreground">{getStatusText(historySummary.startedStatus as Task['status'])}</div>
+                      </div>
+                      <div className="rounded border p-2">
+                        <div className="text-muted-foreground">Bitiş</div>
+                        <div className="font-medium">{new Date(historySummary.finishedAt).toLocaleString('tr-TR')}</div>
+                        <div className="text-xs text-muted-foreground">{getStatusText(historySummary.finishedStatus as Task['status'])}</div>
+                      </div>
+                      <div className="rounded border p-2">
+                        <div className="text-muted-foreground">Toplam Süre</div>
+                        <div className="font-medium">
+                          {(() => {
+                            const start = new Date(historySummary.startedAt).getTime()
+                            const end = new Date(historySummary.finishedAt).getTime()
+                            return formatDuration(Math.max(0, Math.floor((end - start) / 1000)))
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Status durations summary */}
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-2">Durumlarda Harcanan Süre</h4>
+                    {Object.keys(computeStatusDurations).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Henüz durum geçişi yok</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {Object.entries(computeStatusDurations).map(([status, secs]) => (
+                          <div key={status} className="flex items-center justify-between rounded border p-2 text-sm">
+                            <span>{getStatusText(status as Task['status'])}</span>
+                            <span className="text-muted-foreground">{formatDuration(secs)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Time logs */}
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-2">Zaman Kayıtları</h4>
+                    {timeLogs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Kayıt yok</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {timeLogs.map(log => (
+                          <li key={log.id} className="rounded border p-2 text-sm">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="font-medium">{log.actor_name || log.actor_email || log.user_id}</span>
+                                <span className="text-muted-foreground"> • {new Date(log.start_time).toLocaleString('tr-TR')}</span>
+                                {log.end_time && (
+                                  <span className="text-muted-foreground"> → {new Date(log.end_time).toLocaleString('tr-TR')}</span>
+                                )}
+                              </div>
+                              <div className="text-muted-foreground whitespace-nowrap">{formatDuration(log.duration_seconds || 0)}</div>
+                            </div>
+                            {log.description && (
+                              <div className="text-xs text-muted-foreground mt-1 break-words">{log.description}</div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Activity timeline */}
+                  <div>
+                    <h4 className="font-medium mb-2">Aktivite Geçmişi</h4>
+                    {activities.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>{t('task.history.empty')}</p>
+                        <p className="text-sm">{t('task.history.info')}</p>
+                      </div>
+                    ) : (
+                      <ul className="space-y-3">
+                        {cleanActivities.map(a => {
+                          const when = new Date(a.created_at).toLocaleString('tr-TR')
+                          const who = a.actor_name || a.actor_email || a.user_id
+                          let description: string = a.action
+                          // Try to format known actions
+                          if (a.action === 'task_created') description = 'Görev oluşturuldu'
+                          if (a.action === 'task_updated') description = 'Görev güncellendi'
+                          if (a.action === 'task_deleted') description = 'Görev silindi'
+                          if (a.action === 'task_assigned') description = 'Görev atandı'
+                          if (a.action === 'comment_added') description = 'Yorum eklendi'
+                          // Status change pretty details
+                          const det = a.details as Record<string, unknown> | null
+                          const st = det && typeof det === 'object' ? (det.status as { old?: string; new?: string } | string | undefined) : undefined
+                          return (
+                            <li key={a.id} className="border rounded p-3">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>{who}</span>
+                                <span>{when}</span>
+                              </div>
+                              <div className="mt-1 text-sm">
+                                <div className="font-medium">{description}</div>
+                                {typeof st === 'object' && st && (
+                                  <div className="text-xs mt-1">Durum: {getStatusText(st.old ?? 'todo')} → {getStatusText(st.new ?? 'todo')}</div>
+                                )}
+                                {/* Pretty-print other fields */}
+                                {a.details && (
+                                  (() => {
+                                    const d = det || {}
+                                    const entries = Object.entries(d).filter(([k]) => k !== 'status')
+                                    if (entries.length === 0) return null
+                                    return (
+                                      <div className="mt-2 space-y-1">
+                                        {entries.map(([k, v]) => {
+                                          if (k === 'assigned_to') {
+                                            return <div key={k} className="text-xs text-muted-foreground">Atanan: {getUserLabelById(String(v))}</div>
+                                          }
+                                          if (k === 'previous_assignee') {
+                                            return <div key={k} className="text-xs text-muted-foreground">Önceki Atanan: {getUserLabelById(v as string | null)}</div>
+                                          }
+                                          if (k === 'due_date' && v && typeof v === 'object') {
+                                            const obj = v as { old?: string | null; new?: string | null }
+                                            return (
+                                              <div key={k} className="text-xs text-muted-foreground">Bitiş Tarihi: {obj.old ? new Date(obj.old).toLocaleString('tr-TR') : '—'} → {obj.new ? new Date(obj.new).toLocaleString('tr-TR') : '—'}</div>
+                                            )
+                                          }
+                                          // generic fallback
+                                          return (
+                                            <div key={k} className="text-xs text-muted-foreground break-words">
+                                              {k}: {typeof v === 'string' ? v : JSON.stringify(v)}
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    )
+                                  })()
+                                )}
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -738,6 +1014,53 @@ export default function TaskDetailPage() {
                 <Clock className="h-4 w-4 mr-2" />
                 {t('task.quick.logTime')}
               </Button>
+              <Button variant="outline" className="w-full justify-start hidden" />
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  const nowIso = new Date().toISOString().slice(0,16)
+                  setLogStart(nowIso)
+                  setLogEnd('')
+                  setLogDesc('')
+                  setLogModalOpen(true)
+                }}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Çalışma Süresi Ekle
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      if (!task) return
+                      const created = await startTimeLog(task.id)
+                      setTimeLogs((prev) => [...prev, created])
+                      toast.success('Zaman takibi başlatıldı')
+                    } catch {
+                      toast.error('Başlatılamadı')
+                    }
+                  }}
+                >Başlat</Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      if (!task) return
+                      const updated = await stopTimeLog(task.id)
+                      if (updated) {
+                        setTimeLogs((prev) => prev.map(x => x.id === updated.id ? updated : x))
+                        toast.success('Zaman takibi durduruldu')
+                      } else {
+                        toast.error('Açık bir kayıt bulunamadı')
+                      }
+                    } catch {
+                      toast.error('Durdurulamadı')
+                    }
+                  }}
+                >Durdur</Button>
+              </div>
               <Button variant="outline" className="w-full justify-start">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {t('task.quick.addComment')}
@@ -805,6 +1128,67 @@ export default function TaskDetailPage() {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Zaman Kaydı Modalı */}
+      <Dialog open={logModalOpen} onOpenChange={setLogModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Çalışma Süresi Ekle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm">Başlangıç</label>
+              <input
+                type="datetime-local"
+                className="border rounded px-2 py-1 text-sm w-full"
+                value={logStart}
+                onChange={(e) => setLogStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm">Bitiş (opsiyonel)</label>
+              <input
+                type="datetime-local"
+                className="border rounded px-2 py-1 text-sm w-full"
+                value={logEnd}
+                onChange={(e) => setLogEnd(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm">Açıklama (opsiyonel)</label>
+              <textarea
+                className="border rounded px-2 py-1 text-sm w-full"
+                rows={3}
+                value={logDesc}
+                onChange={(e) => setLogDesc(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setLogModalOpen(false)}>Vazgeç</Button>
+              <Button
+                onClick={async () => {
+                  if (!task || !logStart) return
+                  try {
+                    setLogSaving(true)
+                    const startIso = new Date(logStart).toISOString()
+                    const endIso = logEnd ? new Date(logEnd).toISOString() : undefined
+                    const created = await addTimeLog(task.id, { start_time: startIso, end_time: endIso, description: logDesc || undefined })
+                    setTimeLogs((prev) => [...prev, created])
+                    setLogModalOpen(false)
+                  } catch (e) {
+                    toast.error('Zaman kaydı eklenemedi')
+                  } finally {
+                    setLogSaving(false)
+                  }
+                }}
+                disabled={logSaving || !logStart}
+              >
+                {logSaving ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Kaydediliyor</>) : 'Kaydet'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
