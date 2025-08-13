@@ -41,6 +41,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/i18n/I18nProvider';
+import ProjectStatusChart from '@/features/tasks/components/ProjectStatusChart'
+import ProjectCycleTime from '@/features/tasks/components/ProjectCycleTime'
+import ReviewSlaAlerts from '@/features/tasks/components/ReviewSlaAlerts'
 
 export default function ProjectDetailPage() {
   const { t, locale } = useI18n();
@@ -411,6 +414,37 @@ export default function ProjectDetailPage() {
                   </span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Metrikler */}
+        <section className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Durumda Ortalama Süre</CardTitle>
+              <CardDescription>Görevlerin statülerde geçirdiği ortalama süre</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProjectStatusChart projectId={projectId} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Çevrim Süresi</CardTitle>
+              <CardDescription>İlk {"in_progress"} → {"completed"} arası ortalama</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProjectCycleTime projectId={projectId} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>SLA Uyarıları</CardTitle>
+              <CardDescription>Review aşamasında 2+ gün kalan görevler</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ReviewSlaAlerts projectId={projectId} />
             </CardContent>
           </Card>
         </section>

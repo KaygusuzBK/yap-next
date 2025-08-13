@@ -26,12 +26,14 @@ import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComm
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
 import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
-import {
+import { 
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '../../../../components/ui/dialog';
+import TimeLogPanel from '@/features/tasks/components/TimeLogPanel'
+import TaskHistory from '@/features/tasks/components/TaskHistory'
 import { useI18n } from '@/i18n/I18nProvider';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 // import Image from 'next/image';
@@ -707,11 +709,7 @@ export default function TaskDetailPage() {
                   <CardTitle>{t('task.history.title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('task.history.empty')}</p>
-                    <p className="text-sm">{t('task.history.info')}</p>
-                  </div>
+                  {task && <TaskHistory taskId={task.id} />}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -738,6 +736,11 @@ export default function TaskDetailPage() {
                 <Clock className="h-4 w-4 mr-2" />
                 {t('task.quick.logTime')}
               </Button>
+              {task && (
+                <div className="border rounded p-3">
+                  <TimeLogPanel taskId={task.id} />
+                </div>
+              )}
               <Button variant="outline" className="w-full justify-start">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {t('task.quick.addComment')}

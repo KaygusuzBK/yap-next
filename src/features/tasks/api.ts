@@ -606,4 +606,48 @@ export async function deleteTaskFile(path: string): Promise<void> {
   if (error) throw error;
 }
 
+// Time logs
+export type TaskTimeLog = {
+  id: string
+  task_id: string
+  user_id: string
+  start_time: string
+  end_time: string | null
+  description: string | null
+  created_at: string
+}
+
+export async function listTimeLogs(taskId: string): Promise<TaskTimeLog[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('task_time_logs')
+    .select('id, task_id, user_id, start_time, end_time, description, created_at')
+    .eq('task_id', taskId)
+    .order('start_time', { ascending: false })
+  if (error) throw error
+  return (data as TaskTimeLog[]) ?? []
+}
+
+export async function addTimeLog(input: { task_id: string; start_time: string; end_time?: string | null; description?: string | null }): Promise<TaskTimeLog> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+  const { data, error } = await supabase
+    .from('task_time_logs')
+    .insert({ task_id: input.task_id, user_id: user.id, start_time: input.start_time, end_time: input.end_time ?? null, description: input.description ?? null })
+    .select('id, task_id, user_id, start_time, end_time, description, created_at')
+    .single()
+  if (error) throw error
+  return data as TaskTimeLog
+}
+
+export async function deleteTimeLog(id: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('task_time_logs')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +24,8 @@ export default function TaskEditForm({ task, projectId, onSaved, onCancel }: Tas
   const [description, setDescription] = useState(task.description || '');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>(task.priority);
   const [status, setStatus] = useState<string>(task.status);
-  const [dueDate, setDueDate] = useState(task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '');
+  const [dueDate, setDueDate] = useState<string>(task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '');
+  const [openCal, setOpenCal] = useState(false)
   const [loading, setLoading] = useState(false);
   const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null)
 
@@ -133,14 +135,28 @@ export default function TaskEditForm({ task, projectId, onSaved, onCancel }: Tas
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="dueDate">Bitiş Tarihi</Label>
-          <Input
-            id="dueDate"
-            type="datetime-local"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            disabled={loading}
-          />
+          <Label>Bitiş Tarihi</Label>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpenCal((v) => !v)} disabled={loading}>
+              Tarih Seç
+            </Button>
+            <span className="text-sm text-muted-foreground">{dueDate ? new Date(dueDate).toLocaleString('tr-TR') : '—'}</span>
+          </div>
+          {openCal && (
+            <div className="p-2 border rounded-md">
+              <Calendar
+                mode="single"
+                selected={dueDate ? new Date(dueDate) : undefined}
+                onSelect={(d) => {
+                  if (d) {
+                    const iso = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16)
+                    setDueDate(iso)
+                  }
+                  setOpenCal(false)
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 pt-4">

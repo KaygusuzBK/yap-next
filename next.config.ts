@@ -9,6 +9,24 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: false,
   },
   headers: async () => {
+    const isDev = process.env.NODE_ENV !== 'production'
+    const scriptSrc = isDev
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;"
+      : "script-src 'self' https: 'strict-dynamic';"
+    const csp = [
+      "default-src 'self';",
+      "base-uri 'self';",
+      "object-src 'none';",
+      "img-src 'self' data: https:;",
+      "media-src 'self' https:;",
+      "font-src 'self' https: data:;",
+      scriptSrc,
+      "style-src 'self' 'unsafe-inline' https:;",
+      "connect-src 'self' https: wss:;",
+      "frame-ancestors 'self';",
+      "form-action 'self';",
+      'upgrade-insecure-requests;'
+    ].join(' ')
     return [
       {
         source: '/:path*',
@@ -20,8 +38,8 @@ const nextConfig: NextConfig = {
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-          // Basic CSP; consider tightening with hashes/nonces for inline content
-          { key: 'Content-Security-Policy', value: "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: https:; media-src 'self' https:; font-src 'self' https: data:; script-src 'self' https: 'strict-dynamic'; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https: wss:; frame-ancestors 'self'; form-action 'self'; upgrade-insecure-requests;" },
+          // CSP (dev: allow inline/eval for HMR; prod: strict-dynamic)
+          { key: 'Content-Security-Policy', value: csp },
         ],
       },
     ]
