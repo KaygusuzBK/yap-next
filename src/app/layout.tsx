@@ -28,13 +28,18 @@ export const metadata: Metadata = {
   description: "Modern proje yönetimi platformu",
 };
 
+export const viewport = {
+  themeColor: '#111827',
+  colorScheme: 'light dark',
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

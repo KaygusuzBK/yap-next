@@ -21,8 +21,10 @@ export async function POST(req: NextRequest) {
     return new Response('Signature verification failed', { status: 401 })
   }
 
-  const text = new URLSearchParams(raw).get('text') || ''
-  const responseUrl = new URLSearchParams(raw).get('response_url') || ''
+  const params = new URLSearchParams(raw)
+  const text = params.get('text') || ''
+  const responseUrl = params.get('response_url') || ''
+  const channelId = params.get('channel_id') || ''
 
   // Parse command (robust): Proje ID olarak metin içindeki ilk UUID'i bul
   // Örnek metinler:
@@ -72,6 +74,17 @@ export async function POST(req: NextRequest) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ response_type: 'in_channel', text: `Yeni görev oluşturuldu: ${title} (ID: ${task.id})` })
   }).catch(() => {})
+
+  // Optional: store channel id to project if empty (to enable future notifications)
+  try {
+    if (channelId) {
+      await supabase
+        .from('projects')
+        .update({ slack_channel_id: channelId })
+        .eq('id', project_id)
+        .is('slack_channel_id', null)
+    }
+  } catch {}
 
   return Response.json({ response_type: 'ephemeral', text: 'Görev oluşturuluyor...' })
 }
