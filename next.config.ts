@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     const isDev = process.env.NODE_ENV !== 'production'
     const scriptSrc = isDev
       ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;"
-      : "script-src 'self' 'unsafe-inline' https:;"
+      : "script-src 'self' 'unsafe-inline' https: vercel.live vercel-insights.com;"
     const csp = [
       "default-src 'self';",
       "base-uri 'self';",
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       "font-src 'self' https: data:;",
       scriptSrc,
       "style-src 'self' 'unsafe-inline' https:;",
-      "connect-src 'self' https: wss:;",
+      "connect-src 'self' https: wss: vercel.live vercel-insights.com;",
       "frame-ancestors 'self';",
       "form-action 'self';",
       'upgrade-insecure-requests;'
