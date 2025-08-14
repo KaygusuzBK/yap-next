@@ -60,7 +60,7 @@ export async function fetchTeams(): Promise<Team[]> {
     .select(`
       *,
       member_count:team_members(count),
-      project_count:projects(count)
+      project_count:projects!projects_team_id_fkey(count)
     `)
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false });
@@ -74,7 +74,7 @@ export async function fetchTeams(): Promise<Team[]> {
       teams (
         *,
         member_count:team_members(count),
-        project_count:projects(count)
+        project_count:projects!projects_team_id_fkey(count)
       )
     `)
     .eq('user_id', user.id)
@@ -721,6 +721,103 @@ export async function getTeamInvitations(teamId: string) {
     console.warn('Takım davetleri yüklenirken hata:', error);
     return [];
   }
+}
+
+export async function deleteTeam(team_id: string): Promise<void> {
+  const supabase = getSupabase();
+  
+  // Yetki kontrolü - sadece takım sahibi silebilir
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış');
+  
+  const { data: team } = await supabase
+    .from('teams')
+    .select('owner_id')
+    .eq('id', team_id)
+    .single();
+    
+  if (!team || team.owner_id !== user.id) {
+    throw new Error('Bu işlem için yetkiniz yok. Sadece takım sahibi takımı silebilir.');
+  }
+  
+  const { error } = await supabase
+    .from('teams')
+    .delete()
+    .eq('id', team_id);
+    
+  if (error) throw error;
+}
+
+export async function updateTeamName(input: { team_id: string; name: string }): Promise<Team> {
+  const supabase = getSupabase();
+  
+  // Yetki kontrolü - takım sahibi veya admin isim değiştirebilir
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış');
+  
+  const { data: team } = await supabase
+    .from('teams')
+    .select('owner_id')
+    .eq('id', input.team_id)
+    .single();
+    
+  const { data: membership } = await supabase
+    .from('team_members')
+    .select('role')
+    .eq('team_id', input.team_id)
+    .eq('user_id', user.id)
+    .single();
+    
+  if (!team || (!membership && team.owner_id !== user.id) || 
+      (membership && !['owner', 'admin'].includes(membership.role) && team.owner_id !== user.id)) {
+    throw new Error('Bu işlem için yetkiniz yok');
+  }
+  
+  const { data, error } = await supabase
+    .from('teams')
+    .update({ name: input.name })
+    .eq('id', input.team_id)
+    .select('*')
+    .single();
+    
+  if (error) throw error;
+  return data as Team;
+}
+
+export async function setTeamPrimaryProject(input: { team_id: string; project_id: string | null }): Promise<Team> {
+  const supabase = getSupabase();
+  
+  // Yetki kontrolü - takım sahibi veya admin birincil proje ayarlayabilir
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış');
+  
+  const { data: team } = await supabase
+    .from('teams')
+    .select('owner_id')
+    .eq('id', input.team_id)
+    .single();
+    
+  const { data: membership } = await supabase
+    .from('team_members')
+    .select('role')
+    .eq('team_id', input.team_id)
+    .eq('user_id', user.id)
+    .single();
+    
+  if (!team || (!membership && team.owner_id !== user.id) || 
+      (membership && !['owner', 'admin'].includes(membership.role) && team.owner_id !== user.id)) {
+    throw new Error('Bu işlem için yetkiniz yok');
+  }
+  
+  const { data, error } = await supabase
+    .from('teams')
+    .update({ primary_project_id: input.project_id })
+    .eq('id', input.team_id)
+    .select('*')
+    .single();
+    
+  if (error) throw error;
+  return data as Team;
 }
 
 

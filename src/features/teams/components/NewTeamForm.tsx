@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Input from '@/components/ui/input';
-import Textarea from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
