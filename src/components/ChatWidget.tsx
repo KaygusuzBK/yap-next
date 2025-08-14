@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { usePathname } from "next/navigation"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = React.useState(false)
@@ -17,6 +18,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = React.useState<{ role: "user" | "bot"; content: string }[]>([])
   const { user } = useAuth()
   const pathname = usePathname()
+  const isMobile = useIsMobile()
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const botName = React.useMemo(() => process.env.NEXT_PUBLIC_BOT_NAME || "YAP_BOT", [])
   const userDisplay = React.useMemo(() => {
@@ -232,16 +234,19 @@ export default function ChatWidget() {
         </Card>
       )}
 
-      <div className="flex justify-start mt-3 md:justify-end">
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
-          aria-label="Mesaj gönder"
-          onClick={() => setIsOpen((v) => !v)}
-        >
-          <MessageSquare className="h-6 w-6" />
-        </Button>
-      </div>
+      {/* Chat Button - Sadece desktop'ta göster */}
+      {!isMobile && (
+        <div className="flex justify-start mt-3 md:justify-end">
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+            aria-label="Mesaj gönder"
+            onClick={() => setIsOpen((v) => !v)}
+          >
+            <MessageSquare className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
