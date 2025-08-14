@@ -129,7 +129,7 @@ export default function ChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[60]">
+    <div className="fixed z-[60] bottom-20 left-4 right-auto md:bottom-4 md:right-4 md:left-auto">
       {isOpen && (
         <Card className="w-[380px] sm:w-[420px] shadow-xl border bg-background/95 backdrop-blur">
           <CardHeader className="py-3 px-4 flex-row items-center justify-between">
@@ -225,7 +225,7 @@ export default function ChatWidget() {
         </Card>
       )}
 
-      <div className="flex justify-end mt-3">
+      <div className="flex justify-start mt-3 md:justify-end">
         <Button
           size="icon"
           className="h-12 w-12 rounded-full shadow-lg"
