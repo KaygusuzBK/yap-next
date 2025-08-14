@@ -12,6 +12,7 @@ import QueryProvider from "@/components/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ChatWidget from "@/components/ChatWidget";
+import { usePathname } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,19 +36,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthTree>
           <Navbar />
-          {/* Mobile header is rendered inside dashboard pages by Navbar returning null there; include explicitly */}
-          {/* MobileHeader will self-hide on non-dashboard paths */}
-          {/* eslint-disable-next-line react/jsx-no-undef */}
-          {/* <MobileHeader /> */}
           <QueryProvider>
             <AppFrame>{children}</AppFrame>
             <CommandMenu />
-            <ChatWidget />
+            <ChatWidgetGuard />
           </QueryProvider>
         </AuthTree>
         <Toaster richColors position="top-center" />
@@ -71,4 +66,11 @@ function ClientAuthProvider({ children }: { children: React.ReactNode }) {
       </I18nProvider>
     </ThemeProvider>
   );
+}
+
+function ChatWidgetGuard() {
+  const pathname = usePathname();
+  const show = pathname?.startsWith("/dashboard") === true;
+  if (!show) return null;
+  return <ChatWidget />;
 }
