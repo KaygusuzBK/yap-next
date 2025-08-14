@@ -23,6 +23,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setProfile = useUserStore(s => s.setProfile)
   const router = useRouter();
 
+  // Fire-and-forget: sync pending team invitations into notifications
+  const syncInvites = async (u: User) => {
+    if (!u?.id || !u.email) return;
+    try {
+      await fetch('/api/notifications/sync-invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: u.id, email: u.email })
+      });
+    } catch {}
+  }
+
   useEffect(() => {
     const supabase = getSupabase();
 
@@ -42,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
         const email = u?.email ?? ''
         if (fullName || email) setProfile(fullName || 'Kullanıcı', email || '—')
+        if (u && email) syncInvites(u)
       } finally {
         setLoading(false);
       }
@@ -61,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const fullName = u ? (getMetaString(u.user_metadata, 'full_name') || getMetaString(u.user_metadata, 'name')) : ''
       const email = u?.email ?? ''
       if (fullName || email) setProfile(fullName || 'Kullanıcı', email || '—')
+      if (u && email) syncInvites(u)
     });
 
     return () => {

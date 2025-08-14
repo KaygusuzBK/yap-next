@@ -41,7 +41,7 @@ import {
   Crown
 } from 'lucide-react';
 import Input from '@/components/ui/input';
-import Textarea from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 import type { ChangeEvent } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
