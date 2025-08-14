@@ -40,7 +40,7 @@ export default function QuickTaskCreator() {
   const [statusKey, setStatusKey] = React.useState<string>("")
   const [priority, setPriority] = React.useState<'low' | 'medium' | 'high' | 'urgent'>("medium")
   const [dueDateLocal, setDueDateLocal] = React.useState<string>("")
-  const [assigneeId, setAssigneeId] = React.useState<string>("")
+  const [assigneeId, setAssigneeId] = React.useState<string>("unassigned")
   const [notifySlack, setNotifySlack] = React.useState<boolean>(false)
   const [webhookUrl, setWebhookUrl] = React.useState<string>(process.env.NEXT_PUBLIC_SLACK_WEBHOOK_URL || "")
   const [calendarOpen, setCalendarOpen] = React.useState(false)
@@ -70,7 +70,7 @@ export default function QuickTaskCreator() {
       setStatuses([])
       setMembers([])
       setStatusKey("")
-      setAssigneeId("")
+      setAssigneeId("unassigned")
       return
     }
     void (async () => {
@@ -103,7 +103,7 @@ export default function QuickTaskCreator() {
     setStatusKey("")
     setPriority("medium")
     setDueDateLocal("")
-    setAssigneeId("")
+    setAssigneeId("unassigned")
     setNotifySlack(false)
     setWebhookUrl("")
   }
@@ -131,7 +131,7 @@ export default function QuickTaskCreator() {
         notifySlack: notifySlack || undefined,
         slackWebhookUrl: notifySlack && webhookUrl ? webhookUrl : undefined,
       })
-      if (assigneeId) {
+      if (assigneeId && assigneeId !== "unassigned") {
         try { await assignTaskToUser(task.id, assigneeId) } catch {}
       }
       toast.success("Görev oluşturuldu")
@@ -264,7 +264,7 @@ export default function QuickTaskCreator() {
                     <SelectValue placeholder={loadingMembers ? "Yükleniyor..." : "Seç (opsiyonel)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Seçme</SelectItem>
+                    <SelectItem value="unassigned">Seçme</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.id} value={m.id}>{m.name || m.email}</SelectItem>
                     ))}
