@@ -140,8 +140,14 @@ export default function ChatWidget() {
   return (
     <div className="fixed z-[60] bottom-20 left-4 right-auto md:bottom-4 md:right-4 md:left-auto">
       {isOpen && (
-        <Card className="w-[380px] sm:w-[420px] shadow-xl border bg-background/95 backdrop-blur">
-          <CardHeader className="py-3 px-4 flex-row items-center justify-between">
+        <Card className={`
+          ${isMobile 
+            ? 'fixed inset-0 z-[70] rounded-none border-0 shadow-none w-full h-full max-w-none' 
+            : 'w-[380px] sm:w-[420px] shadow-xl border'
+          } 
+          bg-background/95 backdrop-blur
+        `}>
+          <CardHeader className={`py-3 px-4 flex-row items-center justify-between ${isMobile ? 'border-b pt-safe' : ''}`}>
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-[10px] bg-primary/10 text-primary"><Bot className="h-3 w-3" /></AvatarFallback>
@@ -155,8 +161,10 @@ export default function ChatWidget() {
               <X className="h-4 w-4" />
             </button>
           </CardHeader>
-          <CardContent className="pt-0 px-4">
-            <div ref={scrollRef} className="mb-3 max-h-96 overflow-auto space-y-2 pr-1">
+          <CardContent className={`pt-0 px-4 ${isMobile ? 'flex-1 overflow-hidden' : ''}`}>
+            <div ref={scrollRef} className={`mb-3 overflow-auto space-y-2 pr-1 ${
+              isMobile ? 'h-[calc(100vh-200px)]' : 'max-h-96'
+            }`}>
               {messages.map((m, idx) => (
                 <div key={idx} className={m.role === "bot" ? "flex items-start gap-2" : "flex items-start gap-2 justify-end"}>
                   {m.role === "bot" ? (
@@ -200,7 +208,7 @@ export default function ChatWidget() {
               )}
             </div>
           </CardContent>
-          <CardFooter className="pt-0 px-4 pb-4 flex items-center gap-2">
+          <CardFooter className={`pt-0 px-4 pb-4 flex items-center gap-2 ${isMobile ? 'border-t pb-safe' : ''}`}>
             <button type="button" className="p-2 rounded-md hover:bg-muted" aria-label="Emoji" disabled={isSending}>
               <Smile className="h-4 w-4" />
             </button>
@@ -220,14 +228,16 @@ export default function ChatWidget() {
                 }
               }}
               placeholder="Mesaj yazın..."
-              className="h-12 min-h-0 resize-none flex-1 text-sm"
+              className={`min-h-0 resize-none flex-1 text-sm ${
+                isMobile ? 'h-16 text-base' : 'h-12'
+              }`}
               maxLength={2000}
             />
-            <Button onClick={handleSend} size="icon" className="h-9 w-9" disabled={isSending}>
+            <Button onClick={handleSend} size="icon" className={`${isMobile ? 'h-12 w-12' : 'h-9 w-9'}`} disabled={isSending}>
               {isSending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} animate-spin`} />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
               )}
             </Button>
           </CardFooter>
