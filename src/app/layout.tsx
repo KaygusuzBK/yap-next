@@ -67,9 +67,4 @@ function ClientAuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ChatWidgetGuard() {
-  const pathname = usePathname();
-  const show = pathname?.startsWith("/dashboard") === true;
-  if (!show) return null;
-  return <ChatWidget />;
-}
+// ChatWidgetGuard artık client komponent olarak `src/components/ChatWidgetGuard.tsx` içinde.
