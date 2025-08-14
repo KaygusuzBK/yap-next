@@ -27,6 +27,13 @@ export default function ChatWidget() {
     return full || (email ? email.split("@")[0] : "Kullanıcı")
   }, [user])
 
+  // Global event listener for mobile header chat button
+  React.useEffect(() => {
+    const handleOpenChat = () => setIsOpen(true)
+    window.addEventListener('openChat', handleOpenChat)
+    return () => window.removeEventListener('openChat', handleOpenChat)
+  }, [])
+
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight

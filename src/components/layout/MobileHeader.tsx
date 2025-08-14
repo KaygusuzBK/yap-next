@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { LogOut } from "lucide-react"
+import { LogOut, MessageSquare } from "lucide-react"
 
 function getTitle(pathname: string | null): string {
   if (!pathname) return "YAP"
@@ -36,7 +36,22 @@ export default function MobileHeader() {
         <div className="flex items-center gap-2">
           <Link href="/dashboard" className="font-semibold text-sm">{getTitle(pathname)}</Link>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* Chat Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            aria-label="Chat"
+            onClick={() => {
+              // Chat widget'ı açmak için global event dispatch
+              window.dispatchEvent(new CustomEvent('openChat'))
+            }}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+          
+          {/* User Menu */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

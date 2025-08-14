@@ -6,7 +6,8 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useMyTasks } from '@/features/tasks/queries'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronRight, ListTodo } from 'lucide-react'
+import Link from 'next/link'
 
 export default function MyTasksPage() {
   const router = useRouter()
@@ -27,8 +28,22 @@ export default function MyTasksPage() {
   // İlk render'da loading göster (hydration hatasını önler)
   if (!isClient) {
     return (
-      <div className="p-4">
-        <div className="h-8 w-32 bg-muted animate-pulse rounded mb-4"></div>
+      <div className="px-4 py-4">
+        {/* Breadcrumb Skeleton */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-4 w-16 bg-muted animate-pulse rounded"></div>
+            <ChevronRight className="h-4 w-4" />
+            <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+          </div>
+        </div>
+        
+        {/* Content Skeleton */}
+        <div className="mb-4">
+          <div className="h-7 w-32 bg-muted animate-pulse rounded mb-2"></div>
+          <div className="h-4 w-48 bg-muted animate-pulse rounded"></div>
+        </div>
+        
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-20 bg-muted animate-pulse rounded"></div>
@@ -42,11 +57,31 @@ export default function MyTasksPage() {
     return null
   }
 
-  if (isLoading) return <div className="p-4">Yükleniyor...</div>
-  if (error) return <div className="p-4 text-red-600">Hata: {error.message}</div>
+  if (isLoading) return <div className="px-4 py-4">Yükleniyor...</div>
+  if (error) return <div className="px-4 py-4 text-red-600">Hata: {error.message}</div>
 
   return (
-    <div className="p-4">
+    <div className="px-4 py-4">
+      {/* Breadcrumb */}
+      <div className="mb-4">
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">
+            Dashboard
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground font-medium">Görevlerim</span>
+        </nav>
+      </div>
+      
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <ListTodo className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Görevlerim</h1>
+        </div>
+        <p className="text-muted-foreground">Size atanmış veya oluşturduğunuz tüm görevler</p>
+      </div>
+      
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
