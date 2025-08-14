@@ -11,8 +11,7 @@ import AppFrame from "@/components/layout/AppFrame";
 import QueryProvider from "@/components/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import ChatWidget from "@/components/ChatWidget";
-import { usePathname } from "next/navigation";
+import ChatWidgetGuard from "@/components/ChatWidgetGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
