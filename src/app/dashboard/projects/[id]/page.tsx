@@ -62,7 +62,7 @@ export default function ProjectDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showTaskForm, setShowTaskForm] = useState(false);
+  // const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskListKey, setTaskListKey] = useState(0);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
 

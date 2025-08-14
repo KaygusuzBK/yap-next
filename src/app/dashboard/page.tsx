@@ -413,7 +413,7 @@ export default function Page() {
                            {columnTasks
                             .slice(0, 50)
                             .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
-                            .map((task, idx) => (
+                             .map((task) => (
                             <div
                               key={task.id}
                               draggable

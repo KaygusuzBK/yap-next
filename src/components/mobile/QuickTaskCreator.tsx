@@ -10,7 +10,10 @@ import Input from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { fetchProjects, type Project } from "@/features/projects/api"
-import { createTask } from "@/features/tasks/api"
+import { createTask, fetchProjectStatuses, type ProjectTaskStatus, getProjectMembers, assignTaskToUser } from "@/features/tasks/api"
+import { Switch } from "@/components/ui/switch"
+import { Calendar } from "@/components/ui/calendar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function QuickTaskCreator() {
   const pathname = usePathname()
@@ -20,6 +23,10 @@ export default function QuickTaskCreator() {
   const [projects, setProjects] = React.useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = React.useState(false)
   const [creating, setCreating] = React.useState(false)
+  const [statuses, setStatuses] = React.useState<ProjectTaskStatus[]>([])
+  const [loadingStatuses, setLoadingStatuses] = React.useState(false)
+  const [members, setMembers] = React.useState<Array<{ id: string; email: string; name?: string }>>([])
+  const [loadingMembers, setLoadingMembers] = React.useState(false)
 
   const defaultProjectId = React.useMemo(() => {
     // /dashboard/projects/:id rotasındaysa, id'yi ön-seç
@@ -30,6 +37,13 @@ export default function QuickTaskCreator() {
   const [projectId, setProjectId] = React.useState<string>("")
   const [title, setTitle] = React.useState("")
   const [description, setDescription] = React.useState("")
+  const [statusKey, setStatusKey] = React.useState<string>("")
+  const [priority, setPriority] = React.useState<'low' | 'medium' | 'high' | 'urgent'>("medium")
+  const [dueDateLocal, setDueDateLocal] = React.useState<string>("")
+  const [assigneeId, setAssigneeId] = React.useState<string>("")
+  const [notifySlack, setNotifySlack] = React.useState<boolean>(false)
+  const [webhookUrl, setWebhookUrl] = React.useState<string>(process.env.NEXT_PUBLIC_SLACK_WEBHOOK_URL || "")
+  const [calendarOpen, setCalendarOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (!open) return
@@ -42,7 +56,7 @@ export default function QuickTaskCreator() {
         if (defaultProjectId && list.some(p => p.id === defaultProjectId)) {
           setProjectId(defaultProjectId)
         }
-      } catch (e) {
+      } catch {
         // sessiz geç
       } finally {
         setLoadingProjects(false)
@@ -50,10 +64,48 @@ export default function QuickTaskCreator() {
     })()
   }, [open, defaultProjectId])
 
+  // Proje değişince: durumları ve üyeleri yükle
+  React.useEffect(() => {
+    if (!projectId) {
+      setStatuses([])
+      setMembers([])
+      setStatusKey("")
+      setAssigneeId("")
+      return
+    }
+    void (async () => {
+      try {
+        setLoadingStatuses(true)
+        const sts = await fetchProjectStatuses(projectId)
+        setStatuses(sts)
+        // Varsayılan durum: is_default -> 'todo' grubundan ilki -> ilk kayıt
+        const def = sts.find(s => s.is_default) || sts.find(s => s.group === 'todo') || sts[0]
+        setStatusKey(def ? def.key : "todo")
+      } catch {}
+      finally {
+        setLoadingStatuses(false)
+      }
+      try {
+        setLoadingMembers(true)
+        const mem = await getProjectMembers(projectId)
+        setMembers(mem)
+      } catch {}
+      finally {
+        setLoadingMembers(false)
+      }
+    })()
+  }, [projectId])
+
   const resetForm = () => {
     setProjectId("")
     setTitle("")
     setDescription("")
+    setStatusKey("")
+    setPriority("medium")
+    setDueDateLocal("")
+    setAssigneeId("")
+    setNotifySlack(false)
+    setWebhookUrl("")
   }
 
   const handleCreate = async () => {
@@ -68,7 +120,20 @@ export default function QuickTaskCreator() {
     }
     try {
       setCreating(true)
-      const task = await createTask({ project_id: projectId, title: trimmedTitle, description: description.trim() || null })
+      const dueIso = dueDateLocal ? new Date(dueDateLocal).toISOString() : null
+      const task = await createTask({
+        project_id: projectId,
+        title: trimmedTitle,
+        description: description.trim() || null,
+        priority,
+        status: statusKey || 'todo',
+        due_date: dueIso,
+        notifySlack: notifySlack || undefined,
+        slackWebhookUrl: notifySlack && webhookUrl ? webhookUrl : undefined,
+      })
+      if (assigneeId) {
+        try { await assignTaskToUser(task.id, assigneeId) } catch {}
+      }
       toast.success("Görev oluşturuldu")
       setOpen(false)
       resetForm()
@@ -114,6 +179,36 @@ export default function QuickTaskCreator() {
               </Select>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Durum</label>
+                <Select value={statusKey} onValueChange={setStatusKey} disabled={!projectId || loadingStatuses}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={loadingStatuses ? "Yükleniyor..." : "Durum seçin"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((s) => (
+                      <SelectItem key={s.id} value={s.key}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Öncelik</label>
+                <Select value={priority} onValueChange={(v) => setPriority(v as typeof priority)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Düşük</SelectItem>
+                    <SelectItem value="medium">Orta</SelectItem>
+                    <SelectItem value="high">Yüksek</SelectItem>
+                    <SelectItem value="urgent">Acil</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div>
               <label className="text-xs text-muted-foreground">Başlık</label>
               <Input
@@ -133,6 +228,66 @@ export default function QuickTaskCreator() {
                 className="mt-1 min-h-24"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Bitiş tarihi</label>
+                <Button variant="outline" className="mt-1 w-full justify-start font-normal" onClick={() => setCalendarOpen(true)}>
+                  {dueDateLocal ? new Date(dueDateLocal).toLocaleString('tr-TR') : 'Tarih seç'}
+                </Button>
+                <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <DialogContent className="p-3">
+                    <DialogHeader>
+                      <DialogTitle>Tarih seç</DialogTitle>
+                    </DialogHeader>
+                    <div className="pt-2">
+                      <Calendar
+                        mode="single"
+                        selected={dueDateLocal ? new Date(dueDateLocal) : undefined}
+                        onSelect={(d) => {
+                          if (!d) { setDueDateLocal(""); return }
+                          const local = new Date(d)
+                          local.setHours(9, 0, 0, 0)
+                          const isoLocal = new Date(local.getTime() - local.getTimezoneOffset()*60000).toISOString().slice(0,16)
+                          setDueDateLocal(isoLocal)
+                          setCalendarOpen(false)
+                        }}
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Atanacak kişi</label>
+                <Select value={assigneeId} onValueChange={setAssigneeId} disabled={!projectId || loadingMembers}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={loadingMembers ? "Yükleniyor..." : "Seç (opsiyonel)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Seçme</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name || m.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={notifySlack} onCheckedChange={(v) => setNotifySlack(Boolean(v))} />
+              <span className="text-sm">Slack bildirimi gönder</span>
+            </div>
+            {notifySlack && (
+              <div>
+                <label className="text-xs text-muted-foreground">Webhook URL</label>
+                <Input
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.slack.com/..."
+                  className="mt-1"
+                />
+              </div>
+            )}
 
             <div className="pt-2 flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => { setOpen(false); resetForm() }} disabled={creating}>Vazgeç</Button>

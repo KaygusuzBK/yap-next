@@ -1177,7 +1177,7 @@ export default function TaskDetailPage() {
                     const created = await addTimeLog(task.id, { start_time: startIso, end_time: endIso, description: logDesc || undefined })
                     setTimeLogs((prev) => [...prev, created])
                     setLogModalOpen(false)
-                  } catch (e) {
+                  } catch {
                     toast.error('Zaman kaydı eklenemedi')
                   } finally {
                     setLogSaving(false)
