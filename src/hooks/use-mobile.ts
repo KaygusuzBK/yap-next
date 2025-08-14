@@ -3,21 +3,30 @@ import * as React from "react"
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  // İlk anda (client'ta) mevcut pencere genişliğine göre doğru değeri ayarla
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
-    typeof window !== "undefined" ? window.innerWidth < MOBILE_BREAKPOINT : undefined
-  )
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isClient, setIsClient] = React.useState(false)
 
   React.useEffect(() => {
+    setIsClient(true)
+    // İlk render'da mevcut pencere genişliğine göre değeri ayarla
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+  }, [])
+
+  React.useEffect(() => {
+    if (!isClient) return
+
     const onChange = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     }
-    // Resize dinleyicisi: matchMedia yerine resize ile tutarlı davranış
+    
+    // Resize dinleyicisi
     window.addEventListener("resize", onChange)
-    // Güvenlik: mount anında da bir kez değerlendir
-    onChange()
+    
     return () => window.removeEventListener("resize", onChange)
-  }, [])
+  }, [isClient])
 
-  return Boolean(isMobile)
+  // Server-side rendering sırasında undefined döndür
+  if (!isClient) return undefined
+  
+  return isMobile
 }

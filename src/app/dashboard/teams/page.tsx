@@ -1,30 +1,48 @@
 "use client"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { useIsMobile } from "@/hooks/use-mobile"
-import TeamList from "@/features/teams/components/TeamList"
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import TeamList from '@/features/teams/components/TeamList'
+import { useIsMobile } from '@/hooks/use-mobile'
 
-export default function TeamsMobilePage() {
-  const isMobile = useIsMobile()
+export default function TeamsPage() {
   const router = useRouter()
+  const isMobile = useIsMobile()
+  const [isClient, setIsClient] = useState(false)
 
-  React.useEffect(() => {
-    if (!isMobile) {
-      router.replace("/dashboard")
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (isClient && !isMobile) {
+      router.replace('/dashboard')
     }
-  }, [isMobile, router])
+  }, [isClient, isMobile, router])
 
-  if (!isMobile) return null
+  // İlk render'da loading göster (hydration hatasını önler)
+  if (!isClient) {
+    return (
+      <div className="p-4">
+        <div className="h-8 w-32 bg-muted animate-pulse rounded mb-4"></div>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-20 bg-muted animate-pulse rounded"></div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!isMobile) {
+    return null
+  }
 
   return (
-    <main className="px-3 py-3">
-      <div className="mb-3">
-        <h1 className="text-base font-semibold">Takımlar</h1>
-        <p className="text-sm text-muted-foreground">Tüm takımların listesi</p>
-      </div>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Takımlar</h1>
       <TeamList />
-    </main>
+    </div>
   )
 }
 
