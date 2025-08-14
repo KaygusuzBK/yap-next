@@ -3,7 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Folder, ListTodo, Users, Bell, User2, Plus } from "lucide-react"
+import { Home, Folder, ListTodo, Users, Bell, User2 } from "lucide-react"
+import QuickTaskCreator from "@/components/mobile/QuickTaskCreator"
 
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false
@@ -49,13 +50,7 @@ export default function MobileTabBar() {
         })}
 
         <div className="flex items-center justify-center">
-          <Link
-            href="/dashboard#new-task"
-            aria-label="Yeni öğe"
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-1 ring-primary/20 -mt-6"
-          >
-            <Plus className="h-6 w-6" />
-          </Link>
+          <QuickTaskCreator />
         </div>
 
         {navItems.slice(2, 4).map(({ href, label, Icon }) => {
