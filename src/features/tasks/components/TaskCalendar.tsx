@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameMonth, isToday, parseISO, startOfDay, startOfMonth, startOfWeek, subDays, subMonths, subWeeks } from 'date-fns'
+import { addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameMonth, isToday, isValid, parseISO, startOfDay, startOfMonth, startOfWeek, subDays, subMonths, subWeeks } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -61,13 +61,17 @@ export default function TaskCalendar() {
   }, [currentDate])
 
   const tasksWithDue = useMemo<CalendarTask[]>(() => {
-    return tasks.map(t => ({ ...t, due: t.due_date ? parseISO(t.due_date) : null }))
+    return tasks.map(t => {
+      const parsed = t.due_date ? parseISO(t.due_date) : null
+      const due = parsed && isValid(parsed) ? parsed : null
+      return { ...t, due }
+    })
   }, [tasks])
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, CalendarTask[]>()
     for (const t of tasksWithDue) {
-      if (!t.due) continue
+      if (!t.due || !isValid(t.due)) continue
       const key = format(t.due, 'yyyy-MM-dd')
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(t)
