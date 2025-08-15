@@ -989,16 +989,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </Button>
             )}
             {isTasksActive && (
-              <Button
-                size="icon"
-                variant="outline"
-                data-tour="create-task"
-                onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
-                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-              >
-                <Plus className="size-4" />
-                <span className="sr-only">Görev oluştur</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/tasks/calendar')}
+                  className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+                >
+                  <Calendar className="size-4" />
+                  <span className="sr-only">Takvim</span>
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  data-tour="create-task"
+                  onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
+                  className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+                >
+                  <Plus className="size-4" />
+                  <span className="sr-only">Görev oluştur</span>
+                </Button>
+              </div>
             )}
           </div>
           <SidebarInput placeholder="Type to search..." />

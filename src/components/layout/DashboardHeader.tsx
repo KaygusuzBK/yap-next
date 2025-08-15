@@ -47,6 +47,7 @@ export default function DashboardHeader({
       if (seg === "dashboard") return { label: "Dashboard", href: "/dashboard" }
       if (seg === "projects") return { label: "Projeler", href: "/dashboard/projects" }
       if (seg === "tasks") return { label: "Görevler", href: "/dashboard/tasks" }
+      if (seg === "calendar") return { label: "Takvim", href: "/dashboard/tasks/calendar" }
       if (seg === "teams") return { label: "Takımlar", href: "/dashboard/teams" }
       // Dinamik segment veya id → Detay
       const base = "/" + segments.slice(0, idx + 1).join("/")
