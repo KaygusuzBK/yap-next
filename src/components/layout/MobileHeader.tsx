@@ -14,6 +14,7 @@ function getTitle(pathname: string | null): string {
   if (pathname === "/dashboard/projects") return "Projeler"
   if (pathname.startsWith("/dashboard/projects/")) return "Proje"
   if (pathname === "/dashboard/tasks") return "Görevler"
+  if (pathname === "/dashboard/tasks/calendar") return "Takvim"
   if (pathname.startsWith("/dashboard/tasks/")) return "Görev"
   if (pathname === "/dashboard/teams") return "Takımlar"
   if (pathname.startsWith("/dashboard/teams/")) return "Takım"

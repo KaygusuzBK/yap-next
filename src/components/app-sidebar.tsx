@@ -58,7 +58,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 
 type TeamStat = {
@@ -797,7 +796,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [taskDueFilter, setTaskDueFilter] = React.useState<'all' | 'overdue' | 'today' | 'week'>('all')
   const [taskPriorityFilter, setTaskPriorityFilter] = React.useState<'all' | 'urgent' | 'high' | 'medium' | 'low'>('all')
   const [taskSortBy, setTaskSortBy] = React.useState<'smart' | 'due' | 'priority'>('smart')
-  const [showCompletedToggle, setShowCompletedToggle] = React.useState(false)
   const [myTasksOpen, setMyTasksOpen] = React.useState(false)
 
   // Drag & Drop state and helpers
@@ -839,7 +837,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const filtered = taskStats.filter(t => {
         if (taskStatusFilter === 'open' && t.status === 'completed') return false
         if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
-        if (!showCompletedToggle && t.status === 'completed') return false
         if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
         if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
         if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
@@ -855,7 +852,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setDragType(null)
     setDragIndex(null)
     setDragOverIndex(null)
-  }, [dragType, dragIndex, teamStats, projectStats, taskStats, taskStatusFilter, taskDueFilter, taskPriorityFilter, showCompletedToggle])
+  }, [dragType, dragIndex, teamStats, projectStats, taskStats, taskStatusFilter, taskDueFilter, taskPriorityFilter])
 
   // Drag & Drop state and helpers
   // duplicate state removed
@@ -961,12 +958,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
             <div />
             {isTasksActive && (
-              <Label className="flex items-center gap-2 text-sm">
-                <span>Bitenleri göster</span>
-                <Switch className="shadow-none" checked={showCompletedToggle} onCheckedChange={(v) => setShowCompletedToggle(Boolean(v))} />
-              </Label>
-            )}
-            {isTeamsActive && (
               <Button 
                 size="icon" 
                 variant="outline" 
@@ -989,16 +980,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </Button>
             )}
             {isTasksActive && (
-              <Button
-                size="icon"
-                variant="outline"
-                data-tour="create-task"
-                onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
-                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-              >
-                <Plus className="size-4" />
-                <span className="sr-only">Görev oluştur</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/tasks/calendar')}
+                  className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+                >
+                  <Calendar className="size-4" />
+                  <span className="sr-only">Takvim</span>
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  data-tour="create-task"
+                  onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
+                  className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
+                >
+                  <Plus className="size-4" />
+                  <span className="sr-only">Görev oluştur</span>
+                </Button>
+              </div>
             )}
           </div>
           <SidebarInput placeholder="Type to search..." />
@@ -1192,7 +1194,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       {(() => {
                         const filtered = taskStats.filter(t => {
                           // Durum filtresi
-                          if (!showCompletedToggle && t.status === 'completed') return false
                           if (taskStatusFilter === 'open' && t.status === 'completed') return false
                           if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
                           // Tarih filtresi
@@ -1420,7 +1421,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             const filtered = taskStats.filter(t => {
               if (taskStatusFilter === 'open' && t.status === 'completed') return false
               if (taskStatusFilter === 'completed' && t.status !== 'completed') return false
-              if (!showCompletedToggle && t.status === 'completed') return false
               if (taskDueFilter === 'overdue' && !(t.days_remaining !== null && t.days_remaining < 0)) return false
               if (taskDueFilter === 'today' && !(t.days_remaining === 0)) return false
               if (taskDueFilter === 'week' && !(t.days_remaining !== null && t.days_remaining >= 0 && t.days_remaining <= 7)) return false
