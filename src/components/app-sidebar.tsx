@@ -58,7 +58,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 
 type TeamStat = {
