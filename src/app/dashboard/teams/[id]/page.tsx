@@ -46,7 +46,6 @@ export default function TeamDetailPage() {
   const [stats, setStats] = useState<TeamStats | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<TeamRole | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'settings'>('overview');
 
@@ -56,7 +55,6 @@ export default function TeamDetailPage() {
       // Get current user
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user?.id || null);
       // Load team data
       const teams = await fetchTeams();
       const currentTeam = teams.find(t => t.id === teamId);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   getTeamMembers, 
   getTeamInvitations, 
@@ -29,16 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+// Unused AlertDialog variants removed
 import {
   Select,
   SelectContent,
@@ -93,12 +84,7 @@ export default function TeamMembers({ teamId, teamName, isOwner, isAdmin }: Team
   const [transferOwnershipOpen, setTransferOwnershipOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-    getCurrentUser();
-  }, [teamId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [membersData, invitationsData] = await Promise.all([
@@ -112,7 +98,13 @@ export default function TeamMembers({ teamId, teamName, isOwner, isAdmin }: Team
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamId]);
+
+  useEffect(() => {
+    loadData();
+    getCurrentUser();
+  }, [loadData]);
+
 
   const getCurrentUser = async () => {
     const supabase = getSupabase();

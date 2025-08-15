@@ -207,7 +207,6 @@ export async function bulkInviteToTeam(input: {
   role?: TeamRole;
   message?: string;
 }): Promise<{ success: string[]; failed: string[] }> {
-  const supabase = getSupabase();
   const results = { success: [] as string[], failed: [] as string[] };
   
   for (const email of input.emails) {
@@ -218,7 +217,7 @@ export async function bulkInviteToTeam(input: {
         role: input.role 
       });
       results.success.push(email);
-    } catch (error) {
+    } catch {
       results.failed.push(email);
     }
   }

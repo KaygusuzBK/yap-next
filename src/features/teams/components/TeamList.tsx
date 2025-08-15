@@ -304,11 +304,9 @@ function TeamCard({
 }
 
 function TeamMenu({ 
-  team, 
   onEdit, 
   onDelete 
 }: { 
-  team: Team; 
   onEdit: () => void; 
   onDelete: () => void; 
 }) {

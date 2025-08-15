@@ -603,7 +603,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [createOpen, setCreateOpen] = React.useState(false)
   
   const [createProjectOpen, setCreateProjectOpen] = React.useState(false)
-  const [orderTick, setOrderTick] = React.useState(0)
+  // orderTick state removed: memo bağımlılıklarını sadeleştirdik
   const [pendingInvites, setPendingInvites] = React.useState<Array<{ id: string; token: string; email: string; role: string; created_at: string; expires_at: string; teams?: { id: string; name?: string } }>>([])
   // legacy counter state no longer used (we render full list under Teams)
   // const [pendingCount, setPendingCount] = React.useState<number>(0)
@@ -851,7 +851,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const reorderedIds = new Set(re.map(t => t.id))
       const updated = [...re, ...taskStats.filter(t => !reorderedIds.has(t.id))]
       saveOrder('tasks', updated.map(t => t.id))
-      setOrderTick((t) => t + 1)
+      // orderTick kaldırıldı; derived list useMemo deps yeterli
     }
     setDragType(null)
     setDragIndex(null)
