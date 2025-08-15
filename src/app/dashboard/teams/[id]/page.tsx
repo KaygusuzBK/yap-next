@@ -29,6 +29,7 @@ import {
   type TeamRole
 } from '@/features/teams/api';
 import TeamMembers from '@/features/teams/components/TeamMembers';
+import TeamSettings from '@/features/teams/components/TeamSettings';
 import { getSupabase } from '@/lib/supabase';
 
 const ROLE_LABELS: Record<TeamRole, { label: string; color: string; icon: React.ReactNode }> = {
@@ -389,16 +390,7 @@ export default function TeamDetailPage() {
       )}
 
       {activeTab === 'settings' && canEdit && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Takım Ayarları</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Takım ayarları burada yapılandırılacak. Henüz geliştirme aşamasında.
-            </p>
-          </CardContent>
-        </Card>
+        <TeamSettings team={team} onUpdated={(t) => setTeam(t)} />
       )}
     </div>
   );
