@@ -153,6 +153,7 @@ export default function QuickTaskCreator() {
         size="icon"
         aria-label="Yeni öğe"
         className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-1 ring-primary/20 -mt-6"
+        data-tour="create-task-mobile"
         onClick={() => setOpen(true)}
       >
         <Plus className="h-6 w-6" />

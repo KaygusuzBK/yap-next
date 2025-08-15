@@ -70,7 +70,7 @@ export default function OnboardingTour() {
         placement: "right",
       },
       {
-        selector: '[data-tour="create-task"]',
+        selector: '[data-tour="create-task"], [data-tour="create-task-mobile"]',
         title: "Hızlı oluştur",
         description: "Yeni görev ve proje eklemek için artı butonlarını kullan.",
         placement: "bottom",
