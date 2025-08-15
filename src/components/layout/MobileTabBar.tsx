@@ -30,7 +30,7 @@ export default function MobileTabBar() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75" role="navigation" aria-label="Alt sekme çubuğu">
-      <div className="grid grid-cols-5 items-center px-1 py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="grid grid-cols-5 items-center px-1 py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} data-tour="mobile-tabbar">
         {navItems.slice(0, 2).map(({ href, label, Icon }) => {
           const active = isActive(pathname, href)
           return (
@@ -49,7 +49,7 @@ export default function MobileTabBar() {
           )
         })}
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center" data-tour="create-task-mobile-wrapper">
           <QuickTaskCreator />
         </div>
 

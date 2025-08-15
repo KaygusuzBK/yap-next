@@ -76,6 +76,12 @@ export default function OnboardingTour() {
         placement: "bottom",
       },
       {
+        selector: '[data-tour="mobile-tabbar"]',
+        title: "Alt sekme çubuğu",
+        description: "Mobilde Ana, Projeler, Görevler ve Takımlar sekmeleri burada.",
+        placement: "top",
+      },
+      {
         selector: '[data-tour="filter"]',
         title: "Filtreler",
         description: "Görevleri durum, tarih ve önceliğe göre filtreleyebilirsin.",
