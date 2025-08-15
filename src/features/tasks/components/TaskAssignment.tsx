@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { assignTaskToUser, unassignTask, getProjectMembers } from '../api';
+import { assignTaskToUser, unassignTask } from '../api';
 import { toast } from 'sonner';
 import { User, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { useProjectMembers } from '@/features/tasks/queries';
 
 interface TaskAssignmentProps {
   taskId: string;
@@ -21,27 +22,9 @@ export default function TaskAssignment({
   currentAssignee, 
   onAssignmentChange 
 }: TaskAssignmentProps) {
-  const [members, setMembers] = useState<Array<{ id: string; email: string; name?: string }>>([]);
+  const { data: members = [], isLoading: loadingMembers } = useProjectMembers(projectId);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [loadingMembers, setLoadingMembers] = useState(true);
-
-  const loadProjectMembers = useCallback(async () => {
-    try {
-      setLoadingMembers(true);
-      const projectMembers = await getProjectMembers(projectId);
-      setMembers(projectMembers);
-    } catch (error) {
-      console.error('Proje üyeleri yüklenirken hata:', error);
-      toast.error('Proje üyeleri yüklenirken bir hata oluştu');
-    } finally {
-      setLoadingMembers(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    loadProjectMembers();
-  }, [projectId, loadProjectMembers]);
 
   const handleAssign = async () => {
     if (!selectedUserId) {

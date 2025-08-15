@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
@@ -23,9 +23,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setProfile = useUserStore(s => s.setProfile)
   const router = useRouter();
 
-  // Fire-and-forget: sync pending team invitations into notifications
+  // Fire-and-forget: sync pending team invitations into notifications (de-duplicated)
+  const lastInviteSyncKeyRef = useRef<string | null>(null)
   const syncInvites = async (u: User) => {
     if (!u?.id || !u.email) return;
+    const key = `${u.id}|${u.email}`
+    if (lastInviteSyncKeyRef.current === key) return
+    lastInviteSyncKeyRef.current = key
     try {
       await fetch('/api/notifications/sync-invites', {
         method: 'POST',

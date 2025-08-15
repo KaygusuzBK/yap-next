@@ -12,6 +12,7 @@ import {
   fetchStatusesForProjects,
   fetchTaskById,
   listTaskFiles,
+  getProjectMembers,
   type ProjectTaskStatus,
   type Task,
   type TaskComment,
@@ -26,6 +27,7 @@ export const keys = {
   files: (taskId: string) => ["task", taskId, "files"] as const,
   projectStatuses: (projectId: string) => ["project-statuses", projectId] as const,
   statusesForProjects: (ids: string[]) => ["statuses-for-projects", ...ids.sort()] as const,
+  projectMembers: (projectId: string) => ["project-members", projectId] as const,
 };
 
 export function useMyTasks() {
@@ -65,6 +67,15 @@ export function useStatusesForProjects(projectIds: string[]) {
     queryKey: keys.statusesForProjects(projectIds),
     queryFn: () => fetchStatusesForProjects(projectIds),
     enabled: projectIds.length > 0,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useProjectMembers(projectId: string) {
+  return useQuery<Array<{ id: string; email: string; name?: string }>>({
+    queryKey: keys.projectMembers(projectId),
+    queryFn: () => getProjectMembers(projectId),
+    enabled: Boolean(projectId),
     staleTime: 5 * 60_000,
   });
 }

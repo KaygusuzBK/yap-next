@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { updateTask, type Task, fetchProjectStatuses, type ProjectTaskStatus } from '../api';
+import { updateTask, type Task } from '../api';
 import { toast } from 'sonner';
 import { Save, Loader2, X } from 'lucide-react';
 import TaskAssignment from './TaskAssignment';
+import { useProjectStatuses } from '@/features/tasks/queries';
 
 interface TaskEditFormProps {
   task: Task;
@@ -25,14 +26,7 @@ export default function TaskEditForm({ task, projectId, onSaved, onCancel }: Tas
   const [status, setStatus] = useState<string>(task.status);
   const [dueDate, setDueDate] = useState(task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '');
   const [loading, setLoading] = useState(false);
-  const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null)
-
-  // Load project-specific statuses
-  useEffect(() => {
-    fetchProjectStatuses(projectId)
-      .then(setStatuses)
-      .catch(() => setStatuses([]))
-  }, [projectId])
+  const { data: statuses = [] } = useProjectStatuses(projectId)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

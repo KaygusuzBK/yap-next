@@ -30,8 +30,9 @@ import {
 import type { ChangeEvent } from "react"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation, getTeamMembers } from "@/features/teams/api"
 import { updateTask } from "@/features/tasks/api"
-import { fetchProjects } from "@/features/projects/api"
-import { fetchTasksByProject } from "@/features/tasks/api"
+import { useProjects, projectKeys } from "@/features/projects/queries"
+import { useMyTasks, keys as taskQueryKeys } from "@/features/tasks/queries"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -601,13 +602,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [teamError, setTeamError] = React.useState<string | null>(null)
   const [createOpen, setCreateOpen] = React.useState(false)
   
-  const [projectStats, setProjectStats] = React.useState<ProjectStat[]>([])
-  const [loadingProjects, setLoadingProjects] = React.useState(false)
-  const [projectError, setProjectError] = React.useState<string | null>(null)
   const [createProjectOpen, setCreateProjectOpen] = React.useState(false)
-  const [taskStats, setTaskStats] = React.useState<TaskStat[]>([])
-  const [loadingTasks, setLoadingTasks] = React.useState(false)
-  const [taskError, setTaskError] = React.useState<string | null>(null)
+  const [orderTick, setOrderTick] = React.useState(0)
   const [pendingInvites, setPendingInvites] = React.useState<Array<{ id: string; token: string; email: string; role: string; created_at: string; expires_at: string; teams?: { id: string; name?: string } }>>([])
   // legacy counter state no longer used (we render full list under Teams)
   // const [pendingCount, setPendingCount] = React.useState<number>(0)
@@ -689,132 +685,61 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Removed legacy pending counter effect; list is shown under Teams
 
-  const fetchProjectStats = React.useCallback(async () => {
-    try {
-      setLoadingProjects(true)
-      setProjectError(null)
-      const projects = await fetchProjects()
-      
-      // Takım isimlerini al
-      const supabase = getSupabase()
-      const teamIds = projects.filter(p => p.team_id).map(p => p.team_id!)
-      const teamNames = new Map<string, string>()
-      
-      if (teamIds.length > 0) {
-        const { data: teams } = await supabase
-          .from("teams")
-          .select("id,name")
-          .in("id", teamIds)
-        
-        teams?.forEach(team => {
-          teamNames.set(team.id, team.name)
-        })
-      }
-      
-      let stats = projects.map((p) => ({
-        id: p.id,
-        title: p.title,
-        status: p.status,
-        teamName: p.team_id ? teamNames.get(p.team_id) || null : null,
-        createdAt: p.created_at,
-      }))
-      
-      stats = applySavedOrder('projects', stats)
-      setProjectStats(stats)
-    } catch (e) {
-      setProjectError(e instanceof Error ? e.message : "Proje verileri alınamadı")
-    } finally {
-      setLoadingProjects(false)
-    }
-  }, [])
+  const qc = useQueryClient()
+  const { data: hookProjects = [], isLoading: hookLoadingProjects, error: hookProjectsError } = useProjects()
+  const { data: hookMyTasks = [], isLoading: hookLoadingMyTasks, error: hookTasksError } = useMyTasks()
 
-  const fetchTaskStats = React.useCallback(async () => {
-    try {
-      setLoadingTasks(true)
-      setTaskError(null)
-      
-      // Önce projeleri al
-      const projects = await fetchProjects()
-      // Mevcut kullanıcıyı al
-      const supabase = getSupabase()
-      const { data: auth } = await supabase.auth.getUser()
-      const currentUserId = auth?.user?.id || null
-      
-      // Her proje için görevleri al
-      const allTasks: TaskStat[] = []
-      
-      for (const project of projects) {
-        try {
-          const tasks = await fetchTasksByProject(project.id)
-          
-          const projectTasks = tasks
-            .filter(task => {
-              // Sadece bana atanmış görevler
-              if (!currentUserId) return false
-              return task.assigned_to === currentUserId
-            })
-            .map(task => {
-            const dueDate = task.due_date ? new Date(task.due_date) : null
-            const now = new Date()
-            const daysRemaining = dueDate 
-              ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-              : null
-            
-            return {
-              id: task.id,
-              title: task.title,
-              priority: task.priority,
-              status: task.status,
-              due_date: task.due_date,
-              project_title: project.title,
-              project_id: project.id,
-              days_remaining: daysRemaining,
-            }
-          })
-          
-          allTasks.push(...projectTasks)
-        } catch (error) {
-          console.error(`Proje ${project.id} için görevler alınamadı:`, error)
-        }
+  // Derived loading/error flags for rendering
+  const loadingProjects = hookLoadingProjects
+  const projectError = hookProjectsError ? (hookProjectsError as Error).message : null
+  const loadingTasks = hookLoadingMyTasks
+  const taskError = hookTasksError ? (hookTasksError as Error).message : null
+
+  const projectStats = React.useMemo(() => {
+    const base = hookProjects.map((p) => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      teamName: p.team_id ? null : null,
+      createdAt: p.created_at,
+    })) as ProjectStat[]
+    return applySavedOrder('projects', base)
+  }, [hookProjects, orderTick])
+
+  const taskStats = React.useMemo(() => {
+    const nextAll: TaskStat[] = hookMyTasks.map((task) => {
+      const dueDate = task.due_date ? new Date(task.due_date) : null
+      const now = new Date()
+      const daysRemaining = dueDate ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
+      return {
+        id: task.id,
+        title: task.title,
+        priority: task.priority,
+        status: task.status,
+        due_date: task.due_date,
+        project_title: task.project_title || '',
+        project_id: task.project_id,
+        days_remaining: daysRemaining,
       }
-      
-      // Önce tamamlanmamış görevleri üste, tamamlanmış görevleri alta taşı
-      // Sonra önceliğe ve kalan güne göre sırala
-      const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
-      allTasks.sort((a, b) => {
-        // Önce tamamlanma durumuna göre sırala
-        if (a.status === 'completed' && b.status !== 'completed') return 1
-        if (a.status !== 'completed' && b.status === 'completed') return -1
-        
-        // Sonra önceliğe göre sırala
-        const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
-        if (priorityDiff !== 0) return priorityDiff
-        
-        // Son olarak kalan güne göre sırala (null değerler en sona)
-        if (a.days_remaining === null && b.days_remaining === null) return 0
-        if (a.days_remaining === null) return 1
-        if (b.days_remaining === null) return -1
-        
-        return a.days_remaining - b.days_remaining
-      })
-      
-      setTaskStats(applySavedOrder('tasks', allTasks))
-    } catch (e) {
-      setTaskError(e instanceof Error ? e.message : "Görev verileri alınamadı")
-    } finally {
-      setLoadingTasks(false)
-    }
-  }, [])
+    })
+    const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 } as Record<string, number>
+    nextAll.sort((a, b) => {
+      if (a.status === 'completed' && b.status !== 'completed') return 1
+      if (a.status !== 'completed' && b.status === 'completed') return -1
+      const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
+      if (priorityDiff !== 0) return priorityDiff
+      const ad = a.days_remaining ?? Number.POSITIVE_INFINITY
+      const bd = b.days_remaining ?? Number.POSITIVE_INFINITY
+      return ad - bd
+    })
+    return applySavedOrder('tasks', nextAll)
+  }, [hookMyTasks, orderTick])
 
   React.useEffect(() => {
     if (activeItem?.title === "Takımlar") {
       fetchTeamStats()
-    } else if (activeItem?.title === "Projeler") {
-      fetchProjectStats()
-    } else if (activeItem?.title === "Görevlerim") {
-      fetchTaskStats()
     }
-  }, [activeItem, fetchTeamStats, fetchProjectStats, fetchTaskStats])
+  }, [activeItem, fetchTeamStats])
 
   // Realtime: refresh tasks in sidebar when project_tasks change anywhere
   React.useEffect(() => {
@@ -822,14 +747,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const channel = supabase
       .channel('sidebar-task-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => {
-        fetchTaskStats()
+        qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }).catch(() => {})
       })
       .subscribe()
 
     return () => {
       try { supabase.removeChannel(channel) } catch {}
     }
-  }, [fetchTaskStats])
+  }, [qc])
 
   const isTasksActive = activeItem?.title === "Görevlerim"
   const isTeamsActive = activeItem?.title === "Takımlar"
@@ -909,8 +834,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       saveOrder('teams', updated.map(t => t.id))
     } else if (type === 'project') {
       const updated = reorderArray(projectStats, dragIndex, index)
-      setProjectStats(updated)
       saveOrder('projects', updated.map(p => p.id))
+      setOrderTick((t) => t + 1)
     } else if (type === 'task') {
       const filtered = taskStats.filter(t => {
         if (taskStatusFilter === 'open' && t.status === 'completed') return false
@@ -925,8 +850,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const re = reorderArray(filtered, dragIndex, index)
       const reorderedIds = new Set(re.map(t => t.id))
       const updated = [...re, ...taskStats.filter(t => !reorderedIds.has(t.id))]
-      setTaskStats(updated)
       saveOrder('tasks', updated.map(t => t.id))
+      setOrderTick((t) => t + 1)
     }
     setDragType(null)
     setDragIndex(null)
@@ -1078,11 +1003,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </div>
           <SidebarInput placeholder="Type to search..." />
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="overflow-auto">
           <SidebarGroup className="px-0">
             <SidebarGroupContent>
               {isTeamsActive ? (
-                <div className="p-4 overflow-auto min-h-0 max-h-[calc(100svh-15px)]">
+                <div className="p-4 min-h-0">
                   {loadingTeams && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}
@@ -1139,7 +1064,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                 </div>
               ) : isProjectsActive ? (
-                <div className="p-4 overflow-auto min-h-0 max-h-[calc(100svh-15px)]">
+                <div className="p-4 min-h-0">
                   {loadingProjects && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}
@@ -1170,7 +1095,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                 </div>
               ) : isTasksActive ? (
-                <div className="p-4 overflow-auto min-h-0 max-h-[calc(100svh-15px)]">
+                <div className="p-4 min-h-0">
                   {loadingTasks && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}
@@ -1320,7 +1245,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             onStatusChange={async (taskId, status) => {
                               try {
                                 await updateTask({ id: taskId, status })
-                                fetchTaskStats()
+                                await qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() })
                               } catch (e) {
                                 console.error('Durum güncellenemedi', e)
                               }
@@ -1380,7 +1305,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <DialogTitle>Yeni Proje</DialogTitle>
           </DialogHeader>
           <div className="pt-2">
-            <NewProjectForm onCreated={() => { setCreateProjectOpen(false); fetchProjectStats() }} />
+            <NewProjectForm onCreated={async () => { setCreateProjectOpen(false); await qc.invalidateQueries({ queryKey: projectKeys.all() }) }} />
           </div>
         </DialogContent>
       </Dialog>
@@ -1477,7 +1402,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="pt-2">
               <NewTaskForm 
                 projectId={taskProjectId}
-                onCreated={() => { setCreateTaskOpen(false); setTaskProjectId(null); if (isTasksActive) fetchTaskStats() }}
+                onCreated={async () => { setCreateTaskOpen(false); setTaskProjectId(null); if (isTasksActive) await qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }) }}
                 onCancel={() => { setCreateTaskOpen(false); setTaskProjectId(null) }}
               />
             </div>
@@ -1513,7 +1438,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     onStatusChange={async (taskId, status) => {
                       try {
                         await updateTask({ id: taskId, status })
-                        fetchTaskStats()
+                        await qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() })
                       } catch (e) {
                         console.error('Durum güncellenemedi', e)
                       }

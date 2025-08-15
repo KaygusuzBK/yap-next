@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { fetchTeams, type Team, updateTeam, deleteTeam, getTeamStats, type TeamStats } from '../api';
+import { type Team, updateTeam, deleteTeam, getTeamStats, type TeamStats } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,23 +45,20 @@ import { Textarea } from '@/components/ui/textarea';
 import type { ChangeEvent } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { useTeams, teamKeys } from '@/features/teams/queries';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function TeamList({ refreshKey }: { refreshKey?: number }) {
-  const [items, setItems] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const { data: items = [], isLoading: loading, error } = useTeams();
   const [teamStats, setTeamStats] = useState<Record<string, TeamStats>>({});
 
   useEffect(() => {
     (async () => {
       try {
-        setLoading(true);
-        const data = await fetchTeams();
-        setItems(data);
-        
         // Her takım için istatistikleri al
         const stats: Record<string, TeamStats> = {};
-        for (const team of data) {
+        for (const team of items) {
           try {
             stats[team.id] = await getTeamStats(team.id);
           } catch (e) {
@@ -69,13 +66,15 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
           }
         }
         setTeamStats(stats);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Bir hata oluştu');
-      } finally {
-        setLoading(false);
-      }
+      } catch {}
     })();
-  }, [refreshKey]);
+  }, [items]);
+
+  useEffect(() => {
+    if (refreshKey !== undefined) {
+      qc.invalidateQueries({ queryKey: teamKeys.all() }).catch(() => {})
+    }
+  }, [refreshKey, qc]);
 
   if (loading) return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -88,7 +87,7 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
     </div>
   );
   
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (error) return <p className="text-sm text-red-600">{error.message}</p>;
   if (!items.length) return <p className="text-sm text-muted-foreground py-8">Henüz takım yok. İlk takımınızı oluşturun.</p>;
 
   return (
@@ -98,8 +97,8 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
           key={team.id} 
           team={team} 
           stats={teamStats[team.id]}
-          onUpdated={(updatedTeam) => setItems((arr) => arr.map((x) => (x.id === team.id ? updatedTeam : x)))}
-          onDeleted={() => setItems((arr) => arr.filter((x) => x.id !== team.id))}
+          onUpdated={() => { qc.invalidateQueries({ queryKey: teamKeys.all() }).catch(() => {}) }}
+          onDeleted={() => { qc.invalidateQueries({ queryKey: teamKeys.all() }).catch(() => {}) }}
         />
       ))}
     </div>

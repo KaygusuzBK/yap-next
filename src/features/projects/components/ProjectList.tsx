@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { fetchProjects, type Project, deleteProject } from '../api';
+import { type Project, deleteProject } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,35 +26,26 @@ import {
 import { MoreVertical, Edit, Trash2, Archive, Calendar, Users, Folder } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useProjects, projectKeys } from '@/features/projects/queries';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ProjectList({ refreshKey }: { refreshKey?: number }) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const { data: projects = [], isLoading: loading, error } = useProjects();
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProjects();
-  }, [refreshKey]);
-
-  const loadProjects = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchProjects();
-      setProjects(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Bir hata oluştu');
-    } finally {
-      setLoading(false);
+    if (refreshKey !== undefined) {
+      qc.invalidateQueries({ queryKey: projectKeys.all() }).catch(() => {})
     }
-  };
+  }, [refreshKey, qc]);
 
   const handleDeleteProject = async (projectId: string) => {
     try {
       setDeletingProjectId(projectId);
       await deleteProject(projectId);
       toast.success('Proje başarıyla silindi');
-      setProjects(projects.filter(p => p.id !== projectId));
+      await qc.invalidateQueries({ queryKey: projectKeys.all() });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Proje silinirken bir hata oluştu');
     } finally {
@@ -103,8 +94,8 @@ export default function ProjectList({ refreshKey }: { refreshKey?: number }) {
       <Card>
         <CardContent className="pt-6">
           <div className="text-center text-red-600">
-            <p>Hata: {error}</p>
-            <Button onClick={loadProjects} variant="outline" className="mt-2">
+            <p>Hata: {error.message}</p>
+            <Button onClick={() => qc.invalidateQueries({ queryKey: projectKeys.all() })} variant="outline" className="mt-2">
               Tekrar Dene
             </Button>
           </div>

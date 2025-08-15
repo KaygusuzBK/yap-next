@@ -22,7 +22,8 @@ import {
   Loader2,
   Folder
 } from 'lucide-react';
-import { fetchTaskById, getProjectMembers, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, fetchTaskActivities, fetchTaskTimeLogs, fetchProjectStatuses, addTimeLog, startTimeLog, stopTimeLog, type Task, type TaskComment, type TaskFile, type TaskActivity, type TaskTimeLog, type ProjectTaskStatus } from '../../../../features/tasks/api';
+import { fetchTaskById, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, fetchTaskActivities, fetchTaskTimeLogs, addTimeLog, startTimeLog, stopTimeLog, type Task, type TaskComment, type TaskFile, type TaskActivity, type TaskTimeLog } from '../../../../features/tasks/api';
+import { useProjectStatuses, useProjectMembers } from '@/features/tasks/queries';
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
 import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
@@ -47,7 +48,7 @@ export default function TaskDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [showAssignment, setShowAssignment] = useState(false);
-  const [projectMembers, setProjectMembers] = useState<Array<{ id: string; email: string; name?: string }>>([]);
+  const [projectIdForMembers, setProjectIdForMembers] = useState<string | null>(null)
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [mentionOpen, setMentionOpen] = useState(false);
@@ -62,7 +63,8 @@ export default function TaskDetailPage() {
   const [mentionRecents, setMentionRecents] = useState<string[]>([])
   const [activities, setActivities] = useState<TaskActivity[]>([])
   const [timeLogs, setTimeLogs] = useState<TaskTimeLog[]>([])
-  const [projectStatuses, setProjectStatuses] = useState<ProjectTaskStatus[]>([])
+  const { data: cachedStatuses = [] } = useProjectStatuses(task?.project_id || '')
+  const { data: projectMembers = [] } = useProjectMembers(projectIdForMembers || '',)
   const [logModalOpen, setLogModalOpen] = useState(false)
   const [logStart, setLogStart] = useState<string>('')
   const [logEnd, setLogEnd] = useState<string>('')
@@ -75,14 +77,7 @@ export default function TaskDetailPage() {
       setError(null);
       const taskData = await fetchTaskById(taskId);
       setTask(taskData);
-      
-      // Proje üyelerini de yükle
-      try {
-        const members = await getProjectMembers(taskData.project_id);
-        setProjectMembers(members);
-    } catch {
-        // ignore
-      }
+      setProjectIdForMembers(taskData.project_id)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Görev yüklenirken bir hata oluştu');
       toast.error('Görev yüklenirken bir hata oluştu');
@@ -108,18 +103,7 @@ export default function TaskDetailPage() {
     }
   }, [taskId, loadTask]);
 
-  // Load project-specific status definitions for labels/colors
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!task) return
-        const defs = await fetchProjectStatuses(task.project_id)
-        setProjectStatuses(defs)
-      } catch {
-        // noop
-      }
-    })()
-  }, [task])
+  // cachedStatuses covers project statuses via React Query
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!task) return;
@@ -324,7 +308,7 @@ export default function TaskDetailPage() {
 
   const getStatusText = (status: string) => {
     // Prefer project-defined label
-    const map: Record<string, string> = Object.fromEntries(projectStatuses.map(s => [s.key, s.label]))
+    const map: Record<string, string> = Object.fromEntries(cachedStatuses.map(s => [s.key, s.label]))
     if (map[status]) return map[status]
     // i18n keys support
     if (status.startsWith('taskStatus.')) return t(status)

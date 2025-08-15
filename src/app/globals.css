@@ -45,6 +45,9 @@
 
 :root {
   --radius: 0.625rem;
+  /* Global scrollbar tokens */
+  --scrollbar-size: 8px;
+  --scrollbar-thumb-padding: 3px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -127,4 +130,38 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Sidebar scrollbar - subtle, rounded, theme-aware */
+/* Global scrollbar - apply everywhere */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--border) transparent; /* thumb track */
+}
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+  border: var(--scrollbar-thumb-padding) solid transparent; /* padding ring */
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+
+/* Keep sidebar aligned to theme palette */
+[data-slot="sidebar-content"] {
+  scrollbar-color: var(--sidebar-border) transparent;
+}
+[data-slot="sidebar-content"]::-webkit-scrollbar-thumb {
+  background-color: var(--sidebar-border);
+}
+[data-slot="sidebar-content"]:hover::-webkit-scrollbar-thumb {
+  background-color: var(--sidebar-accent);
 }
