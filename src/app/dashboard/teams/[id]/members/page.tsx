@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,16 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+// Removed unused AlertDialog imports
 import {
   Select,
   SelectContent,
@@ -82,19 +73,13 @@ export default function TeamMembersPage() {
   const [userRole, setUserRole] = useState<TeamRole | null>(null);
   const [transferOwnershipOpen, setTransferOwnershipOpen] = useState(false);
 
-  useEffect(() => {
-    loadTeamData();
-  }, [teamId]);
-
-  const loadTeamData = async () => {
+  const loadTeamData = useCallback(async () => {
     try {
       setLoading(true);
-      
       // Get current user
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user?.id || null);
-      
       // Load team data
       const teams = await fetchTeams();
       const currentTeam = teams.find(t => t.id === teamId);
@@ -102,28 +87,30 @@ export default function TeamMembersPage() {
         throw new Error('Takım bulunamadı');
       }
       setTeam(currentTeam);
-      
       // Load team members
       const teamMembers = await getTeamMembers(teamId);
       setMembers(teamMembers);
-      
       // Determine user role
       const userMember = teamMembers.find(m => m.user_id === user?.id);
       setUserRole(userMember?.role || null);
-      
     } catch (error) {
       console.error('Takım verileri yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamId]);
+
+  useEffect(() => {
+    loadTeamData();
+  }, [loadTeamData]);
+  
 
   const handleUpdateRole = async (userId: string, newRole: TeamRole) => {
     try {
       await updateTeamMemberRole({ team_id: teamId, user_id: userId, new_role: newRole });
       toast.success('Üye rolü güncellendi');
       loadTeamData();
-    } catch (error) {
+    } catch {
       toast.error('Rol güncellenemedi');
     }
   };
@@ -133,7 +120,7 @@ export default function TeamMembersPage() {
       await removeTeamMember({ team_id: teamId, user_id: userId });
       toast.success('Üye takımdan çıkarıldı');
       loadTeamData();
-    } catch (error) {
+    } catch {
       toast.error('Üye çıkarılamadı');
     }
   };
@@ -144,7 +131,7 @@ export default function TeamMembersPage() {
       toast.success('Takımdan ayrıldınız');
       // Redirect to teams list
       window.location.href = '/dashboard/teams';
-    } catch (error) {
+    } catch {
       toast.error('Takımdan ayrılamadınız');
     }
   };
@@ -155,7 +142,7 @@ export default function TeamMembersPage() {
       toast.success('Takım sahipliği devredildi');
       setTransferOwnershipOpen(false);
       loadTeamData();
-    } catch (error) {
+    } catch {
       toast.error('Sahiplik devredilemedi');
     }
   };
@@ -203,7 +190,6 @@ export default function TeamMembersPage() {
 
   const isOwner = userRole === 'owner';
   const isAdmin = userRole === 'admin' || isOwner;
-  const canManageMembers = isOwner || isAdmin;
 
   return (
     <div className="space-y-6">

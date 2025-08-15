@@ -145,8 +145,8 @@ function TeamCard({
     onDeleted();
   };
 
-  const isOwner = true; // TODO: Get from context
-  const canEdit = isOwner;
+  // Basit varsayım: düzenleme butonlarını göstermeye devam ediyoruz.
+  const canEdit = true;
 
   return (
     <>

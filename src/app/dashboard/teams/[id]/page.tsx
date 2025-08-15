@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,19 +50,13 @@ export default function TeamDetailPage() {
   const [userRole, setUserRole] = useState<TeamRole | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'settings'>('overview');
 
-  useEffect(() => {
-    loadTeamData();
-  }, [teamId]);
-
-  const loadTeamData = async () => {
+  const loadTeamData = useCallback(async () => {
     try {
       setLoading(true);
-      
       // Get current user
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user?.id || null);
-      
       // Load team data
       const teams = await fetchTeams();
       const currentTeam = teams.find(t => t.id === teamId);
@@ -70,25 +64,25 @@ export default function TeamDetailPage() {
         throw new Error('Takım bulunamadı');
       }
       setTeam(currentTeam);
-      
       // Load team stats
       const teamStats = await getTeamStats(teamId);
       setStats(teamStats);
-      
       // Load team members
       const teamMembers = await getTeamMembers(teamId);
       setMembers(teamMembers);
-      
       // Determine user role
       const userMember = teamMembers.find(m => m.user_id === user?.id);
       setUserRole(userMember?.role || null);
-      
     } catch (error) {
       console.error('Takım verileri yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamId]);
+
+  useEffect(() => {
+    loadTeamData();
+  }, [loadTeamData]);
 
   if (loading) {
     return (

@@ -704,7 +704,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       createdAt: p.created_at,
     })) as ProjectStat[]
     return applySavedOrder('projects', base)
-  }, [hookProjects, orderTick])
+  }, [hookProjects])
 
   const taskStats = React.useMemo(() => {
     const nextAll: TaskStat[] = hookMyTasks.map((task) => {
@@ -733,7 +733,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return ad - bd
     })
     return applySavedOrder('tasks', nextAll)
-  }, [hookMyTasks, orderTick])
+  }, [hookMyTasks])
 
   React.useEffect(() => {
     if (activeItem?.title === "Takımlar") {
