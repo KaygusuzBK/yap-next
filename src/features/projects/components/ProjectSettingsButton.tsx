@@ -76,22 +76,6 @@ export default function ProjectSettingsButton({ projectId }: { projectId: string
                     </DropdownMenu>
                     <p className="text-xs text-muted-foreground">Dil seçici sadece seçilen dilleri gösterir. Boşsa tüm diller görünür.</p>
                   </div>
-
-                  <div className="space-y-1">
-                    <Label>GitHub Entegrasyonu</Label>
-                    <form action="/api/github/link" method="post" className="grid gap-2">
-                      <input type="hidden" name="project_id" value={projectId} />
-                      <div className="grid md:grid-cols-3 gap-2">
-                        <Input name="repo_owner" placeholder="owner" required />
-                        <Input name="repo_name" placeholder="repo" required />
-                        <Input name="installation_id" placeholder="installation_id" required />
-                      </div>
-                      <div>
-                        <Button type="submit" variant="secondary" size="sm">Bağla</Button>
-                      </div>
-                    </form>
-                    <p className="text-xs text-muted-foreground">GitHub App kurulumundan aldığınız installation_id ile owner/repo bilgilerini girin.</p>
-                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="statuses">
