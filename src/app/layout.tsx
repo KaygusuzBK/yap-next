@@ -12,6 +12,7 @@ import QueryProvider from "@/components/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ChatWidgetGuard from "@/components/ChatWidgetGuard";
+import OnboardingTour from "@/components/OnboardingTour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
             <AppFrame>{children}</AppFrame>
             <CommandMenu />
             <ChatWidgetGuard />
+            <OnboardingTour />
           </QueryProvider>
         </AuthTree>
         <Toaster richColors position="top-center" />

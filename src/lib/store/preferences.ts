@@ -9,9 +9,11 @@ type PreferencesState = {
   theme: Theme
   locale: Locale
   enabledLocales: Locale[]
+  tourSeen: boolean
   setTheme: (t: Theme) => void
   setLocale: (l: Locale) => void
   setEnabledLocales: (l: Locale[]) => void
+  setTourSeen: (v: boolean) => void
   load: () => void
 }
 
@@ -19,6 +21,7 @@ export const usePreferencesStore = create<PreferencesState>((set) => ({
   theme: 'light',
   locale: 'tr',
   enabledLocales: [],
+  tourSeen: false,
   setTheme: (t) => {
     set({ theme: t })
     try {
@@ -40,6 +43,12 @@ export const usePreferencesStore = create<PreferencesState>((set) => ({
       localStorage.setItem('enabledLocales', JSON.stringify(safe))
     } catch {}
   },
+  setTourSeen: (v) => {
+    set({ tourSeen: v })
+    try {
+      localStorage.setItem('tour_seen', v ? '1' : '0')
+    } catch {}
+  },
   load: () => {
     try {
       const t = (localStorage.getItem('theme') as Theme) || 'light'
@@ -53,9 +62,10 @@ export const usePreferencesStore = create<PreferencesState>((set) => ({
           enabled = arr.filter((x): x is Locale => typeof x === 'string' && (allowed as string[]).includes(x))
         }
       }
+      const tour = localStorage.getItem('tour_seen') === '1'
       document.documentElement.classList.toggle('dark', t === 'dark')
       document.documentElement.lang = l
-      set({ theme: t, locale: l, enabledLocales: enabled })
+      set({ theme: t, locale: l, enabledLocales: enabled, tourSeen: tour })
     } catch {}
   },
 }))

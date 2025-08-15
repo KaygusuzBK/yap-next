@@ -992,6 +992,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Button
                 size="icon"
                 variant="outline"
+                data-tour="create-task"
                 onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
                 className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
               >
@@ -1115,7 +1116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           <div className="mb-2 flex items-center gap-2">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline" className="h-8">
+                                <Button size="sm" variant="outline" className="h-8" data-tour="filter">
                                   <Filter className="h-4 w-4 mr-2" />
                                   Filtre
                                   {activeCount > 0 && (
