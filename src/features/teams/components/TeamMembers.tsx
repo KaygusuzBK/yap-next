@@ -103,6 +103,7 @@ export default function TeamMembers({ teamId, teamName, isOwner, isAdmin }: Team
   useEffect(() => {
     loadData();
     getCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadData]);
 
 

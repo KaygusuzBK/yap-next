@@ -835,7 +835,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     } else if (type === 'project') {
       const updated = reorderArray(projectStats, dragIndex, index)
       saveOrder('projects', updated.map(p => p.id))
-      setOrderTick((t) => t + 1)
     } else if (type === 'task') {
       const filtered = taskStats.filter(t => {
         if (taskStatusFilter === 'open' && t.status === 'completed') return false

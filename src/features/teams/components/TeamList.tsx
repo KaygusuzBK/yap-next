@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { type Team, updateTeam, deleteTeam, getTeamStats, type TeamStats } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+// Removed unused Badge import
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -173,7 +173,6 @@ function TeamCard({
             </div>
             {canEdit && (
               <TeamMenu
-                team={team}
                 onEdit={() => setOpenEdit(true)}
                 onDelete={() => setOpenDelete(true)}
               />
