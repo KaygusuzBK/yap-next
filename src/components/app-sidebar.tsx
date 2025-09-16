@@ -811,9 +811,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setPerformanceError(null)
       const supabase = getSupabase()
       
-      // Tüm görevleri çek
+      // Tüm görevleri çek (project_tasks tablosundan)
       const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
+        .from('project_tasks')
         .select('id, status, created_by, project_id, created_at, updated_at')
       
       if (tasksError) {
@@ -846,6 +846,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const totalTasks = tasks?.length || 0
       const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0
       const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+      
+      console.log('Performance data loaded:', {
+        totalTasks,
+        completedTasks,
+        completionRate,
+        sampleTasks: tasks?.slice(0, 3)
+      })
 
       // Takım istatistikleri
       const teamStats = teamMembers?.map(member => {
