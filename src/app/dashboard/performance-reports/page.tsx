@@ -91,37 +91,25 @@ export default function PerformanceReportsPage() {
             </TabsContent>
 
             <TabsContent value="team" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Takım Performansı
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Detaylı takım analizi yakında...</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <PerformanceReports
+                projectId={filters.projects.length === 1 ? filters.projects[0] : undefined}
+                teamId={filters.teams.length === 1 ? filters.teams[0] : undefined}
+                dateRange={filters.dateRange}
+                priorities={filters.priorities}
+                statuses={filters.statuses}
+                searchTerm={filters.searchTerm}
+              />
             </TabsContent>
 
             <TabsContent value="projects" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Proje Analizi
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Detaylı proje analizi yakında...</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <PerformanceReports
+                projectId={filters.projects.length === 1 ? filters.projects[0] : undefined}
+                teamId={filters.teams.length === 1 ? filters.teams[0] : undefined}
+                dateRange={filters.dateRange}
+                priorities={filters.priorities}
+                statuses={filters.statuses}
+                searchTerm={filters.searchTerm}
+              />
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-6">

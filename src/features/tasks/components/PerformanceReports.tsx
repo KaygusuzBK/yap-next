@@ -93,12 +93,10 @@ export default function PerformanceReports({
       const startDate = dateRange?.start || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const endDate = dateRange?.end || new Date();
 
-      // Temel görev istatistikleri
+      // Temel görev istatistikleri - tüm görevleri çek (tarih filtresi olmadan)
       let taskQuery = supabase
         .from('tasks')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
+        .select('*');
 
       if (projectId) {
         taskQuery = taskQuery.eq('project_id', projectId);
@@ -117,44 +115,48 @@ export default function PerformanceReports({
         taskQuery = taskQuery.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
-      const { data: tasks, error: tasksError } = await taskQuery;
+      const { data: allTasks, error: tasksError } = await taskQuery;
       if (tasksError) throw tasksError;
 
-      // Takım üyeleri
-      let teamQuery = supabase
+      // Tarih aralığına göre filtrele
+      const tasks = allTasks?.filter(task => {
+        const taskDate = new Date(task.created_at);
+        return taskDate >= startDate && taskDate <= endDate;
+      }) || [];
+
+      // Takım üyeleri - sadece kullanıcı bilgilerini çek
+      const { data: teamMembers, error: teamError } = await supabase
         .from('project_members')
         .select(`
           user_id,
           users!inner(id, full_name)
-        `);
-
-      if (projectId) {
-        teamQuery = teamQuery.eq('project_id', projectId);
+        `)
+        .eq('project_id', projectId || '');
+      
+      if (teamError) {
+        console.warn('Team members could not be loaded:', teamError);
       }
-
-      const { data: teamMembers, error: teamError } = await teamQuery;
-      if (teamError) throw teamError;
 
       // Projeler
-      let projectQuery = supabase
+      const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select('id, title');
-
-      if (projectId) {
-        projectQuery = projectQuery.eq('id', projectId);
+        .select('id, title')
+        .eq('id', projectId || '');
+      
+      if (projectError) {
+        console.warn('Projects could not be loaded:', projectError);
       }
 
-      const { data: projects, error: projectError } = await projectQuery;
-      if (projectError) throw projectError;
-
-      // Görev aktiviteleri
+      // Görev aktiviteleri - basitleştirilmiş
       const { data: activities, error: activitiesError } = await supabase
         .from('project_activities')
         .select('*')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
-      if (activitiesError) throw activitiesError;
+      if (activitiesError) {
+        console.warn('Activities could not be loaded:', activitiesError);
+      }
 
       // İstatistikleri hesapla
       const totalTasks = tasks?.length || 0;
@@ -183,7 +185,7 @@ export default function PerformanceReports({
       const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const productivityScore = daysDiff > 0 ? completedTasks / daysDiff : 0;
 
-      // Takım istatistikleri
+      // Takım istatistikleri - gerçek verilerle
       const teamStats = teamMembers?.map(member => {
         const memberTasks = tasks?.filter(t => t.created_by === member.user_id) || [];
         const memberCompleted = memberTasks.filter(t => t.status === 'completed').length;
@@ -194,7 +196,7 @@ export default function PerformanceReports({
           totalTasks: memberTasks.length,
           completionRate: memberTasks.length > 0 ? (memberCompleted / memberTasks.length) * 100 : 0
         };
-      }) || [];
+      }).filter(member => member.totalTasks > 0) || []; // Sadece görevi olan üyeleri göster
 
       // Günlük istatistikler
       const dailyStats = [];
@@ -227,7 +229,7 @@ export default function PerformanceReports({
         };
       });
 
-      // Proje istatistikleri
+      // Proje istatistikleri - gerçek verilerle
       const projectStats = projects?.map(project => {
         const projectTasks = tasks?.filter(t => t.project_id === project.id) || [];
         const projectCompleted = projectTasks.filter(t => t.status === 'completed').length;
@@ -251,7 +253,7 @@ export default function PerformanceReports({
           completionRate: projectTasks.length > 0 ? (projectCompleted / projectTasks.length) * 100 : 0,
           averageTime
         };
-      }) || [];
+      }).filter(project => project.totalTasks > 0) || []; // Sadece görevi olan projeleri göster
 
       setData({
         totalTasks,
@@ -316,7 +318,13 @@ export default function PerformanceReports({
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">Veri bulunamadı</div>
+          <div className="text-center">
+            <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <div className="text-muted-foreground">Veri bulunamadı</div>
+            <div className="text-sm text-muted-foreground mt-2">
+              Seçilen tarih aralığında görev bulunmuyor
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
