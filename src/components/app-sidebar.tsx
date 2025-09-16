@@ -789,6 +789,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const isCalendarActive = activeItem?.title === "Takvim"
   const isTeamsActive = activeItem?.title === "Takımlar"
   const isProjectsActive = activeItem?.title === "Projeler"
+  const isPerformanceActive = activeItem?.title === "Performans"
 
   const handleNavClick = React.useCallback(
     (item: (typeof data.navMain)[number]) => {
@@ -1080,6 +1081,102 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       )}
                     </div>
                   )}
+                </div>
+              ) : isPerformanceActive ? (
+                <div className="p-4 min-h-0">
+                  <div className="space-y-4">
+                    {/* Performans Özeti */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-muted-foreground">Performans Özeti</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg border bg-card">
+                          <div className="text-2xl font-bold text-green-600">32</div>
+                          <div className="text-xs text-muted-foreground">Tamamlanan</div>
+                        </div>
+                        <div className="p-3 rounded-lg border bg-card">
+                          <div className="text-2xl font-bold text-blue-600">47</div>
+                          <div className="text-xs text-muted-foreground">Toplam</div>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg border bg-card">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Başarı Oranı</span>
+                          <span className="text-lg font-bold text-purple-600">68.1%</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2 mt-2">
+                          <div className="bg-purple-600 h-2 rounded-full" style={{ width: '68.1%' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Takım Performansı */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-muted-foreground">Takım Performansı</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-sm">Ayşe Demir</span>
+                          </div>
+                          <span className="text-sm font-medium">83.3%</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-sm">Ahmet Yılmaz</span>
+                          </div>
+                          <span className="text-sm font-medium">66.7%</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <span className="text-sm">Mehmet Kaya</span>
+                          </div>
+                          <span className="text-sm font-medium">60.0%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Proje Performansı */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-muted-foreground">Proje Performansı</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-sm">E-Ticaret</span>
+                          </div>
+                          <span className="text-sm font-medium">81.8%</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-sm">Mobil App</span>
+                          </div>
+                          <span className="text-sm font-medium">60.0%</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <span className="text-sm">API Dev</span>
+                          </div>
+                          <span className="text-sm font-medium">50.0%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detaylı Rapor İçin Buton */}
+                    <div className="pt-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => router.push('/dashboard/performance-reports')}
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Detaylı Raporlar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : isCalendarActive ? (
                 <CalendarSidebar
