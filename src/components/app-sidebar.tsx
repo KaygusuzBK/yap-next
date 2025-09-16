@@ -791,6 +791,101 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const isProjectsActive = activeItem?.title === "Projeler"
   const isPerformanceActive = activeItem?.title === "Performans"
 
+  // Performans verileri için state
+  const [performanceData, setPerformanceData] = React.useState<{
+    totalTasks: number
+    completedTasks: number
+    completionRate: number
+    teamStats: Array<{ name: string; completed: number; total: number; rate: number }>
+    projectStats: Array<{ name: string; completed: number; total: number; rate: number }>
+  } | null>(null)
+  const [loadingPerformance, setLoadingPerformance] = React.useState(false)
+
+  // Performans verilerini çek
+  const fetchPerformanceData = React.useCallback(async () => {
+    if (!isPerformanceActive) return
+    
+    try {
+      setLoadingPerformance(true)
+      const supabase = getSupabase()
+      
+      // Tüm görevleri çek
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('id, status, created_by, project_id, created_at, updated_at')
+      
+      if (tasksError) throw tasksError
+
+      // Takım üyelerini çek
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('project_members')
+        .select(`
+          user_id,
+          users!inner(id, full_name)
+        `)
+      
+      if (teamError) {
+        console.warn('Team members could not be loaded:', teamError)
+      }
+
+      // Projeleri çek
+      const { data: projects, error: projectError } = await supabase
+        .from('projects')
+        .select('id, title')
+      
+      if (projectError) {
+        console.warn('Projects could not be loaded:', projectError)
+      }
+
+      // İstatistikleri hesapla
+      const totalTasks = tasks?.length || 0
+      const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0
+      const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+
+      // Takım istatistikleri
+      const teamStats = teamMembers?.map(member => {
+        const memberTasks = tasks?.filter(t => t.created_by === member.user_id) || []
+        const memberCompleted = memberTasks.filter(t => t.status === 'completed').length
+        return {
+          name: (member as any).users?.full_name || 'Bilinmeyen',
+          completed: memberCompleted,
+          total: memberTasks.length,
+          rate: memberTasks.length > 0 ? (memberCompleted / memberTasks.length) * 100 : 0
+        }
+      }).filter(member => member.total > 0) || []
+
+      // Proje istatistikleri
+      const projectStats = projects?.map(project => {
+        const projectTasks = tasks?.filter(t => t.project_id === project.id) || []
+        const projectCompleted = projectTasks.filter(t => t.status === 'completed').length
+        return {
+          name: project.title,
+          completed: projectCompleted,
+          total: projectTasks.length,
+          rate: projectTasks.length > 0 ? (projectCompleted / projectTasks.length) * 100 : 0
+        }
+      }).filter(project => project.total > 0) || []
+
+      setPerformanceData({
+        totalTasks,
+        completedTasks,
+        completionRate,
+        teamStats,
+        projectStats
+      })
+    } catch (error) {
+      console.error('Failed to load performance data:', error)
+      setPerformanceData(null)
+    } finally {
+      setLoadingPerformance(false)
+    }
+  }, [isPerformanceActive])
+
+  // Performans verilerini yükle
+  React.useEffect(() => {
+    fetchPerformanceData()
+  }, [fetchPerformanceData])
+
   const handleNavClick = React.useCallback(
     (item: (typeof data.navMain)[number]) => {
       setActiveItem(item)
@@ -1084,99 +1179,107 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
               ) : isPerformanceActive ? (
                 <div className="p-4 min-h-0">
-                  <div className="space-y-4">
-                    {/* Performans Özeti */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground">Performans Özeti</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                  {loadingPerformance ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-sm text-muted-foreground">Yükleniyor...</div>
+                    </div>
+                  ) : !performanceData ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-center">
+                        <BarChart3 className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                        <div className="text-sm text-muted-foreground">Veri bulunamadı</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Performans Özeti */}
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-muted-foreground">Performans Özeti</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 rounded-lg border bg-card">
+                            <div className="text-2xl font-bold text-green-600">{performanceData.completedTasks}</div>
+                            <div className="text-xs text-muted-foreground">Tamamlanan</div>
+                          </div>
+                          <div className="p-3 rounded-lg border bg-card">
+                            <div className="text-2xl font-bold text-blue-600">{performanceData.totalTasks}</div>
+                            <div className="text-xs text-muted-foreground">Toplam</div>
+                          </div>
+                        </div>
                         <div className="p-3 rounded-lg border bg-card">
-                          <div className="text-2xl font-bold text-green-600">32</div>
-                          <div className="text-xs text-muted-foreground">Tamamlanan</div>
-                        </div>
-                        <div className="p-3 rounded-lg border bg-card">
-                          <div className="text-2xl font-bold text-blue-600">47</div>
-                          <div className="text-xs text-muted-foreground">Toplam</div>
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-lg border bg-card">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Başarı Oranı</span>
-                          <span className="text-lg font-bold text-purple-600">68.1%</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2 mt-2">
-                          <div className="bg-purple-600 h-2 rounded-full" style={{ width: '68.1%' }}></div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Başarı Oranı</span>
+                            <span className="text-lg font-bold text-purple-600">{performanceData.completionRate.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2 mt-2">
+                            <div 
+                              className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${performanceData.completionRate}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Takım Performansı */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground">Takım Performansı</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-2 rounded border">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-sm">Ayşe Demir</span>
+                      {/* Takım Performansı */}
+                      {performanceData.teamStats.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-medium text-muted-foreground">Takım Performansı</h3>
+                          <div className="space-y-2">
+                            {performanceData.teamStats
+                              .sort((a, b) => b.rate - a.rate)
+                              .slice(0, 3)
+                              .map((member, index) => {
+                                const colors = ['bg-green-500', 'bg-blue-500', 'bg-yellow-500']
+                                return (
+                                  <div key={member.name} className="flex items-center justify-between p-2 rounded border">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-2 h-2 rounded-full ${colors[index] || 'bg-gray-500'}`}></div>
+                                      <span className="text-sm truncate">{member.name}</span>
+                                    </div>
+                                    <span className="text-sm font-medium">{member.rate.toFixed(1)}%</span>
+                                  </div>
+                                )
+                              })}
                           </div>
-                          <span className="text-sm font-medium">83.3%</span>
                         </div>
-                        <div className="flex items-center justify-between p-2 rounded border">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-sm">Ahmet Yılmaz</span>
+                      )}
+
+                      {/* Proje Performansı */}
+                      {performanceData.projectStats.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-medium text-muted-foreground">Proje Performansı</h3>
+                          <div className="space-y-2">
+                            {performanceData.projectStats
+                              .sort((a, b) => b.rate - a.rate)
+                              .slice(0, 3)
+                              .map((project, index) => {
+                                const colors = ['bg-green-500', 'bg-blue-500', 'bg-yellow-500']
+                                return (
+                                  <div key={project.name} className="flex items-center justify-between p-2 rounded border">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-2 h-2 rounded-full ${colors[index] || 'bg-gray-500'}`}></div>
+                                      <span className="text-sm truncate">{project.name}</span>
+                                    </div>
+                                    <span className="text-sm font-medium">{project.rate.toFixed(1)}%</span>
+                                  </div>
+                                )
+                              })}
                           </div>
-                          <span className="text-sm font-medium">66.7%</span>
                         </div>
-                        <div className="flex items-center justify-between p-2 rounded border">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                            <span className="text-sm">Mehmet Kaya</span>
-                          </div>
-                          <span className="text-sm font-medium">60.0%</span>
-                        </div>
+                      )}
+
+                      {/* Detaylı Rapor İçin Buton */}
+                      <div className="pt-2">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => router.push('/dashboard/performance-reports')}
+                        >
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Detaylı Raporlar
+                        </Button>
                       </div>
                     </div>
-
-                    {/* Proje Performansı */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground">Proje Performansı</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-2 rounded border">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-sm">E-Ticaret</span>
-                          </div>
-                          <span className="text-sm font-medium">81.8%</span>
-                        </div>
-                        <div className="flex items-center justify-between p-2 rounded border">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-sm">Mobil App</span>
-                          </div>
-                          <span className="text-sm font-medium">60.0%</span>
-                        </div>
-                        <div className="flex items-center justify-between p-2 rounded border">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                            <span className="text-sm">API Dev</span>
-                          </div>
-                          <span className="text-sm font-medium">50.0%</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Detaylı Rapor İçin Buton */}
-                    <div className="pt-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => router.push('/dashboard/performance-reports')}
-                      >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Detaylı Raporlar
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               ) : isCalendarActive ? (
                 <CalendarSidebar
