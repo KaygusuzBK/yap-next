@@ -20,13 +20,15 @@ import {
   History,
   Plus,
   Loader2,
-  Folder
+  Folder,
+  Link
 } from 'lucide-react';
 import { fetchTaskById, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, fetchTaskActivities, fetchTaskTimeLogs, addTimeLog, startTimeLog, stopTimeLog, type Task, type TaskComment, type TaskFile, type TaskActivity, type TaskTimeLog } from '../../../../features/tasks/api';
 import { useProjectStatuses, useProjectMembers } from '@/features/tasks/queries';
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
 import TaskAssignment from '../../../../features/tasks/components/TaskAssignment';
+import TaskDependencyManager from '../../../../features/tasks/components/TaskDependencyManager';
 import {
   Dialog,
   DialogContent,
@@ -620,6 +622,10 @@ export default function TaskDetailPage() {
                 <History className="h-4 w-4" />
                 Geçmiş
               </TabsTrigger>
+              <TabsTrigger value="dependencies" className="flex items-center gap-2">
+                <Link className="h-4 w-4" />
+                Bağımlılıklar
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="comments" className="mt-6">
@@ -974,6 +980,19 @@ export default function TaskDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            <TabsContent value="dependencies" className="mt-6">
+              {task && (
+                <TaskDependencyManager
+                  task={task}
+                  projectTasks={[]} // Bu kısım proje görevleri ile doldurulmalı
+                  onDependencyChange={() => {
+                    // Bağımlılık değiştiğinde görev verilerini yenile
+                    loadTask();
+                  }}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
