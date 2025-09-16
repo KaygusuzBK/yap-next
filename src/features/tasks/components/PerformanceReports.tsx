@@ -66,12 +66,18 @@ interface PerformanceReportsProps {
     start: Date;
     end: Date;
   };
+  priorities?: string[];
+  statuses?: string[];
+  searchTerm?: string;
 }
 
 export default function PerformanceReports({ 
   projectId, 
   teamId, 
-  dateRange 
+  dateRange,
+  priorities = [],
+  statuses = [],
+  searchTerm = ''
 }: PerformanceReportsProps) {
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -96,6 +102,19 @@ export default function PerformanceReports({
 
       if (projectId) {
         taskQuery = taskQuery.eq('project_id', projectId);
+      }
+
+      // Filtreleme uygula
+      if (priorities.length > 0) {
+        taskQuery = taskQuery.in('priority', priorities);
+      }
+
+      if (statuses.length > 0) {
+        taskQuery = taskQuery.in('status', statuses);
+      }
+
+      if (searchTerm) {
+        taskQuery = taskQuery.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
       const { data: tasks, error: tasksError } = await taskQuery;

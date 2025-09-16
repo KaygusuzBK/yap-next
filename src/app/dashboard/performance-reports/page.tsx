@@ -14,46 +14,30 @@ import {
   Target
 } from 'lucide-react';
 import PerformanceReports from '@/features/tasks/components/PerformanceReports';
+import PerformanceFilters, { type FilterState } from '@/components/performance/PerformanceFilters';
 import { useProjects } from '@/features/projects/queries';
 import { useTeams } from '@/features/teams/queries';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 
 export default function PerformanceReportsPage() {
-  const [selectedProject, setSelectedProject] = useState<string>('');
-  const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [dateRange, setDateRange] = useState<{
-    start: Date;
-    end: Date;
-  }>({
-    start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Son 7 gün
-    end: new Date()
+  const [filters, setFilters] = useState<FilterState>({
+    dateRange: {
+      start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Son 7 gün
+      end: new Date()
+    },
+    projects: [],
+    teams: [],
+    priorities: [],
+    statuses: [],
+    searchTerm: '',
+    viewType: 'overview'
   });
 
   const { data: projects = [] } = useProjects();
   const { data: teams = [] } = useTeams();
 
-  const handleDateRangeChange = (range: string) => {
-    const now = new Date();
-    let start: Date;
-
-    switch (range) {
-      case 'week':
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'quarter':
-        start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      case 'year':
-        start = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    }
-
-    setDateRange({ start, end: now });
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
   };
 
   return (
@@ -73,72 +57,18 @@ export default function PerformanceReportsPage() {
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {dateRange.start.toLocaleDateString('tr-TR')} - {dateRange.end.toLocaleDateString('tr-TR')}
+                {filters.dateRange.start.toLocaleDateString('tr-TR')} - {filters.dateRange.end.toLocaleDateString('tr-TR')}
               </span>
             </div>
           </div>
 
           {/* Filtreler */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Rapor Filtreleri
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Zaman Aralığı</label>
-                  <Select onValueChange={handleDateRangeChange} defaultValue="week">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Zaman aralığı seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="week">Son Hafta</SelectItem>
-                      <SelectItem value="month">Son Ay</SelectItem>
-                      <SelectItem value="quarter">Son Çeyrek</SelectItem>
-                      <SelectItem value="year">Son Yıl</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Proje</label>
-                  <Select value={selectedProject} onValueChange={setSelectedProject}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tüm projeler" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Tüm Projeler</SelectItem>
-                      {projects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Takım</label>
-                  <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tüm takımlar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Tüm Takımlar</SelectItem>
-                      {teams.map(team => (
-                        <SelectItem key={team.id} value={team.id}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <PerformanceFilters
+            projects={projects}
+            teams={teams}
+            onFiltersChange={handleFiltersChange}
+            initialFilters={filters}
+          />
 
           {/* Raporlar */}
           <Tabs defaultValue="overview" className="w-full">
@@ -151,9 +81,12 @@ export default function PerformanceReportsPage() {
 
             <TabsContent value="overview" className="mt-6">
               <PerformanceReports
-                projectId={selectedProject || undefined}
-                teamId={selectedTeam || undefined}
-                dateRange={dateRange}
+                projectId={filters.projects.length === 1 ? filters.projects[0] : undefined}
+                teamId={filters.teams.length === 1 ? filters.teams[0] : undefined}
+                dateRange={filters.dateRange}
+                priorities={filters.priorities}
+                statuses={filters.statuses}
+                searchTerm={filters.searchTerm}
               />
             </TabsContent>
 

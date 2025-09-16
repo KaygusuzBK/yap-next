@@ -23,7 +23,7 @@ import {
   Folder,
   Link
 } from 'lucide-react';
-import { fetchTaskById, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, fetchTaskActivities, fetchTaskTimeLogs, addTimeLog, startTimeLog, stopTimeLog, type Task, type TaskComment, type TaskFile, type TaskActivity, type TaskTimeLog } from '../../../../features/tasks/api';
+import { fetchTaskById, fetchComments, addComment, deleteComment, listTaskFiles, uploadTaskFile, deleteTaskFile, fetchTaskActivities, fetchTaskTimeLogs, addTimeLog, startTimeLog, stopTimeLog, fetchTasksByProject, type Task, type TaskComment, type TaskFile, type TaskActivity, type TaskTimeLog } from '../../../../features/tasks/api';
 import { useProjectStatuses, useProjectMembers } from '@/features/tasks/queries';
 import { toast } from 'sonner';
 import TaskEditForm from '../../../../features/tasks/components/TaskEditForm';
@@ -46,6 +46,7 @@ export default function TaskDetailPage() {
   const taskId = params.id as string;
   
   const [task, setTask] = useState<Task | null>(null);
+  const [projectTasks, setProjectTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -79,7 +80,17 @@ export default function TaskDetailPage() {
       setError(null);
       const taskData = await fetchTaskById(taskId);
       setTask(taskData);
-      setProjectIdForMembers(taskData.project_id)
+      setProjectIdForMembers(taskData.project_id);
+      
+      // Load project tasks for dependencies
+      if (taskData.project_id) {
+        try {
+          const projectTasksData = await fetchTasksByProject(taskData.project_id);
+          setProjectTasks(projectTasksData);
+        } catch (err) {
+          console.warn('Could not load project tasks:', err);
+        }
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Görev yüklenirken bir hata oluştu');
       toast.error('Görev yüklenirken bir hata oluştu');
@@ -986,7 +997,7 @@ export default function TaskDetailPage() {
               {task && (
                 <TaskDependencyManager
                   task={task}
-                  projectTasks={[]} // Bu kısım proje görevleri ile doldurulmalı
+                  projectTasks={projectTasks}
                   onDependencyChange={() => {
                     // Bağımlılık değiştiğinde görev verilerini yenile
                     loadTask();
@@ -1012,6 +1023,21 @@ export default function TaskDetailPage() {
               >
                 <User className="h-4 w-4 mr-2" />
                 {t('task.quick.assign')}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  // Bağımlılık sekmesine geç
+                  const dependenciesTab = document.querySelector('[value="dependencies"]') as HTMLElement;
+                  if (dependenciesTab) {
+                    dependenciesTab.click();
+                  }
+                }}
+              >
+                <Link className="h-4 w-4 mr-2" />
+                Bağımlılık Ekle
               </Button>
               <Button variant="outline" className="w-full justify-start">
                 <Clock className="h-4 w-4 mr-2" />
