@@ -73,8 +73,10 @@ export default function PerformancePage() {
           const st = a.details?.status
           if (!byTask[a.task_id]) byTask[a.task_id] = { changes: [] }
           if (a.action === 'task_updated' && st && (st.old !== st.new)) {
-            byTask[a.task_id].changes.push({ at: a.created_at, from: st.old ?? undefined, to: st.new ?? undefined })
-            if (st.new === 'completed') byTask[a.task_id].lastCompleted = a.created_at
+            byTask[a.task_id]?.changes.push({ at: a.created_at, from: st.old ?? null, to: st.new ?? null })
+            if (st.new === 'completed' && byTask[a.task_id]) {
+              byTask[a.task_id]!.lastCompleted = a.created_at
+            }
           }
         }
 
@@ -83,10 +85,11 @@ export default function PerformancePage() {
         for (const taskId of Object.keys(byTask)) {
           const meta = tasksMeta.find(m => m.id === taskId)
           if (!meta) continue
-          const sorted = byTask[taskId].changes.sort((a,b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+          const sorted = byTask[taskId]?.changes.sort((a,b) => new Date(a.at).getTime() - new Date(b.at).getTime()) || []
           const durations: Record<string, number> = {}
           for (let i = 0; i < sorted.length; i++) {
             const cur = sorted[i]
+            if (!cur) continue
             const nxt = sorted[i+1]
             const key = (cur.to || 'unknown') as string
             const start = new Date(cur.at).getTime()
@@ -98,12 +101,14 @@ export default function PerformancePage() {
             task_id: taskId,
             task_title: meta.title,
             project_id: meta.project_id,
-            project_title: meta.project_title,
-            completed_at: byTask[taskId].lastCompleted ?? null,
+            project_title: meta.project_title ?? null,
+            completed_at: byTask[taskId]?.lastCompleted ?? null,
             durations,
           })
           if (!projectSummary[meta.project_id]) projectSummary[meta.project_id] = { completed: 0 }
-          if (byTask[taskId].lastCompleted) projectSummary[meta.project_id].completed += 1
+          if (byTask[taskId]?.lastCompleted) {
+            projectSummary[meta.project_id]!.completed += 1
+          }
         }
 
         setRows(resultRows)

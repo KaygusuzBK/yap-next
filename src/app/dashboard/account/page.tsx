@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { saveUserPrefs, getUserPrefs, updateProfileName, changePassword, type UserPrefs, generateToken } from '@/lib/services/account'
 import ThemeCustomizer from '@/components/theme/ThemeCustomizer'
+import ThemeSaveButton from '@/components/theme/ThemeSaveButton'
 
 export default function AccountPage() {
   const { user } = useAuth()
@@ -57,9 +58,15 @@ export default function AccountPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tema Özelleştirme</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Tema Özelleştirme</CardTitle>
+              <ThemeSaveButton />
+            </div>
           </CardHeader>
           <CardContent>
+            <div className="text-sm text-muted-foreground mb-4">
+              Tema ayarlarınızı yukarıdaki butonla güncelleyebilirsiniz. Değişiklikler anında önizlenir.
+            </div>
             <ThemeCustomizer />
           </CardContent>
         </Card>

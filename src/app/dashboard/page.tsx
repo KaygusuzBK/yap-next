@@ -135,7 +135,7 @@ export default function Page() {
   // Sync board tasks from cache (guard to avoid infinite loops when reference changes)
   useEffect(() => {
     setBoardTasks(prev => {
-      if (prev.length === myTasks.length && prev.every((p, i) => p.id === myTasks[i].id && p.updated_at === myTasks[i].updated_at && p.status === myTasks[i].status && (p.position ?? null) === (myTasks[i].position ?? null))) {
+      if (prev.length === myTasks.length && prev.every((p, i) => p.id === myTasks[i]?.id && p.updated_at === myTasks[i]?.updated_at && p.status === myTasks[i]?.status && (p.position ?? null) === (myTasks[i]?.position ?? null))) {
         return prev
       }
       return myTasks
@@ -443,7 +443,9 @@ export default function Page() {
                                   const fromIndex = copy.findIndex(t => t.id === dragTaskId)
                                   const toIndex = copy.findIndex(t => t.id === task.id)
                                   const [removed] = copy.splice(fromIndex, 1)
-                                  copy.splice(toIndex, 0, removed)
+                                  if (removed) {
+                                    copy.splice(toIndex, 0, removed)
+                                  }
                                   return copy
                                 })
                               }}

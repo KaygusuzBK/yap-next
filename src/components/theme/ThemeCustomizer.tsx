@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from 'react'
-import { saveUserTheme, getUserTheme, type UserTheme } from '@/lib/services/preferences/userTheme'
+import { getUserTheme, type UserTheme } from '@/lib/services/preferences/userTheme'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, Folder, User } from 'lucide-react'
+import { Calendar, Folder, User, Type } from 'lucide-react'
 
 function ColorInput({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
   const id = React.useId()
@@ -25,12 +25,11 @@ export default function ThemeCustomizer() {
   const [initial, setInitial] = React.useState<UserTheme | null>(null)
   const [light, setLight] = React.useState<UserTheme['light']>({})
   const [dark, setDark] = React.useState<UserTheme['dark']>({})
-  const [saving, setSaving] = React.useState(false)
-  const [message, setMessage] = React.useState<string | null>(null)
   const [transitionEnabled, setTransitionEnabled] = React.useState(true)
   const [transitionDuration, setTransitionDuration] = React.useState(200)
   const [transitionEasing, setTransitionEasing] = React.useState('ease-in-out')
   const [demoOn, setDemoOn] = React.useState(false)
+  const [selectedFont, setSelectedFont] = React.useState('Inter')
 
   React.useEffect(() => {
     ;(async () => {
@@ -68,6 +67,21 @@ export default function ThemeCustomizer() {
     if (pal?.sidebarBorder) root.style.setProperty('--sidebar-border', pal.sidebarBorder)
     if (pal?.sidebarRing) root.style.setProperty('--sidebar-ring', pal.sidebarRing)
   }, [light, dark])
+
+  // Font değişikliklerini uygula
+  React.useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--font-sans', `"${selectedFont}", "Helvetica Neue", Helvetica, Arial, sans-serif`)
+    document.body.style.fontFamily = `"${selectedFont}", "Helvetica Neue", Helvetica, Arial, sans-serif`
+  }, [selectedFont])
+
+  const fontOptions = [
+    { name: 'Inter', value: 'Inter', preview: 'Modern ve temiz' },
+    { name: 'Roboto', value: 'Roboto', preview: 'Google font, okunabilir' },
+    { name: 'Poppins', value: 'Poppins', preview: 'Yuvarlak ve dostane' },
+    { name: 'Open Sans', value: 'Open Sans', preview: 'Profesyonel ve net' },
+    { name: 'Lato', value: 'Lato', preview: 'Elegant ve zarif' }
+  ]
 
   const suggestions: Array<{ name: string; light: NonNullable<UserTheme['light']>; dark: NonNullable<UserTheme['dark']> }> = [
     {
@@ -128,21 +142,8 @@ export default function ThemeCustomizer() {
     setTransitionEnabled(true)
     setTransitionDuration(pick([150, 200, 250, 300, 400, 500, 600]))
     setTransitionEasing(pick(['ease-in-out','ease-out','ease-in','linear']))
-    setMessage(null)
   }
 
-  const onSave = async () => {
-    setSaving(true)
-    setMessage(null)
-    try {
-      await saveUserTheme({ light, dark, transition: { enabled: transitionEnabled, durationMs: transitionDuration, easing: transitionEasing } })
-      setMessage('Kaydedildi')
-    } catch {
-      setMessage('Kaydedilemedi')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   return (
     <div className="space-y-6 mx-auto w-full max-w-6xl">
@@ -154,7 +155,7 @@ export default function ThemeCustomizer() {
               key={s.name}
               type="button"
               className="rounded border px-2 py-1 text-xs hover:bg-accent"
-              onClick={() => { setLight(s.light); setDark(s.dark); setMessage(`Öneri uygulandı: ${s.name}`) }}
+              onClick={() => { setLight(s.light); setDark(s.dark) }}
             >
               {s.name}
             </button>
@@ -162,6 +163,34 @@ export default function ThemeCustomizer() {
           <Button variant="outline" className="h-7 text-xs" onClick={generateRandom}>Rastgele üret</Button>
         </div>
       </div>
+
+      {/* Font Seçimi */}
+      <div className="space-y-2 rounded border p-3">
+        <div className="text-sm font-medium flex items-center gap-2">
+          <Type className="h-4 w-4" />
+          Font Seçimi
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {fontOptions.map((font) => (
+            <button
+              key={font.value}
+              type="button"
+              onClick={() => setSelectedFont(font.value)}
+              className={`p-3 rounded border text-left transition-all hover:bg-accent ${
+                selectedFont === font.value ? 'ring-2 ring-primary bg-primary/5' : ''
+              }`}
+              style={{ fontFamily: `"${font.value}", sans-serif` }}
+            >
+              <div className="font-medium text-sm">{font.name}</div>
+              <div className="text-xs text-muted-foreground mt-1">{font.preview}</div>
+              <div className="text-lg mt-2" style={{ fontFamily: `"${font.value}", sans-serif` }}>
+                Aa Bb Cc
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
         {/* LIGHT */}
         <div className="space-y-3 rounded border p-3">
@@ -306,10 +335,6 @@ export default function ThemeCustomizer() {
             <Button size="sm" variant={demoOn? 'outline' : 'default'} onClick={() => setDemoOn(v => !v)}>Test</Button>
           </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button onClick={onSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</Button>
-        {message && <span className="text-sm text-muted-foreground">{message}</span>}
       </div>
       {initial && (
         <div className="text-xs text-muted-foreground">Mevcut kayıtlı tema yüklendi.</div>

@@ -24,7 +24,7 @@ export default function LoginForm() {
 
   const onSubmit = async (values: FormValues) => {
     const supabase = getSupabase();
-    const { error } = await supabase.auth.signInWithPassword(values);
+    const { error } = await supabase.auth.signInWithPassword(values as any);
     if (error) {
       toast.error(error.message);
       return;

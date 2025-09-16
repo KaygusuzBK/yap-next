@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const match = text.match(/\[PROJE:([a-f0-9\-]{36})\]\s+(.{3,})/i)
     if (match) {
       const project_id = match[1]
-      const title = match[2].trim().slice(0, 200)
+      const title = match[2]?.trim().slice(0, 200) || ''
       const supabase = getSupabaseAdmin()
       const automationUserId = process.env.SUPABASE_AUTOMATION_USER_ID || ''
       await supabase.from('project_tasks').insert({ project_id, title, status: 'todo', priority: 'medium', created_by: automationUserId })

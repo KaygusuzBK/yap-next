@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { postSlackMessage } from '@/lib/slack'
-import { ApiError, handleApiError, validateRequest, withErrorHandling } from '@/lib/utils/apiErrorHandler'
+import { ApiError, withErrorHandling } from '@/lib/utils/apiErrorHandler'
 
 type TaskPayload = {
   id: string
@@ -114,6 +114,5 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, response: result })
+  })
 }
-
-

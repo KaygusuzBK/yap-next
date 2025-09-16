@@ -165,3 +165,8 @@
 [data-slot="sidebar-content"]:hover::-webkit-scrollbar-thumb {
   background-color: var(--sidebar-accent);
 }
+
+/* Custom grid classes for calendar timeline */
+.grid-cols-25 {
+  grid-template-columns: repeat(25, minmax(0, 1fr));
+}

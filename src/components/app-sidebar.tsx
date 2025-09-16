@@ -1,18 +1,26 @@
 "use client"
 
-import * as React from "react"
+import React from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter, Target } from "lucide-react"
+import { toast } from "sonner"
+import type { ChangeEvent } from "react"
+
 import { useAuthStore } from "@/lib/store/auth"
 import { useUserStore } from "@/lib/store/user"
-import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter } from "lucide-react"
-import Logo from "@/components/Logo"
 import { applySavedOrder, saveOrder } from "@/lib/sidebarOrder"
 import { getSupabase } from "@/lib/supabase"
+import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation, getTeamMembers } from "@/features/teams/api"
+import { updateTask } from "@/features/tasks/api"
+import { useProjects, projectKeys } from "@/features/projects/queries"
+import { useMyTasks, keys as taskQueryKeys } from "@/features/tasks/queries"
+
+import Logo from "@/components/Logo"
 import { Button } from "@/components/ui/button"
 import Input from "@/components/ui/input"
-import NewTeamForm from "@/features/teams/components/NewTeamForm"
-import NewProjectForm from "@/features/projects/components/NewProjectForm"
-import NewTaskForm from "@/features/tasks/components/NewTaskForm"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,12 +35,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { ChangeEvent } from "react"
-import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation, getTeamMembers } from "@/features/teams/api"
-import { updateTask } from "@/features/tasks/api"
-import { useProjects, projectKeys } from "@/features/projects/queries"
-import { useMyTasks, keys as taskQueryKeys } from "@/features/tasks/queries"
-import { useQueryClient } from "@tanstack/react-query"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -40,11 +42,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-
-import { NavUser } from "@/components/nav-user"
-import NotificationsBell from "@/components/NotificationsBell"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Sidebar,
   SidebarContent,
@@ -58,7 +55,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { toast } from "sonner"
+
+import NewTeamForm from "@/features/teams/components/NewTeamForm"
+import NewProjectForm from "@/features/projects/components/NewProjectForm"
+import NewTaskForm from "@/features/tasks/components/NewTaskForm"
+import { NavUser } from "@/components/nav-user"
+import NotificationsBell from "@/components/NotificationsBell"
+import CalendarSidebar from "@/components/sidebar/CalendarSidebar"
 
 type TeamStat = {
   id: string
@@ -145,27 +148,35 @@ const ProjectRow = React.memo(function ProjectRow({
 }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'active': {
         return <Calendar className="h-3 w-3 text-blue-500" />
-      case 'completed':
+      }
+      case 'completed': {
         return <CheckCircle className="h-3 w-3 text-green-500" />
-      case 'archived':
+      }
+      case 'archived': {
         return <Folder className="h-3 w-3 text-gray-500" />
-      default:
+      }
+      default: {
         return <Calendar className="h-3 w-3" />
+      }
     }
   }
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'active': {
         return 'Aktif'
-      case 'completed':
+      }
+      case 'completed': {
         return 'Tamamlandı'
-      case 'archived':
+      }
+      case 'archived': {
         return 'Arşivlenmiş'
-      default:
+      }
+      default: {
         return status
+      }
     }
   }
 
@@ -209,60 +220,90 @@ const TaskRow = React.memo(function TaskRow({
 
   const getPriorityColor = (priority: TaskStat['priority']) => {
     switch (priority) {
-      case 'low':
+      case 'low': {
         return 'text-green-600'
-      case 'medium':
+      }
+      case 'medium': {
         return 'text-blue-600'
-      case 'high':
+      }
+      case 'high': {
         return 'text-orange-600'
-      case 'urgent':
+      }
+      case 'urgent': {
         return 'text-red-600'
-      default:
+      }
+      default: {
         return 'text-gray-600'
+      }
     }
   }
 
   const getPriorityText = (priority: TaskStat['priority']) => {
     switch (priority) {
-      case 'low':
+      case 'low': {
         return 'Düşük'
-      case 'medium':
+      }
+      case 'medium': {
         return 'Orta'
-      case 'high':
+      }
+      case 'high': {
         return 'Yüksek'
-      case 'urgent':
+      }
+      case 'urgent': {
         return 'Acil'
-      default:
+      }
+      default: {
         return priority
+      }
     }
   }
 
   const getDaysRemainingText = (days: number | null) => {
-    if (days === null) return 'Tarih yok'
-    if (days < 0) return `${Math.abs(days)} gün gecikmiş`
-    if (days === 0) return 'Bugün'
-    if (days === 1) return '1 gün kaldı'
+    if (days === null) {
+      return 'Tarih yok'
+    }
+    if (days < 0) {
+      return `${Math.abs(days)} gün gecikmiş`
+    }
+    if (days === 0) {
+      return 'Bugün'
+    }
+    if (days === 1) {
+      return '1 gün kaldı'
+    }
     return `${days} gün kaldı`
   }
 
   const getDaysRemainingColor = (days: number | null) => {
-    if (days === null) return 'text-gray-500'
-    if (days < 0) return 'text-red-600'
-    if (days <= 1) return 'text-orange-600'
-    if (days <= 3) return 'text-yellow-600'
+    if (days === null) {
+      return 'text-gray-500'
+    }
+    if (days < 0) {
+      return 'text-red-600'
+    }
+    if (days <= 1) {
+      return 'text-orange-600'
+    }
+    if (days <= 3) {
+      return 'text-yellow-600'
+    }
     return 'text-green-600'
   }
 
   const statusColor = React.useMemo(() => {
     switch (task.status) {
-      case 'in_progress':
+      case 'in_progress': {
         return 'bg-blue-500'
-      case 'completed':
+      }
+      case 'completed': {
         return 'bg-green-500'
-      case 'review':  
+      }
+      case 'review': {
         return 'bg-yellow-500'
-      default:
+      }
+      default: {
         return 'bg-transparent'
+      }
     }
   }, [task.status])
 
@@ -488,6 +529,12 @@ const data = {
       url: "/dashboard#tasks",
       icon: ListTodo,
       isActive: true,
+    },
+    {
+      title: "Takvim",
+      url: "/dashboard/tasks/calendar",
+      icon: Calendar,
+      isActive: false,
     },
     {
       title: "Projeler",
@@ -734,19 +781,79 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return applySavedOrder('tasks', nextAll)
   }, [hookMyTasks])
 
+  // En yakın görevi bul
+  const nearestTask = React.useMemo(() => {
+    const incompleteTasks = taskStats.filter(task => 
+      task.status !== 'completed' && task.due_date
+    )
+    
+    if (incompleteTasks.length === 0) return null
+    
+    const today = new Date()
+    
+    // Önce bugünün görevleri, sonra gelecekteki görevler, son olarak geçmişteki görevler
+    const todayTasks = incompleteTasks.filter(task => {
+      if (!task.due_date) return false
+      const dueDate = new Date(task.due_date)
+      return dueDate.toDateString() === today.toDateString()
+    })
+    
+    if (todayTasks.length > 0) {
+      return todayTasks.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      })[0]
+    }
+    
+    const futureTasks = incompleteTasks.filter(task => {
+      if (!task.due_date) return false
+      return new Date(task.due_date) > today
+    })
+    
+    if (futureTasks.length > 0) {
+      return futureTasks.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      })[0]
+    }
+    
+    const pastTasks = incompleteTasks.filter(task => {
+      if (!task.due_date) return false
+      return new Date(task.due_date) < today
+    })
+    
+    if (pastTasks.length > 0) {
+      return pastTasks.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0
+        return new Date(b.due_date).getTime() - new Date(a.due_date).getTime() // En yakın geçmiş görev
+      })[0]
+    }
+    
+    return null
+  }, [taskStats])
+
   React.useEffect(() => {
     if (activeItem?.title === "Takımlar") {
       fetchTeamStats()
     }
   }, [activeItem, fetchTeamStats])
 
-  // Realtime: refresh tasks in sidebar when project_tasks change anywhere
+  // Realtime: refresh tasks in sidebar when tasks change anywhere
   React.useEffect(() => {
     const supabase = getSupabase()
     const channel = supabase
       .channel('sidebar-task-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => {
+        console.log('Project tasks changed, refreshing sidebar...')
         qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        console.log('Tasks changed, refreshing sidebar...')
+        qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        console.log('Projects changed, refreshing sidebar...')
+        qc.invalidateQueries({ queryKey: projectKeys.all() }).catch(() => {})
       })
       .subscribe()
 
@@ -756,6 +863,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [qc])
 
   const isTasksActive = activeItem?.title === "Görevlerim"
+  const isCalendarActive = activeItem?.title === "Takvim"
   const isTeamsActive = activeItem?.title === "Takımlar"
   const isProjectsActive = activeItem?.title === "Projeler"
 
@@ -790,6 +898,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [memberEmail, setMemberEmail] = React.useState("")
   const [createTaskOpen, setCreateTaskOpen] = React.useState(false)
   const [taskProjectId, setTaskProjectId] = React.useState<string | null>(null)
+
+  // Takvim state'leri
+  const [calendarView, setCalendarView] = React.useState<'month' | 'week' | 'day'>('month')
+  const [calendarDate, setCalendarDate] = React.useState<Date>(new Date())
 
   // Görev filtreleme & sıralama kontrolleri
   const [taskStatusFilter, setTaskStatusFilter] = React.useState<'all' | 'open' | 'completed'>('all')
@@ -958,38 +1070,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
             <div />
             {isTasksActive && (
-              <Button 
-                size="icon" 
-                variant="outline" 
-                onClick={() => setCreateOpen(true)}
-                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-              >
-                <Plus className="size-4" />
-                <span className="sr-only">Takım oluştur</span>
-              </Button>
-            )}
-            {isProjectsActive && (
-              <Button 
-                size="icon" 
-                variant="outline" 
-                onClick={() => setCreateProjectOpen(true)}
-                className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-              >
-                <Plus className="size-4" />
-                <span className="sr-only">Proje oluştur</span>
-              </Button>
-            )}
-            {isTasksActive && (
               <div className="flex items-center gap-2">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => router.push('/dashboard/tasks/calendar')}
-                  className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-                >
-                  <Calendar className="size-4" />
-                  <span className="sr-only">Takvim</span>
-                </Button>
+                {nearestTask && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/tasks/${nearestTask.id}`)}
+                    className="h-8 w-8 rounded-full border-2 hover:bg-blue-600 hover:text-white transition-all duration-200 hover:scale-105"
+                    title={`En yakın göreve git: ${nearestTask.title}`}
+                  >
+                    <Target className="size-4" />
+                    <span className="sr-only">En yakın göreve git</span>
+                  </Button>
+                )}
                 <Button
                   size="icon"
                   variant="outline"
@@ -1065,6 +1158,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </div>
                   )}
                 </div>
+              ) : isCalendarActive ? (
+                <CalendarSidebar
+                  currentDate={calendarDate}
+                  onDateChange={setCalendarDate}
+                  view={calendarView}
+                  onViewChange={setCalendarView}
+                />
               ) : isProjectsActive ? (
                 <div className="p-4 min-h-0">
                   {loadingProjects && (
@@ -1379,31 +1479,72 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <Dialog open={createTaskOpen} onOpenChange={setCreateTaskOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{taskProjectId ? 'Yeni Görev' : 'Proje Seçin'}</DialogTitle>
+            <DialogTitle>{taskProjectId ? 'Yeni Görev Oluştur' : 'Proje Seçin'}</DialogTitle>
           </DialogHeader>
           {!taskProjectId ? (
-            <div className="space-y-3">
-              <Label className="text-sm">Proje</Label>
-              <Select value={taskProjectId ?? ''} onValueChange={(v) => setTaskProjectId(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Bir proje seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectStats.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Görev oluşturmak için önce bir proje seçmelisiniz.
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Proje Seçin</Label>
+                <Select value={taskProjectId ?? ''} onValueChange={(v) => setTaskProjectId(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Bir proje seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectStats.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Henüz proje yok
+                      </div>
+                    ) : (
+                      projectStats.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{p.title}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({p.status === 'active' ? 'Aktif' : p.status === 'completed' ? 'Tamamlandı' : 'Arşivlenmiş'})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateTaskOpen(false)}>Vazgeç</Button>
-                <Button disabled={!taskProjectId} onClick={() => taskProjectId && setTaskProjectId(taskProjectId)}>Devam</Button>
+                <Button 
+                  disabled={!taskProjectId} 
+                  onClick={() => taskProjectId && setTaskProjectId(taskProjectId)}
+                >
+                  Devam Et
+                </Button>
               </DialogFooter>
             </div>
           ) : (
             <div className="pt-2">
+              <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                <div className="text-sm font-medium">Seçilen Proje:</div>
+                <div className="text-sm text-muted-foreground">
+                  {projectStats.find(p => p.id === taskProjectId)?.title}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setTaskProjectId(null)}
+                  className="mt-2 h-6 px-2 text-xs"
+                >
+                  Değiştir
+                </Button>
+              </div>
               <NewTaskForm 
                 projectId={taskProjectId}
-                onCreated={async () => { setCreateTaskOpen(false); setTaskProjectId(null); if (isTasksActive) await qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }) }}
+                onCreated={async () => { 
+                  setCreateTaskOpen(false); 
+                  setTaskProjectId(null); 
+                  if (isTasksActive) await qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }) 
+                }}
                 onCancel={() => { setCreateTaskOpen(false); setTaskProjectId(null) }}
               />
             </div>

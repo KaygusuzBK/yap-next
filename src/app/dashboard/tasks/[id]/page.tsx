@@ -188,7 +188,7 @@ export default function TaskDetailPage() {
       // ensure there is a separator before @ (start or whitespace) and no space until caret
       const before = at === 0 ? ' ' : val[at - 1]
       const after = val.slice(at + 1)
-      if ((before.trim() === '' || at === 0) && !after.includes(' ')) {
+      if ((before?.trim() === '' || at === 0) && !after.includes(' ')) {
         setMentionOpen(true)
         setMentionQuery(after)
         setMentionIndex(0)
@@ -409,7 +409,7 @@ export default function TaskDetailPage() {
       const detailsObj = a.details as Record<string, unknown> | null
       const stField = detailsObj && typeof detailsObj === 'object' ? (detailsObj.status as { old?: string; new?: string } | string | undefined) : undefined
       if (stField && typeof stField === 'object' && (stField.old !== stField.new)) {
-        changes.push({ at: a.created_at, from: stField.old ?? undefined, to: stField.new ?? undefined })
+        changes.push({ at: a.created_at, from: stField.old ?? null, to: stField.new ?? null })
       }
     }
     // Include creation as starting point with initial status if available from task
