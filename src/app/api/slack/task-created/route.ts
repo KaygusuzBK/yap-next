@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { postSlackMessage } from '@/lib/slack'
+import { ApiError, handleApiError, validateRequest, withErrorHandling } from '@/lib/utils/apiErrorHandler'
 
 type TaskPayload = {
   id: string
@@ -15,17 +16,18 @@ type TaskPayload = {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { task?: TaskPayload; webhookUrl?: string }
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 })
-  }
+  return withErrorHandling(async () => {
+    let body: { task?: TaskPayload; webhookUrl?: string }
+    try {
+      body = await req.json()
+    } catch {
+      throw new ApiError('Geçersiz JSON formatı', 400, 'INVALID_JSON')
+    }
 
-  const task = body.task
-  if (!task?.id || !task?.title) {
-    return NextResponse.json({ ok: false, error: 'missing_task' }, { status: 400 })
-  }
+    const task = body.task
+    if (!task?.id || !task?.title) {
+      throw new ApiError('Görev ID ve başlık gerekli', 400, 'MISSING_TASK_DATA')
+    }
 
   // If a webhook URL is explicitly provided, use legacy webhook path
   const candidateUrl = body.webhookUrl || ''
