@@ -800,6 +800,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     projectStats: Array<{ name: string; completed: number; total: number; rate: number }>
   } | null>(null)
   const [loadingPerformance, setLoadingPerformance] = React.useState(false)
+  const [performanceError, setPerformanceError] = React.useState<string | null>(null)
 
   // Performans verilerini çek
   const fetchPerformanceData = React.useCallback(async () => {
@@ -807,6 +808,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     
     try {
       setLoadingPerformance(true)
+      setPerformanceError(null)
       const supabase = getSupabase()
       
       // Tüm görevleri çek
@@ -814,7 +816,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         .from('tasks')
         .select('id, status, created_by, project_id, created_at, updated_at')
       
-      if (tasksError) throw tasksError
+      if (tasksError) {
+        console.error('Tasks query error:', tasksError)
+        throw new Error(`Görevler yüklenemedi: ${tasksError.message}`)
+      }
 
       // Takım üyelerini çek
       const { data: teamMembers, error: teamError } = await supabase
@@ -875,7 +880,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
     } catch (error) {
       console.error('Failed to load performance data:', error)
-      setPerformanceData(null)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      })
+      setPerformanceError(error instanceof Error ? error.message : 'Veri yüklenirken hata oluştu')
+      // Hata durumunda fallback veri göster
+      setPerformanceData({
+        totalTasks: 0,
+        completedTasks: 0,
+        completionRate: 0,
+        teamStats: [],
+        projectStats: []
+      })
     } finally {
       setLoadingPerformance(false)
     }
@@ -1182,6 +1200,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   {loadingPerformance ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="text-sm text-muted-foreground">Yükleniyor...</div>
+                    </div>
+                  ) : performanceError ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-center">
+                        <BarChart3 className="h-8 w-8 mx-auto mb-2 text-red-500 opacity-50" />
+                        <div className="text-sm text-red-600 mb-2">Hata oluştu</div>
+                        <div className="text-xs text-muted-foreground">{performanceError}</div>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="mt-2"
+                          onClick={() => fetchPerformanceData()}
+                        >
+                          Tekrar Dene
+                        </Button>
+                      </div>
                     </div>
                   ) : !performanceData ? (
                     <div className="flex items-center justify-center py-8">
