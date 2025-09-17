@@ -1312,10 +1312,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <div className="pt-2">
                         <Button 
                           variant="outline" 
-                          className="w-full"
+                          className="w-full active:translate-y-[1px] active:scale-[0.99] transition-transform duration-100"
+                          onMouseEnter={() => router.prefetch('/dashboard/performance-reports')}
                           onClick={() => router.push('/dashboard/performance-reports')}
                         >
-                          <BarChart3 className="h-4 w-4 mr-2" />
+                          <BarChart3 className="h-4 w-4 mr-2 transition-transform duration-150 group-active:scale-95" />
                           Detaylı Raporlar
                         </Button>
                       </div>
