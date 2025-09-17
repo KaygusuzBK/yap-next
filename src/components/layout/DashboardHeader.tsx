@@ -65,7 +65,7 @@ export default function DashboardHeader({
   }, [breadcrumb, pathname])
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-3 mb-4 md:mb-6">
       {autoBreadcrumb.length > 0 && (
         <section>
           <Breadcrumb>

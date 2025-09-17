@@ -27,6 +27,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Switch } from "@/components/ui/switch"
 import { getUserPrefs, saveUserPrefs, type UserPrefs } from "@/lib/services/account"
 import NewTaskForm from "@/features/tasks/components/NewTaskForm"
+import RecentActivities from "@/components/RecentActivities"
 
 export default function Page() {
   const { t } = useI18n()
@@ -35,8 +36,8 @@ export default function Page() {
   const { data: myTasks = [], isLoading: loadingTasks } = useMyTasks()
   const updateTaskMutation = useUpdateTask()
   // Dashboard görünürlük tercihleri
-  const [dashboardPrefs, setDashboardPrefs] = useState<{ showOverview: boolean; showPerformance: boolean; showInvites: boolean; showBoard: boolean; showBacklog: boolean }>(
-    { showOverview: true, showPerformance: true, showInvites: true, showBoard: true, showBacklog: true }
+  const [dashboardPrefs, setDashboardPrefs] = useState<{ showOverview: boolean; showPerformance: boolean; showActivities: boolean; showInvites: boolean; showBoard: boolean; showBacklog: boolean }>(
+    { showOverview: true, showPerformance: true, showActivities: true, showInvites: true, showBoard: true, showBacklog: true }
   )
   const [prefsSaving, setPrefsSaving] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -490,7 +491,7 @@ export default function Page() {
 
   return (
     <main className="flex flex-1 flex-col w-full px-4 py-3 md:px-6 md:py-4 space-y-6">
-      <div className="w-full space-y-6">
+      <div className="w-full">
         <DashboardHeader
           title={t('dashboard.breadcrumb.dashboard')}
           breadcrumb={[
@@ -527,54 +528,95 @@ export default function Page() {
             </div>
           )}
         />
-        {dashboardPrefs.showOverview && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">{t('dashboard.overview.title')}</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {overviewOrder.map(c => renderOverviewCard(c))}
-          </div>
-        </section>
-        )}
 
-        {/* Performance section */}
-        {dashboardPrefs.showPerformance && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Performans</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className={editMode ? 'wiggle' : ''}>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Son 7 Gün</CardTitle></CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">Tamamlanan Görev</div>
-                <div className="text-2xl font-bold">{perf7 ? perf7.completed : '—'}</div>
-                <div className="mt-2 text-sm text-muted-foreground">Toplam Süre</div>
-                <div className="text-lg font-medium">{perf7 ? formatDurationBrief(perf7.seconds) : '—'}</div>
-              </CardContent>
-            </Card>
-            <Card className={editMode ? 'wiggle' : ''}>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Son 14 Gün</CardTitle></CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">Tamamlanan Görev</div>
-                <div className="text-2xl font-bold">{perf14 ? perf14.completed : '—'}</div>
-                <div className="mt-2 text-sm text-muted-foreground">Toplam Süre</div>
-                <div className="text-lg font-medium">{perf14 ? formatDurationBrief(perf14.seconds) : '—'}</div>
-              </CardContent>
-            </Card>
-            <Card className={editMode ? 'wiggle' : ''}>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Son 30 Gün</CardTitle></CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">Tamamlanan Görev</div>
-                <div className="text-2xl font-bold">{perf30 ? perf30.completed : '—'}</div>
-                <div className="mt-2 text-sm text-muted-foreground">Toplam Süre</div>
-                <div className="text-lg font-medium">{perf30 ? formatDurationBrief(perf30.seconds) : '—'}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-        )}
-        {dashboardPrefs.showInvites && (<PendingInvitations />)}
+            <div className="space-y-6">
+                {/* Ana içerik ve sağ sidebar */}
+                <div className="grid gap-4 md:gap-6 xl:grid-cols-[1fr_20rem] xl:items-stretch">
+                  {/* Sol taraf - Ana içerik */}
+                  <div className="space-y-4 md:space-y-6">
+                    {dashboardPrefs.showOverview && (
+                    <section className="space-y-3 md:space-y-4">
+                      <h2 className="text-base md:text-lg font-semibold">{t('dashboard.overview.title')}</h2>
+                      <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
+                        {overviewOrder.map(c => renderOverviewCard(c))}
+                      </div>
+                    </section>
+                    )}
 
-        {/* Board & Backlog using shadcn Tabs */}
-        <Tabs defaultValue="board" className="space-y-4">
+                    {/* Performance section */}
+                    {dashboardPrefs.showPerformance && (
+                    <section className="space-y-3 md:space-y-4">
+                      <h2 className="text-base md:text-lg font-semibold">Performans</h2>
+                      <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                        <Card className={editMode ? 'wiggle' : ''}>
+                          <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Son 7 Gün</CardTitle></CardHeader>
+                          <CardContent className="pb-2 sm:pb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-xs text-muted-foreground">Görev</div>
+                                <div className="text-lg sm:text-xl font-bold">{perf7 ? perf7.completed : '—'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-muted-foreground">Süre</div>
+                                <div className="text-xs sm:text-sm font-medium">{perf7 ? formatDurationBrief(perf7.seconds) : '—'}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className={editMode ? 'wiggle' : ''}>
+                          <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Son 14 Gün</CardTitle></CardHeader>
+                          <CardContent className="pb-2 sm:pb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-xs text-muted-foreground">Görev</div>
+                                <div className="text-lg sm:text-xl font-bold">{perf14 ? perf14.completed : '—'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-muted-foreground">Süre</div>
+                                <div className="text-xs sm:text-sm font-medium">{perf14 ? formatDurationBrief(perf14.seconds) : '—'}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className={editMode ? 'wiggle' : ''}>
+                          <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Son 30 Gün</CardTitle></CardHeader>
+                          <CardContent className="pb-2 sm:pb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-xs text-muted-foreground">Görev</div>
+                                <div className="text-lg sm:text-xl font-bold">{perf30 ? perf30.completed : '—'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-muted-foreground">Süre</div>
+                                <div className="text-xs sm:text-sm font-medium">{perf30 ? formatDurationBrief(perf30.seconds) : '—'}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </section>
+                    )}
+                  </div>
+
+                  {/* Sağ taraf - Aktiviteler */}
+                  {dashboardPrefs.showActivities && (
+                  <div className="hidden xl:block h-[400px] overflow-hidden mt-10">
+                    <RecentActivities limit={25} compact showHeader={true} className="h-full" />
+                  </div>
+                  )}
+                </div>
+
+                {/* Mobil aktiviteler - alt kısımda */}
+                {dashboardPrefs.showActivities && (
+                <div className="xl:hidden">
+                  <RecentActivities limit={3} compact showHeader={true} />
+                </div>
+                )}
+
+            {dashboardPrefs.showInvites && (<PendingInvitations />)}
+
+            {/* Board & Backlog using shadcn Tabs */}
+            <Tabs defaultValue="board" className="space-y-4">
           <div className="flex items-center justify-between gap-2">
             <TabsList className="justify-start overflow-x-auto">
               <TabsTrigger value="board">Board</TabsTrigger>
@@ -818,8 +860,9 @@ export default function Page() {
             )}
           </TabsContent>
           )}
-        </Tabs>
-      </div>
+            </Tabs>
+          </div>
+        </div>
 
       {/* Yeni Görev Modalı */}
       <Dialog open={taskModalOpen} onOpenChange={(open) => {
