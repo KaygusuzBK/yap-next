@@ -283,6 +283,22 @@ export default function Page() {
     return myTasks.filter(t => t.project_id === projectFilter)
   }, [myTasks, projectFilter])
 
+  // Backlog grupları (boşsa tüm görevlerden düş)
+  const backlogGroups = useMemo(() => {
+    const base = {
+      completed: [] as Task[],
+      in_progress: [] as Task[],
+      review: [] as Task[],
+      todo: [] as Task[],
+    }
+    const source = filteredMyTasks.length > 0 ? filteredMyTasks : myTasks
+    for (const t of source) {
+      const g = getGroupForTask(t)
+      base[g].push(t)
+    }
+    return base
+  }, [filteredMyTasks, myTasks])
+
   // Overview grid drag-reorder state
   type OverviewId = 'totalProjects' | 'totalTeams' | 'activeProjects' | 'thisMonth'
   const defaultOverview: OverviewId[] = ['totalProjects','totalTeams','activeProjects','thisMonth']
@@ -739,7 +755,7 @@ export default function Page() {
           <TabsContent value="backlog" className="space-y-3">
             {(["completed","in_progress","review","todo"] as const).map((grp) => {
               const title = grp === 'completed' ? 'Tamamlananlar' : grp === 'in_progress' ? 'Devam Edilenler' : grp === 'review' ? 'İncelemede' : 'Yapılacaklar'
-              const list = filteredMyTasks.filter(t => getGroupForTask(t) === grp)
+              const list = backlogGroups[grp]
               return (
                 <Collapsible key={grp}>
                   <Card className="overflow-hidden bg-muted/30 backdrop-blur-sm">
@@ -797,6 +813,9 @@ export default function Page() {
                 </Collapsible>
               )
             })}
+            {!loadingTasks && filteredMyTasks.length === 0 && myTasks.length === 0 && (
+              <div className="text-sm text-muted-foreground">Backlog boş görünüyor. Yeni bir görev ekleyin veya filtreleri kontrol edin.</div>
+            )}
           </TabsContent>
           )}
         </Tabs>
