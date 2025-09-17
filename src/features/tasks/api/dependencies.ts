@@ -9,11 +9,12 @@ import type {
   DependencyType 
 } from '../types/dependencies';
 
-const supabase = getSupabase();
+// Not: Her çağrıda client alınır; SSR/CSR-context sorunlarını azaltır
+function sb() { return getSupabase() }
 
 // Bağımlılık oluştur
 export async function createTaskDependency(data: CreateDependencyRequest): Promise<TaskDependency> {
-  const { data: dependency, error } = await supabase
+  const { data: dependency, error } = await sb()
     .from('task_dependencies')
     .insert({
       task_id: data.task_id,
@@ -32,7 +33,7 @@ export async function createTaskDependency(data: CreateDependencyRequest): Promi
 
 // Bağımlılık sil
 export async function deleteTaskDependency(dependencyId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await sb()
     .from('task_dependencies')
     .delete()
     .eq('id', dependencyId);
@@ -44,11 +45,11 @@ export async function deleteTaskDependency(dependencyId: string): Promise<void> 
 
 // Görevin bağımlılıklarını getir
 export async function getTaskDependencies(taskId: string): Promise<TaskDependency[]> {
-  const { data: dependencies, error } = await supabase
+  const { data: dependencies, error } = await sb()
     .from('task_dependencies')
     .select(`
       *,
-      depends_on_task:tasks!depends_on_task_id (
+      depends_on_task:project_tasks!depends_on_task_id (
         id,
         title,
         status,
@@ -59,6 +60,10 @@ export async function getTaskDependencies(taskId: string): Promise<TaskDependenc
     .eq('task_id', taskId);
 
   if (error) {
+    // Tablo henüz deploy edilmemiş olabilir
+    if ((error as any).message?.includes("Could not find the table 'public.task_dependencies'")) {
+      return []
+    }
     throw new Error(`Bağımlılıklar getirilemedi: ${error.message}`);
   }
 
@@ -67,11 +72,11 @@ export async function getTaskDependencies(taskId: string): Promise<TaskDependenc
 
 // Görevin bağımlı olduğu görevleri getir
 export async function getTaskDependents(taskId: string): Promise<TaskDependency[]> {
-  const { data: dependents, error } = await supabase
+  const { data: dependents, error } = await sb()
     .from('task_dependencies')
     .select(`
       *,
-      task:tasks!task_id (
+      task:project_tasks!task_id (
         id,
         title,
         status,
@@ -82,6 +87,9 @@ export async function getTaskDependents(taskId: string): Promise<TaskDependency[
     .eq('depends_on_task_id', taskId);
 
   if (error) {
+    if ((error as any).message?.includes("Could not find the table 'public.task_dependencies'")) {
+      return []
+    }
     throw new Error(`Bağımlı görevler getirilemedi: ${error.message}`);
   }
 
@@ -90,10 +98,21 @@ export async function getTaskDependents(taskId: string): Promise<TaskDependency[
 
 // Bağımlılık istatistiklerini getir
 export async function getTaskDependencyStats(taskId: string): Promise<DependencyStats> {
-  const { data, error } = await supabase
+  const { data, error } = await sb()
     .rpc('get_task_dependency_stats', { task_uuid: taskId });
 
   if (error) {
+    if ((error as any).message?.includes('get_task_dependency_stats')) {
+      return {
+        total_dependencies: 0,
+        blocking_dependencies: 0,
+        related_dependencies: 0,
+        duplicate_dependencies: 0,
+        dependency_status: 'no_dependencies',
+        blocked_by_tasks: [],
+        blocks_tasks: []
+      }
+    }
     throw new Error(`Bağımlılık istatistikleri getirilemedi: ${error.message}`);
   }
 
@@ -110,13 +129,16 @@ export async function getTaskDependencyStats(taskId: string): Promise<Dependency
 
 // Bağımlılık zincirini getir
 export async function getDependencyChain(taskId: string, maxDepth: number = 5): Promise<DependencyChain[]> {
-  const { data, error } = await supabase
+  const { data, error } = await sb()
     .rpc('get_dependency_chain', { 
       task_uuid: taskId, 
       max_depth: maxDepth 
     });
 
   if (error) {
+    if ((error as any).message?.includes('get_dependency_chain')) {
+      return []
+    }
     throw new Error(`Bağımlılık zinciri getirilemedi: ${error.message}`);
   }
 
@@ -125,12 +147,15 @@ export async function getDependencyChain(taskId: string, maxDepth: number = 5): 
 
 // Proje bağımlılık durumlarını getir
 export async function getProjectDependencyStatus(projectId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await sb()
     .from('task_dependency_status')
     .select('*')
     .eq('task_id', projectId);
 
   if (error) {
+    if ((error as any).message?.includes("Could not find the table 'public.task_dependency_status'")) {
+      return []
+    }
     throw new Error(`Proje bağımlılık durumları getirilemedi: ${error.message}`);
   }
 
@@ -142,11 +167,11 @@ export async function getDependenciesByType(
   taskId: string, 
   type: DependencyType
 ): Promise<TaskDependency[]> {
-  const { data, error } = await supabase
+  const { data, error } = await sb()
     .from('task_dependencies')
     .select(`
       *,
-      depends_on_task:tasks!depends_on_task_id (
+      depends_on_task:project_tasks!depends_on_task_id (
         id,
         title,
         status,
@@ -166,7 +191,7 @@ export async function getDependenciesByType(
 
 // Engellenen görevleri getir
 export async function getBlockedTasks(projectId?: string): Promise<any[]> {
-  let query = supabase
+  let query = sb()
     .from('task_dependency_status')
     .select('*')
     .eq('dependency_status', 'blocked');
@@ -178,6 +203,9 @@ export async function getBlockedTasks(projectId?: string): Promise<any[]> {
   const { data, error } = await query;
 
   if (error) {
+    if ((error as any).message?.includes("Could not find the table 'public.task_dependency_status'")) {
+      return []
+    }
     throw new Error(`Engellenen görevler getirilemedi: ${error.message}`);
   }
 
@@ -186,7 +214,7 @@ export async function getBlockedTasks(projectId?: string): Promise<any[]> {
 
 // Hazır görevleri getir (bağımlılıkları tamamlanmış)
 export async function getReadyTasks(projectId?: string): Promise<any[]> {
-  let query = supabase
+  let query = sb()
     .from('task_dependency_status')
     .select('*')
     .eq('dependency_status', 'ready');
@@ -198,6 +226,9 @@ export async function getReadyTasks(projectId?: string): Promise<any[]> {
   const { data, error } = await query;
 
   if (error) {
+    if ((error as any).message?.includes("Could not find the table 'public.task_dependency_status'")) {
+      return []
+    }
     throw new Error(`Hazır görevler getirilemedi: ${error.message}`);
   }
 
@@ -207,14 +238,16 @@ export async function getReadyTasks(projectId?: string): Promise<any[]> {
 // Bağımlılık döngüsü kontrolü
 export async function checkDependencyCycle(taskId: string, dependsOnTaskId: string): Promise<boolean> {
   try {
-    await createTaskDependency({
+    const created = await createTaskDependency({
       task_id: taskId,
       depends_on_task_id: dependsOnTaskId,
       dependency_type: 'blocks'
     });
     
     // Eğer buraya geldiyse döngü yok, oluşturulan bağımlılığı sil
-    await deleteTaskDependency(taskId);
+    if ((created as any)?.id) {
+      await deleteTaskDependency((created as any).id);
+    }
     return false;
   } catch (error) {
     if (error.message.includes('Döngüsel bağımlılık')) {
