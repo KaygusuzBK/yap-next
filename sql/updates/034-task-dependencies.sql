@@ -4,8 +4,8 @@
 -- Görev bağımlılıkları tablosu
 CREATE TABLE IF NOT EXISTS task_dependencies (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-  depends_on_task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
+  depends_on_task_id UUID NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
   dependency_type VARCHAR(20) DEFAULT 'blocks' CHECK (dependency_type IN ('blocks', 'relates_to', 'duplicates')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_by UUID REFERENCES auth.users(id),
@@ -27,10 +27,11 @@ CREATE INDEX IF NOT EXISTS idx_task_dependencies_type ON task_dependencies(depen
 ALTER TABLE task_dependencies ENABLE ROW LEVEL SECURITY;
 
 -- Görev sahibi veya takım üyesi bağımlılık oluşturabilir
+DROP POLICY IF EXISTS "Users can create task dependencies for their tasks" ON task_dependencies;
 CREATE POLICY "Users can create task dependencies for their tasks" ON task_dependencies
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM tasks t 
+      SELECT 1 FROM project_tasks t 
       WHERE t.id = task_id 
       AND (t.created_by = auth.uid() OR EXISTS (
         SELECT 1 FROM project_members pm 
@@ -41,10 +42,11 @@ CREATE POLICY "Users can create task dependencies for their tasks" ON task_depen
   );
 
 -- Görev sahibi veya takım üyesi bağımlılık okuyabilir
+DROP POLICY IF EXISTS "Users can read task dependencies for their tasks" ON task_dependencies;
 CREATE POLICY "Users can read task dependencies for their tasks" ON task_dependencies
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM tasks t 
+      SELECT 1 FROM project_tasks t 
       WHERE t.id = task_id 
       AND (t.created_by = auth.uid() OR EXISTS (
         SELECT 1 FROM project_members pm 
@@ -55,10 +57,11 @@ CREATE POLICY "Users can read task dependencies for their tasks" ON task_depende
   );
 
 -- Görev sahibi veya takım üyesi bağımlılık silebilir
+DROP POLICY IF EXISTS "Users can delete task dependencies for their tasks" ON task_dependencies;
 CREATE POLICY "Users can delete task dependencies for their tasks" ON task_dependencies
   FOR DELETE USING (
     EXISTS (
-      SELECT 1 FROM tasks t 
+      SELECT 1 FROM project_tasks t 
       WHERE t.id = task_id 
       AND (t.created_by = auth.uid() OR EXISTS (
         SELECT 1 FROM project_members pm 
@@ -69,7 +72,11 @@ CREATE POLICY "Users can delete task dependencies for their tasks" ON task_depen
   );
 
 -- Bağımlılık türleri için enum
-CREATE TYPE dependency_type_enum AS ENUM ('blocks', 'relates_to', 'duplicates');
+DO $$ BEGIN
+  CREATE TYPE dependency_type_enum AS ENUM ('blocks', 'relates_to', 'duplicates');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Görev bağımlılık durumu için view
 CREATE OR REPLACE VIEW task_dependency_status AS
@@ -89,9 +96,9 @@ SELECT
     WHEN COUNT(CASE WHEN td.dependency_type = 'blocks' AND td2.status = 'completed' THEN 1 END) = COUNT(CASE WHEN td.dependency_type = 'blocks' THEN 1 END) THEN 'ready'
     ELSE 'partial'
   END as dependency_status
-FROM tasks t
+FROM project_tasks t
 LEFT JOIN task_dependencies td ON t.id = td.task_id
-LEFT JOIN tasks td2 ON td.depends_on_task_id = td2.id
+LEFT JOIN project_tasks td2 ON td.depends_on_task_id = td2.id
 GROUP BY t.id, t.title, t.status, t.due_date;
 
 -- Bağımlılık zinciri kontrolü için fonksiyon
@@ -128,6 +135,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Döngü kontrolü trigger'ı
+DROP TRIGGER IF EXISTS check_dependency_cycle_trigger ON task_dependencies;
 CREATE TRIGGER check_dependency_cycle_trigger
   BEFORE INSERT OR UPDATE ON task_dependencies
   FOR EACH ROW
@@ -142,6 +150,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_task_dependency_updated_at_trigger ON task_dependencies;
 CREATE TRIGGER update_task_dependency_updated_at_trigger
   BEFORE UPDATE ON task_dependencies
   FOR EACH ROW
@@ -161,23 +170,23 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT 
-    tds.total_dependencies,
-    tds.blocking_dependencies,
-    tds.related_dependencies,
-    tds.duplicate_dependencies,
+    tds.total_dependencies::integer,
+    tds.blocking_dependencies::integer,
+    tds.related_dependencies::integer,
+    tds.duplicate_dependencies::integer,
     tds.dependency_status,
     -- Engellenen görevler
     ARRAY(
       SELECT t2.title 
       FROM task_dependencies td 
-      JOIN tasks t2 ON td.depends_on_task_id = t2.id 
+      JOIN project_tasks t2 ON td.depends_on_task_id = t2.id 
       WHERE td.task_id = task_uuid AND td.dependency_type = 'blocks' AND t2.status != 'completed'
     ),
     -- Engellediği görevler
     ARRAY(
       SELECT t3.title 
       FROM task_dependencies td 
-      JOIN tasks t3 ON td.task_id = t3.id 
+      JOIN project_tasks t3 ON td.task_id = t3.id 
       WHERE td.depends_on_task_id = task_uuid AND td.dependency_type = 'blocks'
     )
   FROM task_dependency_status tds
@@ -205,7 +214,7 @@ BEGIN
       'root'::TEXT as dependency_type,
       0 as depth,
       ARRAY[t.title] as path
-    FROM tasks t
+    FROM project_tasks t
     WHERE t.id = task_uuid
     
     UNION ALL
@@ -217,7 +226,7 @@ BEGIN
       td.dependency_type,
       dc.depth + 1,
       dc.path || t.title
-    FROM tasks t
+    FROM project_tasks t
     JOIN task_dependencies td ON t.id = td.depends_on_task_id
     JOIN dependency_chain dc ON td.task_id = dc.task_id
     WHERE dc.depth < max_depth
