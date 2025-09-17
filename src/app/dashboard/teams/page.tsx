@@ -6,7 +6,6 @@ import TeamList from '@/features/teams/components/TeamList'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ChevronRight, Users } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 export default function TeamsPage() {
   const router = useRouter()
