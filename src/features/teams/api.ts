@@ -48,6 +48,51 @@ export type TeamStats = {
   completed_task_count: number;
 };
 
+export async function getTeamById(team_id: string): Promise<Team | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('teams')
+    .select('*')
+    .eq('id', team_id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as Team) ?? null;
+}
+
+export async function getUserRoleForTeam(team_id: string): Promise<TeamRole | null> {
+  const supabase = getSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Owner kontrolü
+  const { data: team } = await supabase
+    .from('teams')
+    .select('owner_id')
+    .eq('id', team_id)
+    .maybeSingle();
+
+  if (team?.owner_id === user.id) return 'owner';
+
+  // Üyelik kontrolü
+  const { data: membership } = await supabase
+    .from('team_members')
+    .select('role')
+    .eq('team_id', team_id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  return (membership?.role as TeamRole) ?? null;
+}
+
+export async function fetchTeamAuthorized(team_id: string): Promise<{ team: Team | null; role: TeamRole | null }> {
+  const [team, role] = await Promise.all([
+    getTeamById(team_id),
+    getUserRoleForTeam(team_id),
+  ]);
+  if (!team || !role) return { team: null, role: null };
+  return { team, role };
+}
+
 export async function fetchTeams(): Promise<Team[]> {
   const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
