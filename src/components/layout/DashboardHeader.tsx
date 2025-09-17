@@ -12,7 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Home } from "lucide-react"
 
 type Crumb = {
   label: string
@@ -106,7 +106,15 @@ export default function DashboardHeader({
             {meta ? <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">{meta}</div> : null}
           </div>
         </div>
-        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard">
+            <Button aria-label="Ana Sayfa" title="Ana Sayfa" variant="outline" size="sm">
+              <Home className="h-4 w-4 mr-1" />
+              Ana Sayfa
+            </Button>
+          </Link>
+          {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+        </div>
       </section>
     </div>
   )
