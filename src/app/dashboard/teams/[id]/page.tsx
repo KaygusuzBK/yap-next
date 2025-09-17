@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
-  fetchTeams, 
+  fetchTeamAuthorized,
   type Team, 
   getTeamStats, 
   type TeamStats,
@@ -52,14 +52,12 @@ export default function TeamDetailPage() {
   const loadTeamData = useCallback(async () => {
     try {
       setLoading(true);
-      // Get current user
-      const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      // Load team data
-      const teams = await fetchTeams();
-      const currentTeam = teams.find(t => t.id === teamId);
-      if (!currentTeam) {
-        throw new Error('Takım bulunamadı');
+      // Yetkili takım verisini doğrudan ID ile getir
+      const { team: currentTeam, role } = await fetchTeamAuthorized(teamId);
+      if (!currentTeam || !role) {
+        setTeam(null);
+        setUserRole(null);
+        return;
       }
       setTeam(currentTeam);
       // Load team stats
@@ -68,9 +66,8 @@ export default function TeamDetailPage() {
       // Load team members
       const teamMembers = await getTeamMembers(teamId);
       setMembers(teamMembers);
-      // Determine user role
-      const userMember = teamMembers.find(m => m.user_id === user?.id);
-      setUserRole(userMember?.role || null);
+      // Rolü yetkili sorgudan al
+      setUserRole(role);
     } catch (error) {
       console.error('Takım verileri yüklenirken hata:', error);
     } finally {

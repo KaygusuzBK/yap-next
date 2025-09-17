@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createTeam, deleteTeam, fetchTeams, type Team, updateTeamName } from "./api";
+import { getSupabase } from '@/lib/supabase';
 
 export const teamKeys = {
   all: () => ["teams"] as const,

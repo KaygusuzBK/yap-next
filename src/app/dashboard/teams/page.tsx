@@ -76,6 +76,7 @@ export default function TeamsPage() {
         <p className="text-muted-foreground">Tüm takımların listesi</p>
       </div>
       
+      <div onMouseEnter={() => router.prefetch('/dashboard/teams')} />
       <TeamList />
     </div>
   )

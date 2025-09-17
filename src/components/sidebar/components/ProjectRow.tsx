@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { Calendar, CheckCircle, Folder } from "lucide-react"
 import type { ProjectStat } from "../types"
 
@@ -13,6 +14,7 @@ export const ProjectRow = React.memo(function ProjectRow({
   project,
   onSelect,
 }: ProjectRowProps) {
+  const router = useRouter()
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
@@ -41,15 +43,16 @@ export const ProjectRow = React.memo(function ProjectRow({
 
   return (
     <div
-      className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm"
+      className="group hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors border-b p-4 text-sm last:border-b-0 flex items-start justify-between gap-2 rounded-sm active:translate-y-[1px] active:scale-[0.99] transition-transform duration-100"
       onClick={() => onSelect(project.id)}
       role="button"
       tabIndex={0}
+      onMouseEnter={() => router.prefetch(`/dashboard/projects/${project.id}`)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onSelect(project.id)
       }}
     >
-      <button type="button" onClick={() => onSelect(project.id)} className="text-left">
+      <button type="button" onClick={() => onSelect(project.id)} className="text-left group-active:opacity-90 transition-opacity">
         <div className="font-medium">{project.title}</div>
         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
           {getStatusIcon(project.status)}
