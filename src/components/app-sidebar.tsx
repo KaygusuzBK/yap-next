@@ -3,7 +3,7 @@
 import React from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter, Target, BarChart3 } from "lucide-react"
+import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter, Target, BarChart3, Palette } from "lucide-react"
 import { toast } from "sonner"
 import type { ChangeEvent } from "react"
 
@@ -552,6 +552,12 @@ const data = {
       title: "Performans",
       url: "/dashboard/performance-reports",
       icon: BarChart3,
+      isActive: false,
+    },
+    {
+      title: "UI Demo",
+      url: "/dashboard/ui-demo",
+      icon: Palette,
       isActive: false,
     },
   ],

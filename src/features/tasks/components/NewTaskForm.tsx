@@ -3,14 +3,21 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createTask, fetchProjectStatuses, type ProjectTaskStatus } from '../api';
 import { toast } from 'sonner';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Calendar, AlertCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { 
+  FormField, 
+  FormSection, 
+  FormButtonGroup, 
+  FormValidationMessage,
+  FormHelp,
+  AdvancedInput
+} from '@/components/ui/form-components';
 
 interface NewTaskFormProps {
   projectId: string;
@@ -29,7 +36,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
   const [loading, setLoading] = useState(false);
   const [notifySlack, setNotifySlack] = useState(true);
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
-  const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null)
+  const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Load/save temporary preferences from localStorage (per-user if available)
   useEffect(() => {
@@ -66,11 +74,31 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
     } catch {}
   }, [notifySlack, slackWebhookUrl, user?.id]);
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!title.trim()) {
+      newErrors.title = 'Görev başlığı gereklidir';
+    } else if (title.trim().length < 3) {
+      newErrors.title = 'Görev başlığı en az 3 karakter olmalıdır';
+    }
+    
+    if (dueDate && new Date(dueDate) < new Date()) {
+      newErrors.dueDate = 'Bitiş tarihi geçmiş bir tarih olamaz';
+    }
+    
+    if (notifySlack && slackWebhookUrl && !slackWebhookUrl.includes('hooks.slack.com')) {
+      newErrors.slackWebhook = 'Geçerli bir Slack webhook URL\'si girin';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim()) {
-      toast.error('Görev başlığı gereklidir');
+    if (!validateForm()) {
       return;
     }
 
@@ -93,6 +121,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
       setPriority('medium');
       setStatus('todo');
       setDueDate('');
+      setErrors({});
       onCreated?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Görev oluşturulurken bir hata oluştu');
@@ -102,118 +131,138 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">Görev Başlığı *</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Görev başlığını girin"
-          disabled={loading}
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <FormSection 
+        title="Görev Bilgileri" 
+        description="Görevle ilgili temel bilgileri girin"
+      >
+        <FormField
+          label="Görev Başlığı"
+          required
+          error={errors.title}
+          hint="Görev başlığı en az 3 karakter olmalıdır"
+        >
+          <AdvancedInput
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Görev başlığını girin"
+            disabled={loading}
+            icon={<AlertCircle className="h-4 w-4" />}
+          />
+        </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Açıklama</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Görev açıklamasını girin (opsiyonel)"
-          rows={3}
-          disabled={loading}
-        />
-      </div>
+        <FormField
+          label="Açıklama"
+          hint="Görev hakkında detaylı bilgi verebilirsiniz"
+        >
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Görev açıklamasını girin (opsiyonel)"
+            rows={3}
+            disabled={loading}
+          />
+        </FormField>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="priority">Öncelik</Label>
-          <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => setPriority(value)}>
-            <SelectTrigger disabled={loading}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Düşük</SelectItem>
-              <SelectItem value="medium">Orta</SelectItem>
-              <SelectItem value="high">Yüksek</SelectItem>
-              <SelectItem value="urgent">Acil</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            label="Öncelik"
+            hint="Görevin önem seviyesi"
+          >
+            <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => setPriority(value)}>
+              <SelectTrigger disabled={loading}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Düşük</SelectItem>
+                <SelectItem value="medium">Orta</SelectItem>
+                <SelectItem value="high">Yüksek</SelectItem>
+                <SelectItem value="urgent">Acil</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField
+            label="Durum"
+            hint="Görevin mevcut durumu"
+          >
+            <Select value={status} onValueChange={(value: string) => setStatus(value)}>
+              <SelectTrigger disabled={loading}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statuses && statuses.length > 0 ? (
+                  statuses.sort((a,b) => a.position - b.position).map((s) => (
+                    <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <SelectItem value="todo">Yapılacak</SelectItem>
+                    <SelectItem value="in_progress">Devam Ediyor</SelectItem>
+                    <SelectItem value="review">İncelemede</SelectItem>
+                    <SelectItem value="completed">Tamamlandı</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </FormField>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="status">Durum</Label>
-          <Select value={status} onValueChange={(value: string) => setStatus(value)}>
-            <SelectTrigger disabled={loading}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statuses && statuses.length > 0 ? (
-                statuses.sort((a,b) => a.position - b.position).map((s) => (
-                  <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
-                ))
-              ) : (
-                <>
-                  <SelectItem value="todo">Yapılacak</SelectItem>
-                  <SelectItem value="in_progress">Devam Ediyor</SelectItem>
-                  <SelectItem value="review">İncelemede</SelectItem>
-                  <SelectItem value="completed">Tamamlandı</SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        <FormField
+          label="Bitiş Tarihi"
+          error={errors.dueDate}
+          hint="Görevin tamamlanması gereken tarih"
+        >
+          <AdvancedInput
+            type="datetime-local"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            disabled={loading}
+            icon={<Calendar className="h-4 w-4" />}
+          />
+        </FormField>
+      </FormSection>
 
-      <div className="space-y-2">
-        <Label htmlFor="dueDate">Bitiş Tarihi</Label>
-        <Input
-          id="dueDate"
-          type="datetime-local"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-
-      <div className="space-y-3 rounded-md border p-3">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium">Slack’e mesaj yolla</div>
-            <div className="text-xs text-muted-foreground">Görev oluşturulunca Slack kanalına bildirim gönder.</div>
+      <FormSection 
+        title="Bildirim Ayarları" 
+        description="Görev oluşturulduğunda Slack'e bildirim gönder"
+      >
+        <div className="space-y-3 rounded-md border p-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Slack'e mesaj yolla</div>
+              <div className="text-xs text-muted-foreground">Görev oluşturulunca Slack kanalına bildirim gönder.</div>
+            </div>
+            <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
           </div>
-          <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
-        </div>
-        {notifySlack && (
-          <div className="space-y-1">
-            <Label htmlFor="slackWebhook">Slack Webhook URL (opsiyonel)</Label>
-            <Input id="slackWebhook" placeholder="https://hooks.slack.com/services/..." value={slackWebhookUrl} onChange={(e) => setSlackWebhookUrl(e.target.value)} />
-            <div className="text-[10px] text-muted-foreground">Boş bırakırsan varsayılan kanal kullanılır.</div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 pt-4">
-        <Button type="submit" disabled={loading || !title.trim()}>
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Oluşturuluyor...
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-2" />
-              Görev Oluştur
-            </>
+          {notifySlack && (
+            <FormField
+              label="Slack Webhook URL"
+              error={errors.slackWebhook}
+              hint="Boş bırakırsan varsayılan kanal kullanılır"
+            >
+              <AdvancedInput
+                placeholder="https://hooks.slack.com/services/..."
+                value={slackWebhookUrl}
+                onChange={(e) => setSlackWebhookUrl(e.target.value)}
+              />
+            </FormField>
           )}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-            İptal
-          </Button>
-        )}
-      </div>
+        </div>
+      </FormSection>
+
+      <FormButtonGroup
+        primaryAction={{
+          label: loading ? "Oluşturuluyor..." : "Görev Oluştur",
+          onClick: handleSubmit,
+          loading,
+          disabled: loading || !title.trim()
+        }}
+        cancelAction={onCancel ? {
+          label: "İptal",
+          onClick: onCancel
+        } : undefined}
+      />
     </form>
   );
 }
