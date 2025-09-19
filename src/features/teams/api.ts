@@ -96,49 +96,37 @@ export async function fetchTeamAuthorized(team_id: string): Promise<{ team: Team
 export async function fetchTeams(): Promise<Team[]> {
   const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
-  
   if (!user) return [];
-  
-  // Kullanıcının sahibi olduğu takımları al
-  const { data: ownedTeams, error: ownedError } = await supabase
+
+  // 1) Sahibi olduğu takımlar
+  const { data: owned, error: ownedErr } = await supabase
     .from('teams')
-    .select(`
-      *,
-      member_count:team_members(count),
-      project_count:projects!projects_team_id_fkey(count)
-    `)
+    .select('*')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false });
-  
-  if (ownedError) throw ownedError;
-  
-  // Kullanıcının üyesi olduğu takımları al
-  const { data: memberTeams, error: memberError } = await supabase
+  if (ownedErr) console.warn('owned teams error:', ownedErr);
+
+  // 2) Üye olduğu takımların id listesini çek (RLS daha stabil)
+  const { data: memberRows, error: memberErr } = await supabase
     .from('team_members')
-    .select(`
-      teams (
-        *,
-        member_count:team_members(count),
-        project_count:projects!projects_team_id_fkey(count)
-      )
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-  
-  if (memberError) throw memberError;
-  
-  // İki listeyi birleştir ve tekrarları kaldır
-  const allTeams = [
-    ...(ownedTeams || []),
-    ...(memberTeams?.map(mt => mt.teams).filter(Boolean) || [])
-  ];
-  
-  // Tekrarları kaldır (aynı takım hem sahip hem üye olabilir)
-  const uniqueTeams = allTeams.filter((team, index, self) => 
-    index === self.findIndex(t => t.id === team.id)
-  );
-  
-  return uniqueTeams;
+    .select('team_id')
+    .eq('user_id', user.id);
+  if (memberErr) console.warn('member teams error:', memberErr);
+
+  const memberIds = (memberRows || []).map(r => r.team_id);
+  let memberTeams: Team[] = [];
+  if (memberIds.length > 0) {
+    const { data: teamsByIds, error: teamsErr } = await supabase
+      .from('teams')
+      .select('*')
+      .in('id', memberIds);
+    if (teamsErr) console.warn('teams by ids error:', teamsErr);
+    memberTeams = (teamsByIds || []) as Team[];
+  }
+
+  const all = [ ...(owned || []), ...memberTeams ];
+  const unique = all.filter((team, index, self) => index === self.findIndex(t => t.id === team.id));
+  return unique;
 }
 
 export async function createTeam(input: { name: string; description?: string; avatar_url?: string }): Promise<Team> {
