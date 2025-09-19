@@ -10,14 +10,14 @@ import { createTeam } from '../api';
 import { toast } from 'sonner';
 import { Users, Plus, Image as ImageIcon } from 'lucide-react';
 
-export default function NewTeamForm({ onCreated }: { onCreated?: () => void }) {
+export default function NewTeamForm({ onCreated, startExpanded = true }: { onCreated?: () => void; startExpanded?: boolean }) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     avatar_url: ''
   });
   const [loading, setLoading] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(startExpanded);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +50,7 @@ export default function NewTeamForm({ onCreated }: { onCreated?: () => void }) {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
+  // startExpanded=true olduğunda form doğrudan görünür; aksi halde tetikleyici button gösterilir
   if (!isExpanded) {
     return (
       <Button 

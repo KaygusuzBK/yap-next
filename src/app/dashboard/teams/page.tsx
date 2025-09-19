@@ -87,7 +87,7 @@ export default function TeamsPage() {
           <DialogHeader>
             <DialogTitle>Yeni Takım</DialogTitle>
           </DialogHeader>
-          <NewTeamForm onCreated={() => setOpenCreate(false)} />
+          <NewTeamForm startExpanded onCreated={() => setOpenCreate(false)} />
         </DialogContent>
       </Dialog>
     </div>
