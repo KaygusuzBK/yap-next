@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/form-components';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
 interface NewTaskFormProps {
@@ -228,10 +227,12 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
-                <Button type="button" variant="outline" className="w-[180px] justify-start" disabled={loading}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueAtDate ? format(dueAtDate, 'dd.MM.yyyy') : 'Tarih seçin'}
-                </Button>
+                <div className="w-[180px]">
+                  <button type="button" className="w-full inline-flex items-center justify-start border rounded-md px-3 py-2 text-sm hover:bg-muted disabled:opacity-50" disabled={loading}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueAtDate ? format(dueAtDate, 'dd.MM.yyyy') : 'Tarih seçin'}
+                  </button>
+                </div>
               </PopoverTrigger>
               <PopoverContent className="p-0" align="start">
                 <Calendar
@@ -250,7 +251,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
               disabled={loading}
             />
             {dueAtDate && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => { setDueAtDate(null); setDueAtTime('') }}>Temizle</Button>
+              <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => { setDueAtDate(null); setDueAtTime('') }}>Temizle</button>
             )}
           </div>
         </FormField>
