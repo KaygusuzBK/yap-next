@@ -53,10 +53,17 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
   const { data: items = [], isLoading: loading, error } = useTeams();
   const [teamStats, setTeamStats] = useState<Record<string, TeamStats>>({});
 
+  // items referansı her render'da değişirse sonsuz döngü olabilir.
+  // Sadece ID set'i değiştiğinde istatistikleri yeniden yükle.
+  const idsKey = items.map(t => t.id).sort().join(',');
+  const lastIdsKeyRef = React.useRef<string>('');
+
   useEffect(() => {
+    let mounted = true;
+    if (idsKey === lastIdsKeyRef.current) return;
+    lastIdsKeyRef.current = idsKey;
     (async () => {
       try {
-        // Her takım için istatistikleri al
         const stats: Record<string, TeamStats> = {};
         for (const team of items) {
           try {
@@ -65,10 +72,11 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
             console.warn(`Takım ${team.id} istatistikleri alınamadı:`, e);
           }
         }
-        setTeamStats(stats);
+        if (mounted) setTeamStats(stats);
       } catch {}
     })();
-  }, [items]);
+    return () => { mounted = false };
+  }, [idsKey, items]);
 
   useEffect(() => {
     if (refreshKey !== undefined) {
