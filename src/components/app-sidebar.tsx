@@ -465,14 +465,6 @@ const TaskRow = React.memo(function TaskRow({
             )}
           </div>
           <div className="mt-1 flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
-              task.status === 'in_progress' ? 'text-blue-700 border-blue-200 dark:text-blue-300 dark:border-blue-800' :
-              task.status === 'completed' ? 'text-green-700 border-green-200 dark:text-green-300 dark:border-green-800' :
-              task.status === 'review' ? 'text-yellow-700 border-yellow-200 dark:text-yellow-300 dark:border-yellow-800' :
-              'text-muted-foreground border-border'
-            }`}>
-              {task.status === 'in_progress' ? 'Devam ediyor' : task.status === 'completed' ? 'Tamamlandı' : task.status === 'review' ? 'İncelemede' : 'Yapılacak'}
-            </span>
             <span className={`text-xs ${
               task.status === 'completed' ? 'text-muted-foreground/70' : 'text-muted-foreground'
             }`}>
@@ -492,6 +484,26 @@ const TaskRow = React.memo(function TaskRow({
             </span>
           </div>
         </div>
+        {/* Status text bottom-right */}
+        <span
+          className={`absolute right-2 bottom-2 text-[10px] px-1.5 py-0.5 rounded-full border shadow-sm ${
+            task.status === 'in_progress'
+              ? 'text-blue-700 border-blue-200 dark:text-blue-300 dark:border-blue-800'
+              : task.status === 'completed'
+              ? 'text-green-700 border-green-200 dark:text-green-300 dark:border-green-800'
+              : task.status === 'review'
+              ? 'text-yellow-700 border-yellow-200 dark:text-yellow-300 dark:border-yellow-800'
+              : 'text-muted-foreground border-border'
+          } ${Math.abs(dragX) > 20 ? 'opacity-60' : ''}`}
+        >
+          {task.status === 'in_progress'
+            ? 'Devam ediyor'
+            : task.status === 'completed'
+            ? 'Tamamlandı'
+            : task.status === 'review'
+            ? 'İncelemede'
+            : 'Yapılacak'}
+        </span>
         {/* Labels on top */}
         {dragX < -4 && getNextStatus(task.status) && (
           <span className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 text-xs font-semibold drop-shadow-sm ${
