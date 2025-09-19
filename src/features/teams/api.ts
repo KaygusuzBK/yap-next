@@ -50,13 +50,32 @@ export type TeamStats = {
 
 export async function getTeamById(team_id: string): Promise<Team | null> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('id', team_id)
-    .maybeSingle();
-  if (error) throw error;
-  return (data as Team) ?? null;
+  
+  try {
+    console.log('🔍 getTeamById - Starting for team:', team_id);
+    
+    const { data, error, count } = await supabase
+      .from('teams')
+      .select('*', { count: 'exact' })
+      .eq('id', team_id)
+      .maybeSingle();
+
+    console.log('📊 getTeamById - Result:', { 
+      count, 
+      error,
+      data: data ? 'found' : 'not found'
+    });
+
+    if (error) {
+      console.error('❌ getTeamById - Error:', error);
+      throw error;
+    }
+    
+    return (data as Team) ?? null;
+  } catch (error) {
+    console.error('❌ getTeamById - Exception:', error);
+    throw error;
+  }
 }
 
 export async function getUserRoleForTeam(team_id: string): Promise<TeamRole | null> {
@@ -95,38 +114,96 @@ export async function fetchTeamAuthorized(team_id: string): Promise<{ team: Team
 
 export async function fetchTeams(): Promise<Team[]> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  
+  try {
+    console.log('🔍 fetchTeams - Starting...');
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('❌ fetchTeams - User error:', userError);
+      throw userError;
+    }
+    
+    if (!user) {
+      console.error('❌ fetchTeams - No user found');
+      return [];
+    }
+    
+    console.log('🔍 fetchTeams - User ID:', user.id);
 
-  // 1) Sahibi olduğu takımlar
-  const { data: owned, error: ownedErr } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('owner_id', user.id)
-    .order('created_at', { ascending: false });
-  if (ownedErr) console.warn('owned teams error:', ownedErr);
-
-  // 2) Üye olduğu takımların id listesini çek (RLS daha stabil)
-  const { data: memberRows, error: memberErr } = await supabase
-    .from('team_members')
-    .select('team_id')
-    .eq('user_id', user.id);
-  if (memberErr) console.warn('member teams error:', memberErr);
-
-  const memberIds = (memberRows || []).map(r => r.team_id);
-  let memberTeams: Team[] = [];
-  if (memberIds.length > 0) {
-    const { data: teamsByIds, error: teamsErr } = await supabase
+    // 1) Sahibi olduğu takımlar
+    console.log('🔍 fetchTeams - Fetching owned teams...');
+    const { data: owned, error: ownedErr, count: ownedCount } = await supabase
       .from('teams')
-      .select('*')
-      .in('id', memberIds);
-    if (teamsErr) console.warn('teams by ids error:', teamsErr);
-    memberTeams = (teamsByIds || []) as Team[];
-  }
+      .select('*', { count: 'exact' })
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    console.log('📊 fetchTeams - Owned teams result:', { 
+      count: ownedCount, 
+      error: ownedErr,
+      data: owned?.length || 0
+    });
+    
+    if (ownedErr) {
+      console.error('❌ fetchTeams - Owned teams error:', ownedErr);
+    }
 
-  const all = [ ...(owned || []), ...memberTeams ];
-  const unique = all.filter((team, index, self) => index === self.findIndex(t => t.id === team.id));
-  return unique;
+    // 2) Üye olduğu takımların id listesini çek (RLS daha stabil)
+    console.log('🔍 fetchTeams - Fetching member teams...');
+    const { data: memberRows, error: memberErr, count: memberCount } = await supabase
+      .from('team_members')
+      .select('team_id', { count: 'exact' })
+      .eq('user_id', user.id);
+    
+    console.log('📊 fetchTeams - Member teams result:', { 
+      count: memberCount, 
+      error: memberErr,
+      data: memberRows?.length || 0
+    });
+    
+    if (memberErr) {
+      console.error('❌ fetchTeams - Member teams error:', memberErr);
+    }
+
+    const memberIds = (memberRows || []).map(r => r.team_id);
+    let memberTeams: Team[] = [];
+    
+    if (memberIds.length > 0) {
+      console.log('🔍 fetchTeams - Fetching teams by IDs:', memberIds);
+      const { data: teamsByIds, error: teamsErr, count: teamsCount } = await supabase
+        .from('teams')
+        .select('*', { count: 'exact' })
+        .in('id', memberIds);
+      
+      console.log('📊 fetchTeams - Teams by IDs result:', { 
+        count: teamsCount, 
+        error: teamsErr,
+        data: teamsByIds?.length || 0
+      });
+      
+      if (teamsErr) {
+        console.error('❌ fetchTeams - Teams by IDs error:', teamsErr);
+      }
+      
+      memberTeams = (teamsByIds || []) as Team[];
+    }
+
+    const all = [ ...(owned || []), ...memberTeams ];
+    const unique = all.filter((team, index, self) => index === self.findIndex(t => t.id === team.id));
+    
+    console.log('✅ fetchTeams - Final result:', {
+      owned: owned?.length || 0,
+      memberTeams: memberTeams.length,
+      total: unique.length,
+      teams: unique
+    });
+    
+    return unique;
+  } catch (error) {
+    console.error('❌ fetchTeams - Error:', error);
+    throw error;
+  }
 }
 
 export async function createTeam(input: { name: string; description?: string; avatar_url?: string }): Promise<Team> {
@@ -574,31 +651,44 @@ export async function getTeamStats(team_id: string): Promise<TeamStats> {
     .select('*', { count: 'exact', head: true })
     .eq('team_id', team_id);
   
-  // Proje sayısı
+  // Proje sayısı - team_id alanını kullan
   const { count: projectCount } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
     .eq('team_id', team_id);
   
-  // Aktif görev sayısı
-  const { count: activeTaskCount } = await supabase
-    .from('project_tasks')
-    .select('*', { count: 'exact', head: true })
-    .eq('team_id', team_id)
-    .neq('status', 'completed');
+  // Aktif görev sayısı - projeler üzerinden hesapla
+  const { data: teamProjects } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('team_id', team_id);
   
-  // Tamamlanan görev sayısı
-  const { count: completedTaskCount } = await supabase
-    .from('project_tasks')
-    .select('*', { count: 'exact', head: true })
-    .eq('team_id', team_id)
-    .eq('status', 'completed');
+  const projectIds = teamProjects?.map(p => p.id) || [];
+  let activeTaskCount = 0;
+  let completedTaskCount = 0;
+  
+  if (projectIds.length > 0) {
+    const { count: activeCount } = await supabase
+      .from('project_tasks')
+      .select('*', { count: 'exact', head: true })
+      .in('project_id', projectIds)
+      .neq('status', 'completed');
+    
+    const { count: completedCount } = await supabase
+      .from('project_tasks')
+      .select('*', { count: 'exact', head: true })
+      .in('project_id', projectIds)
+      .eq('status', 'completed');
+    
+    activeTaskCount = activeCount || 0;
+    completedTaskCount = completedCount || 0;
+  }
   
   return {
     member_count: memberCount || 0,
     project_count: projectCount || 0,
-    active_task_count: activeTaskCount || 0,
-    completed_task_count: completedTaskCount || 0,
+    active_task_count: activeTaskCount,
+    completed_task_count: completedTaskCount,
   };
 }
 

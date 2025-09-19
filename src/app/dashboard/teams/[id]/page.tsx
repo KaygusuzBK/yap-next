@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,7 +16,8 @@ import {
   Settings,
   ArrowLeft,
   Edit,
-  Shield
+  Shield,
+  Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
@@ -28,6 +29,7 @@ import {
   type TeamMember,
   type TeamRole
 } from '@/features/teams/api';
+import { getProjectById, type Project } from '@/features/projects/api';
 import TeamMembers from '@/features/teams/components/TeamMembers';
 import TeamSettings from '@/features/teams/components/TeamSettings';
 import { getSupabase } from '@/lib/supabase';
@@ -45,9 +47,10 @@ export default function TeamDetailPage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [stats, setStats] = useState<TeamStats | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<TeamRole | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'settings' | 'projects'>('overview');
 
   const loadTeamData = useCallback(async () => {
     try {
@@ -66,6 +69,16 @@ export default function TeamDetailPage() {
       // Load team members
       const teamMembers = await getTeamMembers(teamId);
       setMembers(teamMembers);
+      
+      // Load team projects
+      const supabase = getSupabase();
+      const { data: teamProjects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: false });
+      setProjects(teamProjects || []);
+      
       // Rolü yetkili sorgudan al
       setUserRole(role);
     } catch (error) {
@@ -194,6 +207,17 @@ export default function TeamDetailPage() {
             }`}
           >
             Üyeler
+          </button>
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'projects'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <FolderOpen className="h-4 w-4 inline mr-2" />
+            Projeler
           </button>
           {canEdit && (
             <button
@@ -376,6 +400,66 @@ export default function TeamDetailPage() {
           isOwner={isOwner}
           isAdmin={isAdmin}
         />
+      )}
+
+      {activeTab === 'projects' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Takım Projeleri</h3>
+            <Badge variant="outline">{projects.length} proje</Badge>
+          </div>
+          
+          {projects.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                <h4 className="text-lg font-medium mb-2">Henüz proje yok</h4>
+                <p className="text-muted-foreground text-center mb-4">
+                  Bu takıma henüz proje atanmamış. Proje oluştururken bu takımı seçebilirsiniz.
+                </p>
+                <Button asChild>
+                  <Link href="/dashboard/projects">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Proje Oluştur
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base line-clamp-2">{project.title}</CardTitle>
+                      <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                        {project.status === 'active' ? 'Aktif' : 
+                         project.status === 'completed' ? 'Tamamlandı' : 'Arşivlendi'}
+                      </Badge>
+                    </div>
+                    {project.description && (
+                      <CardDescription className="line-clamp-2">
+                        {project.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>
+                        {new Date(project.created_at).toLocaleDateString('tr-TR')}
+                      </span>
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/dashboard/projects/${project.id}`}>
+                          Detayları Gör
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === 'settings' && canEdit && (

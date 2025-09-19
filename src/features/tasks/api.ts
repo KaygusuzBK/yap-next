@@ -78,48 +78,83 @@ export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
 
 export async function fetchMyTasks(): Promise<Task[]> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  
+  try {
+    console.log('🔍 fetchMyTasks - Starting...');
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('❌ fetchMyTasks - User error:', userError);
+      throw userError;
+    }
+    
+    if (!user) {
+      console.error('❌ fetchMyTasks - No user found');
+      return [];
+    }
+    
+    console.log('🔍 fetchMyTasks - User ID:', user.id);
 
-  type SupabaseTaskRow = {
-    id: string;
-    project_id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    priority: Task['priority'];
-    assigned_to: string | null;
-    created_by: string;
-    position?: number | null;
-    due_date: string | null;
-    created_at: string;
-    updated_at: string;
-    projects?: { title?: string } | null;
-  };
+    type SupabaseTaskRow = {
+      id: string;
+      project_id: string;
+      title: string;
+      description: string | null;
+      status: string;
+      priority: Task['priority'];
+      assigned_to: string | null;
+      created_by: string;
+      position?: number | null;
+      due_date: string | null;
+      created_at: string;
+      updated_at: string;
+      projects?: { title?: string } | null;
+    };
 
-  const { data, error } = await supabase
-    .from('project_tasks')
-    .select(`*, projects(title)`) // join for project title
-    .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
-    .order('created_at', { ascending: false });
+    console.log('🔍 fetchMyTasks - Fetching tasks...');
+    const { data, error, count } = await supabase
+      .from('project_tasks')
+      .select(`*, projects(title)`, { count: 'exact' }) // join for project title
+      .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+      .order('created_at', { ascending: false });
 
-  if (error) throw error;
+    console.log('📊 fetchMyTasks - Result:', { 
+      count, 
+      error,
+      data: data?.length || 0
+    });
 
-  return (data as SupabaseTaskRow[] | null ?? []).map((row) => ({
-    id: row.id,
-    project_id: row.project_id,
-    title: row.title,
-    description: row.description,
-    status: row.status,
-    priority: row.priority,
-    assigned_to: row.assigned_to,
-    created_by: row.created_by,
-    position: row.position ?? null,
-    due_date: row.due_date,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    project_title: row.projects?.title,
-  })) as Task[];
+    if (error) {
+      console.error('❌ fetchMyTasks - Error:', error);
+      throw error;
+    }
+
+    const tasks = (data as SupabaseTaskRow[] | null ?? []).map((row) => ({
+      id: row.id,
+      project_id: row.project_id,
+      title: row.title,
+      description: row.description,
+      status: row.status,
+      priority: row.priority,
+      assigned_to: row.assigned_to,
+      created_by: row.created_by,
+      position: row.position ?? null,
+      due_date: row.due_date,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      project_title: row.projects?.title,
+    })) as Task[];
+    
+    console.log('✅ fetchMyTasks - Final result:', {
+      total: tasks.length,
+      tasks: tasks
+    });
+    
+    return tasks;
+  } catch (error) {
+    console.error('❌ fetchMyTasks - Exception:', error);
+    throw error;
+  }
 }
 
 export async function createTask(input: {

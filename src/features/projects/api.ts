@@ -16,9 +16,31 @@ export type Project = {
 
 export async function fetchProjects(): Promise<Project[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  
+  try {
+    console.log('🔍 fetchProjects - Starting...');
+    
+    const { data, error, count } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
+    
+    console.log('📊 fetchProjects - Result:', { 
+      count, 
+      error,
+      data: data?.length || 0
+    });
+    
+    if (error) {
+      console.error('❌ fetchProjects - Error:', error);
+      throw error;
+    }
+    
+    return data ?? [];
+  } catch (error) {
+    console.error('❌ fetchProjects - Exception:', error);
+    throw error;
+  }
 }
 
 export async function createProject(input: { title: string; description?: string | null; team_id?: string | null }): Promise<Project> {
