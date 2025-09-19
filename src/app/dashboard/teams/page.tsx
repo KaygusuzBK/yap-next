@@ -20,11 +20,10 @@ export default function TeamsPage() {
     setIsClient(true)
   }, [])
 
+  // Masaüstünde de bu sayfayı gösterelim; yönlendirmeyi kaldırdık
   useEffect(() => {
-    if (isClient && !isMobile) {
-      router.replace('/dashboard')
-    }
-  }, [isClient, isMobile, router])
+    // no-op
+  }, [])
 
   // İlk render'da loading göster (hydration hatasını önler)
   if (!isClient) {
@@ -54,9 +53,7 @@ export default function TeamsPage() {
     )
   }
 
-  if (!isMobile) {
-    return null
-  }
+  // Masaüstünde de render et
 
   return (
     <div className="px-4 py-4">
