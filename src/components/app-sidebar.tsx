@@ -433,7 +433,7 @@ const TaskRow = React.memo(function TaskRow({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className={`relative text-left flex-1 transform transition-transform pl-3`}
+        className={`relative text-left flex-1 transform transition-transform pl-3 pb-5`}
         style={{ transform: dragX !== 0 ? `translateX(${dragX}px)` : undefined }}
       >
         {/* Status indicator */}
@@ -486,7 +486,7 @@ const TaskRow = React.memo(function TaskRow({
         </div>
         {/* Status text bottom-right */}
         <span
-          className={`absolute right-2 bottom-2 text-[10px] px-1.5 py-0.5 rounded-full border shadow-sm ${
+          className={`pointer-events-none select-none absolute right-2 bottom-2 text-[10px] px-1.5 py-0.5 rounded-full border shadow-sm ${
             task.status === 'in_progress'
               ? 'text-blue-700 border-blue-200 dark:text-blue-300 dark:border-blue-800'
               : task.status === 'completed'
