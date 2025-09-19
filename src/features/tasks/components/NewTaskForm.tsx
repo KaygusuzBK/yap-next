@@ -34,7 +34,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
   const [status, setStatus] = useState<string>('todo');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
-  const [notifySlack, setNotifySlack] = useState(true);
+  const [notifySlack, setNotifySlack] = useState(false);
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
   const [statuses, setStatuses] = useState<ProjectTaskStatus[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -131,11 +131,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <FormSection 
-        title="Görev Bilgileri" 
-        description="Görevle ilgili temel bilgileri girin"
-      >
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormSection title="Görev Bilgileri">
         <FormField
           label="Görev Başlığı"
           required
@@ -164,7 +161,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
           />
         </FormField>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <FormField
             label="Öncelik"
             hint="Görevin önem seviyesi"
@@ -208,11 +205,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
           </FormField>
         </div>
 
-        <FormField
-          label="Bitiş Tarihi"
-          error={errors.dueDate}
-          hint="Görevin tamamlanması gereken tarih"
-        >
+        <FormField label="Bitiş Tarihi" error={errors.dueDate}>
           <AdvancedInput
             type="datetime-local"
             value={dueDate}
@@ -223,19 +216,16 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
         </FormField>
       </FormSection>
 
-      <FormSection 
-        title="Bildirim Ayarları" 
-        description="Görev oluşturulduğunda Slack'e bildirim gönder"
-      >
-        <div className="space-y-3 rounded-md border p-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium">Slack'e mesaj yolla</div>
-              <div className="text-xs text-muted-foreground">Görev oluşturulunca Slack kanalına bildirim gönder.</div>
-            </div>
-            <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
+      <FormSection title="Bildirim Ayarları">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="text-sm">Slack'e mesaj yolla</div>
+            <div className="text-xs text-muted-foreground">Varsayılan: Kapalı</div>
           </div>
-          {notifySlack && (
+          <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />
+        </div>
+        {notifySlack && (
+          <div className="mt-2">
             <FormField
               label="Slack Webhook URL"
               error={errors.slackWebhook}
@@ -247,8 +237,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
                 onChange={(e) => setSlackWebhookUrl(e.target.value)}
               />
             </FormField>
-          )}
-        </div>
+          </div>
+        )}
       </FormSection>
 
       <FormButtonGroup
