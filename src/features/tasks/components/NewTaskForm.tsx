@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createTask, fetchProjectStatuses, type ProjectTaskStatus } from '../api';
 import { toast } from 'sonner';
-import { Plus, Loader2, Calendar, AlertCircle } from 'lucide-react';
+import { Plus, Loader2, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { 
@@ -18,6 +18,10 @@ import {
   FormHelp,
   AdvancedInput
 } from '@/components/ui/form-components';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
 
 interface NewTaskFormProps {
   projectId: string;
@@ -32,7 +36,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [status, setStatus] = useState<string>('todo');
-  const [dueDate, setDueDate] = useState('');
+  const [dueAtDate, setDueAtDate] = useState<Date | null>(null);
+  const [dueAtTime, setDueAtTime] = useState('');
   const [loading, setLoading] = useState(false);
   const [notifySlack, setNotifySlack] = useState(false);
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
@@ -83,8 +88,12 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
       newErrors.title = 'Görev başlığı en az 3 karakter olmalıdır';
     }
     
-    if (dueDate && new Date(dueDate) < new Date()) {
-      newErrors.dueDate = 'Bitiş tarihi geçmiş bir tarih olamaz';
+    if (dueAtDate) {
+      const t = dueAtTime || '09:00'
+      const [hh, mm] = t.split(':')
+      const dt = new Date(dueAtDate)
+      dt.setHours(Number(hh || 0), Number(mm || 0), 0, 0)
+      if (dt < new Date()) newErrors.dueDate = 'Bitiş tarihi geçmiş bir tarih olamaz'
     }
     
     if (notifySlack && slackWebhookUrl && !slackWebhookUrl.includes('hooks.slack.com')) {
@@ -104,13 +113,22 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
 
     try {
       setLoading(true);
+      const dueIso = (() => {
+        if (!dueAtDate) return null
+        const t = dueAtTime || '09:00'
+        const [hh, mm] = t.split(':')
+        const dt = new Date(dueAtDate)
+        dt.setHours(Number(hh || 0), Number(mm || 0), 0, 0)
+        return dt.toISOString()
+      })()
+
       await createTask({
         project_id: projectId,
         title: title.trim(),
         description: description.trim() || null,
         priority,
         status,
-        due_date: dueDate || null,
+        due_date: dueIso,
         notifySlack,
         slackWebhookUrl: slackWebhookUrl.trim() || undefined,
       });
@@ -120,7 +138,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
       setDescription('');
       setPriority('medium');
       setStatus('todo');
-      setDueDate('');
+      setDueAtDate(null);
+      setDueAtTime('');
       setErrors({});
       onCreated?.();
     } catch (error) {
@@ -206,13 +225,34 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
         </div>
 
         <FormField label="Bitiş Tarihi" error={errors.dueDate}>
-          <AdvancedInput
-            type="datetime-local"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            disabled={loading}
-            icon={<Calendar className="h-4 w-4" />}
-          />
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" className="w-[180px] justify-start" disabled={loading}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dueAtDate ? format(dueAtDate, 'dd.MM.yyyy') : 'Tarih seçin'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dueAtDate ?? undefined}
+                  onSelect={(d) => setDueAtDate(d ?? null)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Input
+              type="time"
+              value={dueAtTime}
+              onChange={(e) => setDueAtTime(e.target.value)}
+              className="w-[110px]"
+              disabled={loading}
+            />
+            {dueAtDate && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setDueAtDate(null); setDueAtTime('') }}>Temizle</Button>
+            )}
+          </div>
         </FormField>
       </FormSection>
 
