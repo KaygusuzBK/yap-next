@@ -24,20 +24,15 @@ export type TaskStat = {
   days_remaining: number | null
 }
 
-export type DragState = {
-  dragType: null | 'team' | 'project' | 'task'
-  dragIndex: number | null
-  dragOverIndex: number | null
+export type PerformanceData = {
+  totalTasks: number
+  completedTasks: number
+  completionRate: number
+  teamStats: Array<{ name: string; completed: number; total: number; rate: number }>
+  projectStats: Array<{ name: string; completed: number; total: number; rate: number }>
 }
 
-export type TaskFilters = {
-  statusFilter: 'all' | 'open' | 'completed'
-  dueFilter: 'all' | 'overdue' | 'today' | 'week'
-  priorityFilter: 'all' | 'urgent' | 'high' | 'medium' | 'low'
-  sortBy: 'smart' | 'due' | 'priority'
-}
-
-export type PendingInvitation = {
+export type PendingInvite = {
   id: string
   token: string
   email: string
@@ -45,4 +40,18 @@ export type PendingInvitation = {
   created_at: string
   expires_at: string
   teams?: { id: string; name?: string }
+}
+
+export type NavItem = {
+  title: string
+  url: string
+  icon: any
+  isActive: boolean
+}
+
+export type TaskCounts = {
+  todo: number
+  in_progress: number
+  review: number
+  completed: number
 }

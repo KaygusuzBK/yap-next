@@ -1,90 +1,22 @@
 "use client"
 
-import * as React from "react"
+import React from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { getSupabase } from "@/lib/supabase"
-import { applySavedOrder } from "@/lib/sidebarOrder"
-import { useProjects } from "@/features/projects/queries"
+import { useProjects, projectKeys } from "@/features/projects/queries"
 import { useMyTasks, keys as taskQueryKeys } from "@/features/tasks/queries"
-import { getPendingInvitations, getTeamMembers } from "@/features/teams/api"
-import type { TeamStat, ProjectStat, TaskStat, PendingInvitation } from "../types"
+import { applySavedOrder } from "@/lib/sidebarOrder"
+import type { TeamStat, ProjectStat, TaskStat } from "../types"
 
 export function useSidebarData() {
   const qc = useQueryClient()
   const { data: hookProjects = [], isLoading: hookLoadingProjects, error: hookProjectsError } = useProjects()
   const { data: hookMyTasks = [], isLoading: hookLoadingMyTasks, error: hookTasksError } = useMyTasks()
 
-  // Team stats state
-  const [teamStats, setTeamStats] = React.useState<TeamStat[]>([])
-  const [loadingTeams, setLoadingTeams] = React.useState(false)
-  const [teamError, setTeamError] = React.useState<string | null>(null)
-  const [pendingInvites, setPendingInvites] = React.useState<PendingInvitation[]>([])
-
-  // Derived states
+  // Derived loading/error flags for rendering
   const loadingProjects = hookLoadingProjects
   const projectError = hookProjectsError ? (hookProjectsError as Error).message : null
   const loadingTasks = hookLoadingMyTasks
   const taskError = hookTasksError ? (hookTasksError as Error).message : null
-
-  const fetchTeamStats = React.useCallback(async () => {
-    try {
-      setLoadingTeams(true)
-      setTeamError(null)
-      const supabase = getSupabase()
-      const { data: teams, error: tErr } = await supabase
-        .from("teams")
-        .select("id,name")
-        .order("created_at", { ascending: false })
-      if (tErr) throw tErr
-      const teamIds = (teams ?? []).map((t) => t.id)
-      if (teamIds.length === 0) {
-        setTeamStats([])
-        return
-      }
-      const [{ data: projects }] = await Promise.all([
-        supabase
-          .from("projects")
-          .select("id,title,team_id")
-          .in("team_id", teamIds),
-      ])
-      const teamIdToProjectTitle = new Map<string, string>()
-      ;(projects ?? []).forEach((p) => {
-        if (!teamIdToProjectTitle.has(p.team_id)) {
-          teamIdToProjectTitle.set(p.team_id, p.title)
-        }
-      })
-      const counts = await Promise.all(teamIds.map(async (id) => {
-        try {
-          const list = await getTeamMembers(id)
-          return [id, list.length] as const
-        } catch {
-          return [id, 0] as const
-        }
-      }))
-      const teamIdToCount = new Map<string, number>(counts)
-      let stats = (teams ?? []).map((t) => ({
-        id: t.id,
-        name: t.name,
-        memberCount: teamIdToCount.get(t.id) ?? null,
-        projectTitle: teamIdToProjectTitle.get(t.id) ?? null,
-      }))
-      stats = applySavedOrder('teams', stats)
-      setTeamStats(stats)
-    } catch (e) {
-      setTeamError(e instanceof Error ? e.message : "Takım verileri alınamadı")
-    } finally {
-      setLoadingTeams(false)
-    }
-  }, [])
-
-  const fetchPendingInvites = React.useCallback(async () => {
-    try {
-      const list = await getPendingInvitations()
-      setPendingInvites(list as PendingInvitation[])
-    } catch { 
-      setPendingInvites([]) 
-    }
-  }, [])
 
   const projectStats = React.useMemo(() => {
     const base = hookProjects.map((p) => ({
@@ -126,40 +58,65 @@ export function useSidebarData() {
     return applySavedOrder('tasks', nextAll)
   }, [hookMyTasks])
 
-  // Realtime subscription for tasks
-  React.useEffect(() => {
-    const supabase = getSupabase()
-    const channel = supabase
-      .channel('sidebar-task-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => {
-        qc.invalidateQueries({ queryKey: taskQueryKeys.tasks() }).catch(() => {})
-      })
-      .subscribe()
-
-    return () => {
-      try { supabase.removeChannel(channel) } catch {}
+  // En yakın görevi bul
+  const nearestTask = React.useMemo(() => {
+    const incompleteTasks = taskStats.filter(task => 
+      task.status !== 'completed' && task.due_date
+    )
+    
+    if (incompleteTasks.length === 0) return null
+    
+    const today = new Date()
+    
+    // Önce bugünün görevleri, sonra gelecekteki görevler, son olarak geçmişteki görevler
+    const todayTasks = incompleteTasks.filter(task => {
+      if (!task.due_date) return false
+      const dueDate = new Date(task.due_date)
+      return dueDate.toDateString() === today.toDateString()
+    })
+    
+    if (todayTasks.length > 0) {
+      return todayTasks.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      })[0]
     }
-  }, [qc])
+    
+    const futureTasks = incompleteTasks.filter(task => {
+      if (!task.due_date) return false
+      return new Date(task.due_date) > today
+    })
+    
+    if (futureTasks.length > 0) {
+      return futureTasks.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      })[0]
+    }
+    
+    const pastTasks = incompleteTasks.filter(task => {
+      if (!task.due_date) return false
+      return new Date(task.due_date) < today
+    })
+    
+    if (pastTasks.length > 0) {
+      return pastTasks.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0
+        return new Date(b.due_date).getTime() - new Date(a.due_date).getTime() // En yakın geçmiş görev
+      })[0]
+    }
+    
+    return null
+  }, [taskStats])
 
   return {
-    // Team data
-    teamStats,
-    setTeamStats,
-    loadingTeams,
-    teamError,
-    fetchTeamStats,
-    pendingInvites,
-    setPendingInvites,
-    fetchPendingInvites,
-    
-    // Project data
     projectStats,
+    taskStats,
+    nearestTask,
     loadingProjects,
     projectError,
-    
-    // Task data
-    taskStats,
     loadingTasks,
     taskError,
+    qc
   }
 }
