@@ -436,8 +436,8 @@ const TaskRow = React.memo(function TaskRow({
         className={`relative text-left flex-1 transform transition-transform pl-3 pb-5`}
         style={{ transform: dragX !== 0 ? `translateX(${dragX}px)` : undefined }}
       >
-        {/* Status indicator */}
-        <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1.5 rounded ${statusColor}`} />
+        {/* Status indicator - fill full height on the left */}
+        <span className={`absolute left-0 inset-y-0 w-1.5 rounded-none ${statusColor}`} />{/* burası */}
 
         {/* Swipe overlay (left=next, right=prev) */}
         {dragX !== 0 && (
@@ -472,7 +472,7 @@ const TaskRow = React.memo(function TaskRow({
             </span>
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`text-xs font-medium ${getPriorityColor(task.priority)} ${
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full border border-current ${getPriorityColor(task.priority)} ${
               task.status === 'completed' ? 'opacity-70' : ''
             }`}>
               {getPriorityText(task.priority)}
