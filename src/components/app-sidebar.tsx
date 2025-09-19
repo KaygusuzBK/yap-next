@@ -433,7 +433,7 @@ const TaskRow = React.memo(function TaskRow({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className={`relative text-left flex-1 transform transition-transform pl-3 pb-5`}
+        className={`relative text-left flex-1 transform transition-transform pl-3`}
         style={{ transform: dragX !== 0 ? `translateX(${dragX}px)` : undefined }}
       >
         {/* Status indicator - fill full height on the left */}
@@ -455,7 +455,7 @@ const TaskRow = React.memo(function TaskRow({
         )}
 
         {/* Content */}
-        <div className={`relative z-10 ${Math.abs(dragX) > 20 ? 'opacity-60' : ''}`}>
+        <div className={`relative z-10 ${Math.abs(dragX) > 20 ? 'opacity-60' : ''} flex flex-col items-start text-left`}>
           <div className={`font-medium line-clamp-1 ${
             task.status === 'completed' ? 'line-through text-muted-foreground' : ''
           }`}>
