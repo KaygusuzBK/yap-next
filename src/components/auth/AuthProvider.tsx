@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
+import { withRetry, handleAuthError } from "@/lib/auth-utils";
 
 type AuthContextValue = {
   user: User | null;
@@ -44,7 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await withRetry(
+          () => supabase.auth.getSession()
+        );
+        
+        if (error) {
+          console.error('Auth init error:', error);
+          setUser(null);
+          return;
+        }
+        
         const u = data.session?.user ?? null
         setUser(u);
         // profile to user store
@@ -59,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const email = u?.email ?? ''
         if (fullName || email) setProfile(fullName || 'Kullanıcı', email || '—')
         if (u && email) syncInvites(u)
+      } catch (error) {
+        console.error('Auth init error:', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }

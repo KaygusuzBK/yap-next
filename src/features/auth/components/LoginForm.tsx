@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { MagicLinkInline } from './MagicLink';
+import { withRetry, handleAuthError } from '@/lib/auth-utils';
 
 const schema = z.object({
   email: z.string().email('Geçerli bir e-posta girin'),
@@ -23,14 +24,23 @@ export default function LoginForm() {
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
 
   const onSubmit = async (values: FormValues) => {
-    const supabase = getSupabase();
-    const { error } = await supabase.auth.signInWithPassword(values as any);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const supabase = getSupabase();
+      const { error } = await withRetry(
+        () => supabase.auth.signInWithPassword(values as any)
+      );
+      
+      if (error) {
+        toast.error(handleAuthError(error));
+        return;
+      }
+      
+      toast.success('Giriş başarılı');
+      router.replace('/dashboard');
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(handleAuthError(error));
     }
-    toast.success('Giriş başarılı');
-    router.replace('/dashboard');
   };
 
   return (

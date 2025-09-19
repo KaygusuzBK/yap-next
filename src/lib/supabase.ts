@@ -14,7 +14,19 @@ export function getSupabase(): SupabaseClient {
     throw new Error('Supabase environment variables are not configured');
   }
 
-  cachedClient = createClient(url, anonKey);
+  cachedClient = createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce'
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'yap-next@1.0.0'
+      }
+    }
+  });
   return cachedClient;
 }
 
