@@ -141,9 +141,11 @@ const TeamRow = React.memo(function TeamRow({
 
 const ProjectRow = React.memo(function ProjectRow({
   project,
+  counts,
   onSelect,
 }: {
   project: ProjectStat
+  counts?: { todo: number; in_progress: number; review: number; completed: number }
   onSelect: (projectId: string) => void
 }) {
   const getStatusIcon = (status: string) => {
@@ -199,6 +201,14 @@ const ProjectRow = React.memo(function ProjectRow({
         <div className="text-xs text-muted-foreground">
           {project.teamName ? `Takım: ${project.teamName}` : 'Kişisel Proje'}
         </div>
+        {counts && (
+          <div className="mt-2 flex items-center gap-2 text-[10px]">
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-zinc-400" />Y:{counts.todo}</span>
+            <span className="inline-flex items-center gap-1 text-blue-600"><span className="h-2 w-2 rounded-full bg-blue-500" />D:{counts.in_progress}</span>
+            <span className="inline-flex items-center gap-1 text-yellow-600"><span className="h-2 w-2 rounded-full bg-yellow-500" />İ:{counts.review}</span>
+            <span className="inline-flex items-center gap-1 text-green-600"><span className="h-2 w-2 rounded-full bg-green-500" />T:{counts.completed}</span>
+          </div>
+        )}
       </button>
     </div>
   )
@@ -1375,6 +1385,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         >
                           <ProjectRow
                             project={p}
+                            counts={{
+                              todo: taskStats.filter(t => t.project_id === p.id && (t.status === 'todo' || t.status === null)).length,
+                              in_progress: taskStats.filter(t => t.project_id === p.id && t.status === 'in_progress').length,
+                              review: taskStats.filter(t => t.project_id === p.id && t.status === 'review').length,
+                              completed: taskStats.filter(t => t.project_id === p.id && t.status === 'completed').length,
+                            }}
                             onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
                           />
                         </div>
