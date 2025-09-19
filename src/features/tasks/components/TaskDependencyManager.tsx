@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +67,7 @@ export default function TaskDependencyManager({
   });
 
   // Verileri yükle
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [deps, deps2, statsData, chainData] = await Promise.all([
@@ -87,11 +87,11 @@ export default function TaskDependencyManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [task.id]);
 
   useEffect(() => {
     loadData();
-  }, [task.id]);
+  }, [task.id, loadData]);
 
   // Bağımlılık ekle
   const handleAddDependency = async () => {

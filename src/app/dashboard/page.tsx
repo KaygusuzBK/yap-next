@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 // import { type Project } from "@/features/projects/api"
 // import { type Team } from "@/features/teams/api"
 import { type Task } from "@/features/tasks/api"
@@ -252,7 +252,7 @@ export default function Page() {
     return () => { try { channel.unsubscribe() } catch {} }
   }, [])
 
-  function getGroupForTask(task: Task): "todo" | "in_progress" | "review" | "completed" {
+  const getGroupForTask = useCallback((task: Task): "todo" | "in_progress" | "review" | "completed" => {
     const statuses = statusesByProject[task.project_id]
     if (statuses && statuses.length > 0) {
       const def = statuses.find(s => s.key === task.status)
@@ -261,7 +261,7 @@ export default function Page() {
     // Fallback for legacy keys
     if (task.status === 'in_progress' || task.status === 'review' || task.status === 'completed') return task.status
     return 'todo'
-  }
+  }, [statusesByProject])
 
   function getDefaultKeyForGroup(projectId: string, group: "todo" | "in_progress" | "review" | "completed"): string {
     const statuses = statusesByProject[projectId]
@@ -298,7 +298,7 @@ export default function Page() {
       base[g].push(t)
     }
     return base
-  }, [filteredMyTasks, myTasks])
+  }, [filteredMyTasks, myTasks, getGroupForTask])
 
   // Overview grid drag-reorder state
   type OverviewId = 'totalProjects' | 'totalTeams' | 'activeProjects' | 'thisMonth'

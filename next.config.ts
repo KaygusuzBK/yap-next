@@ -8,9 +8,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   serverExternalPackages: ['@supabase/realtime-js'],
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/realtime-js']
-  }
+  outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;
