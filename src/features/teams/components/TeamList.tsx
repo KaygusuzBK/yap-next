@@ -218,7 +218,7 @@ function TeamCard({
           {/* Aksiyon Butonları */}
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm" className="flex-1">
-              <Link href={`/dashboard/teams/${team.id}`}>
+              <Link href={`/dashboard/teams/${team.id}?name=${encodeURIComponent(team.name)}`}>
                 <Users className="h-4 w-4 mr-2" />
                 Yönet
               </Link>

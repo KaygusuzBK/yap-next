@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,7 @@ const ROLE_LABELS: Record<TeamRole, { label: string; color: string; icon: React.
 export default function TeamDetailPage() {
   const params = useParams();
   const teamId = params.id as string;
+  const search = useSearchParams();
   
   const [team, setTeam] = useState<Team | null>(null);
   const [stats, setStats] = useState<TeamStats | null>(null);
@@ -55,11 +56,20 @@ export default function TeamDetailPage() {
       // Yetkili takım verisini doğrudan ID ile getir
       const { team: currentTeam, role } = await fetchTeamAuthorized(teamId);
       if (!currentTeam || !role) {
-        setTeam(null);
+        // Fallback: en azından URL'deki ismi göster
+        setTeam({
+          id: teamId,
+          owner_id: '',
+          name: decodeURIComponent(search.get('name') || 'Takım'),
+          description: null,
+          avatar_url: null,
+          primary_project_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any);
         setUserRole(null);
-        return;
       }
-      setTeam(currentTeam);
+      if (currentTeam) setTeam(currentTeam);
       // Load team stats
       const teamStats = await getTeamStats(teamId);
       setStats(teamStats);
