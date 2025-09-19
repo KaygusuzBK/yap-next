@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { Folder, ListTodo, Users, Plus, MoreVertical, Calendar, CheckCircle, Filter, Target, BarChart3, Palette } from "lucide-react"
 import { toast } from "sonner"
@@ -571,6 +571,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [activeItem, setActiveItem] = React.useState(data.navMain[0])
   const { setOpen } = useSidebar()
   const router = useRouter()
+  const pathname = typeof window === 'undefined' ? '' : undefined as any
+  const currentPath = usePathname?.() ?? (typeof window !== 'undefined' ? window.location.pathname : '')
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null)
+
+  // Sync selectedTaskId with route path to avoid lag
+  React.useEffect(() => {
+    const match = currentPath.match(/\/dashboard\/tasks\/(.+)$/)
+    if (match && match[1]) {
+      setSelectedTaskId(match[1])
+    } else if (!currentPath.includes('/dashboard/tasks/')) {
+      setSelectedTaskId(null)
+    }
+  }, [currentPath])
   const authUser = useAuthStore(s => s.user)
   const profileName = useUserStore(s => s.name)
   const profileEmail = useUserStore(s => s.email)
@@ -1508,14 +1521,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                return (
                           <div className="flex flex-col">
                     {filtered.slice(0, 12).map((task) => {
-                      const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
-                      const isCurrent = pathname === `/dashboard/tasks/${task.id}`
+                      const isCurrent = selectedTaskId === task.id || currentPath === `/dashboard/tasks/${task.id}`
                       return (
                           <TaskRow
                                 key={task.id}
                                 task={task}
                         isCurrent={isCurrent}
-                        onSelect={() => router.push(`/dashboard/tasks/${task.id}`)}
+                        onSelect={() => { setSelectedTaskId(task.id); router.push(`/dashboard/tasks/${task.id}`) }}
                             onStatusChange={async (taskId, status) => {
                               try {
                                 await updateTask({ id: taskId, status })
