@@ -472,7 +472,7 @@ const TaskRow = React.memo(function TaskRow({
             </span>
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full border border-current ${getPriorityColor(task.priority)} ${
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-current ${getPriorityColor(task.priority)} ${
               task.status === 'completed' ? 'opacity-70' : ''
             }`}>
               {getPriorityText(task.priority)}
