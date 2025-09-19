@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { type Team, updateTeam, deleteTeam, getTeamStats, type TeamStats } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export default function TeamList({ refreshKey }: { refreshKey?: number }) {
   // items referansı her render'da değişirse sonsuz döngü olabilir.
   // Sadece ID set'i değiştiğinde istatistikleri yeniden yükle.
   const idsKey = items.map(t => t.id).sort().join(',');
-  const lastIdsKeyRef = React.useRef<string>('');
+  const lastIdsKeyRef = useRef<string>('');
 
   useEffect(() => {
     let mounted = true;
