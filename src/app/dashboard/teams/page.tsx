@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TeamList from '@/features/teams/components/TeamList'
+import NewTeamForm from '@/features/teams/components/NewTeamForm'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ChevronRight, Users } from 'lucide-react'
 import Link from 'next/link'
@@ -11,6 +14,7 @@ export default function TeamsPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [isClient, setIsClient] = useState(false)
+  const [openCreate, setOpenCreate] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -73,11 +77,22 @@ export default function TeamsPage() {
           <Users className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Takımlar</h1>
         </div>
-        <p className="text-muted-foreground">Tüm takımların listesi</p>
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground">Tüm takımların listesi</p>
+          <Button size="sm" onClick={() => setOpenCreate(true)}>Takım Oluştur</Button>
+        </div>
       </div>
       
       <div onMouseEnter={() => router.prefetch('/dashboard/teams')} />
       <TeamList />
+      <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni Takım</DialogTitle>
+          </DialogHeader>
+          <NewTeamForm onCreated={() => setOpenCreate(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
