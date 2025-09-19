@@ -425,7 +425,7 @@ export default function PerformanceFilters({
                 {filters.searchTerm && (
                   <Badge variant="secondary" className="text-xs">
                     <Search className="h-3 w-3 mr-1" />
-                    "{filters.searchTerm}"
+                    &ldquo;{filters.searchTerm}&rdquo;
                     <X 
                       className="h-3 w-3 ml-1 cursor-pointer" 
                       onClick={() => updateFilters({ searchTerm: '' })}

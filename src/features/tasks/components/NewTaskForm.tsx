@@ -260,7 +260,7 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
       <FormSection title="Bildirim Ayarları">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <div className="text-sm">Slack'e mesaj yolla</div>
+            <div className="text-sm">Slack&apos;e mesaj yolla</div>
             <div className="text-xs text-muted-foreground">Varsayılan: Kapalı</div>
           </div>
           <Switch id="notifySlack" checked={notifySlack} onCheckedChange={setNotifySlack} />

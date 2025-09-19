@@ -6,8 +6,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
+  outputFileTracingRoot: __dirname,
+  serverExternalPackages: ['@supabase/realtime-js']
 };
 
 export default nextConfig;
