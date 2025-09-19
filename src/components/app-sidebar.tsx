@@ -1137,7 +1137,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="text-foreground text-base font-medium">
               {activeItem?.title}
             </div>
-            <div />
+            <div className="flex items-center gap-2">
+              {isTeamsActive && (
+                <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => router.push('/dashboard/teams')} title="Takım Oluştur">
+                  <Plus className="size-4" />
+                </Button>
+              )}
+            </div>
             {isTasksActive && (
               <div className="flex items-center gap-2">
                 {nearestTask && (

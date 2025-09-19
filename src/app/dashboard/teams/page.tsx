@@ -76,7 +76,7 @@ export default function TeamsPage() {
         </div>
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground">Tüm takımların listesi</p>
-          <Button size="sm" onClick={() => setOpenCreate(true)}>Takım Oluştur</Button>
+          <Button size="sm" onClick={() => setOpenCreate(true)} disabled={openCreate}>Takım Oluştur</Button>
         </div>
       </div>
       
