@@ -12,6 +12,7 @@ import { useUserStore } from "@/lib/store/user"
 import { applySavedOrder, saveOrder } from "@/lib/sidebarOrder"
 import { getSupabase } from "@/lib/supabase"
 import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, acceptTeamInvitation, declineTeamInvitation, getTeamMembers } from "@/features/teams/api"
+import NewTeamForm from "@/features/teams/components/NewTeamForm"
 import { updateTask } from "@/features/tasks/api"
 import { useProjects, projectKeys } from "@/features/projects/queries"
 import { useMyTasks, keys as taskQueryKeys } from "@/features/tasks/queries"
@@ -56,7 +57,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-import NewTeamForm from "@/features/teams/components/NewTeamForm"
+// (removed duplicate NewTeamForm import)
 import NewProjectForm from "@/features/projects/components/NewProjectForm"
 import NewTaskForm from "@/features/tasks/components/NewTaskForm"
 import { NavUser } from "@/components/nav-user"
@@ -597,6 +598,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [createOpen, setCreateOpen] = React.useState(false)
   
   const [createProjectOpen, setCreateProjectOpen] = React.useState(false)
+  const [createTeamOpen, setCreateTeamOpen] = React.useState(false)
   // orderTick state removed: memo bağımlılıklarını sadeleştirdik
   const [pendingInvites, setPendingInvites] = React.useState<Array<{ id: string; token: string; email: string; role: string; created_at: string; expires_at: string; teams?: { id: string; name?: string } }>>([])
   // legacy counter state no longer used (we render full list under Teams)
@@ -1139,7 +1141,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
             <div className="flex items-center gap-2">
               {isTeamsActive && (
-                <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => router.push('/dashboard/teams')} title="Takım Oluştur">
+                <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setCreateTeamOpen(true)} title="Takım Oluştur">
                   <Plus className="size-4" />
                 </Button>
               )}
@@ -1178,6 +1180,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupContent>
               {isTeamsActive ? (
                 <div className="p-4 min-h-0">
+                  <Dialog open={createTeamOpen} onOpenChange={setCreateTeamOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Yeni Takım</DialogTitle>
+                      </DialogHeader>
+                      <NewTeamForm startExpanded onCreated={() => setCreateTeamOpen(false)} />
+                    </DialogContent>
+                  </Dialog>
                   {loadingTeams && (
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   )}
