@@ -232,7 +232,7 @@ export const TaskRow = React.memo(function TaskRow({
         )}
 
         {/* Content */}
-        <div className={`relative z-10 ${Math.abs(dragX) > 20 ? 'opacity-60' : ''}`}>
+        <div className={`relative z-10 ${Math.abs(dragX) > 20 ? 'opacity-60' : ''} flex flex-col items-start text-left`}>
           <div className={`font-medium line-clamp-1 ${
             task.status === 'completed' ? 'line-through text-muted-foreground' : ''
           }`}>
