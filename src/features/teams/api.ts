@@ -1,6 +1,7 @@
 "use client";
 
 import { getSupabase } from '@/lib/supabase';
+import { getUserCached } from '@/lib/auth-cache';
 
 export type TeamRole = 'owner' | 'admin' | 'member';
 
@@ -80,7 +81,7 @@ export async function getTeamById(team_id: string): Promise<Team | null> {
 
 export async function getUserRoleForTeam(team_id: string): Promise<TeamRole | null> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) return null;
 
   // Owner kontrolü
@@ -117,13 +118,7 @@ export async function fetchTeams(): Promise<Team[]> {
   
   try {
     console.log('🔍 fetchTeams - Starting...');
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error('❌ fetchTeams - User error:', userError);
-      throw userError;
-    }
-    
+    const user = await getUserCached();
     if (!user) {
       console.error('❌ fetchTeams - No user found');
       return [];
@@ -208,7 +203,7 @@ export async function fetchTeams(): Promise<Team[]> {
 
 export async function createTeam(input: { name: string; description?: string; avatar_url?: string }): Promise<Team> {
   const supabase = getSupabase();
-  const user = (await supabase.auth.getUser()).data.user;
+  const user = await getUserCached();
   
   const { data: team, error: teamErr } = await supabase
     .from('teams')
@@ -235,7 +230,7 @@ export async function updateTeam(input: {
   const supabase = getSupabase();
   
   // Yetki kontrolü
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team, error: teamError } = await supabase
@@ -268,7 +263,7 @@ export async function inviteToTeam(input: {
   const token = crypto.randomUUID();
   
   // Önce kullanıcının bu takımın sahibi veya admin'i olup olmadığını kontrol et
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team, error: teamError } = await supabase
@@ -347,7 +342,7 @@ export async function revokeTeamInvitation(invitationId: string): Promise<void> 
     
   if (invErr || !inv) throw invErr ?? new Error('Davet bulunamadı');
   
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   // Takım sahibi veya admin davet iptal edebilir
@@ -389,7 +384,7 @@ export async function resendTeamInvitation(invitationId: string): Promise<TeamIn
     
   if (invErr || !inv) throw invErr ?? new Error('Davet bulunamadı');
   
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   // Takım sahibi veya admin davet yeniden gönderebilir
@@ -491,7 +486,7 @@ export async function updateTeamMemberRole(input: {
   const supabase = getSupabase();
   
   // Yetki kontrolü - sadece takım sahibi rol değiştirebilir
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team } = await supabase
@@ -525,7 +520,7 @@ export async function removeTeamMember(input: {
   const supabase = getSupabase();
   
   // Yetki kontrolü - takım sahibi veya admin üye çıkarabilir
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team } = await supabase
@@ -567,7 +562,7 @@ export async function removeTeamMember(input: {
 
 export async function leaveTeam(team_id: string): Promise<void> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   // Takım sahibi takımdan ayrılamaz
@@ -597,7 +592,7 @@ export async function transferTeamOwnership(input: {
   const supabase = getSupabase();
   
   // Sadece mevcut takım sahibi yetki devredebilir
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team } = await supabase
@@ -717,8 +712,8 @@ export async function acceptTeamInvitation(token: string) {
   }
   
   // 4. Mevcut kullanıcı bilgilerini al
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error('Kullanıcı bilgileri alınamadı');
+  const user = await getUserCached();
+  if (!user) throw new Error('Kullanıcı bilgileri alınamadı');
   
   // 5. E-posta kontrolü (case-insensitive ve trim)
   const invitedEmail = (invitation.email || '').trim().toLowerCase()
@@ -775,7 +770,7 @@ export async function declineTeamInvitation(token: string): Promise<void> {
 // Kullanıcının bekleyen davetlerini getir
 export async function getPendingInvitations() {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   
   if (!user?.email) return [];
   
@@ -810,7 +805,7 @@ export async function getPendingInvitations() {
 // Takım davetlerini getir (sadece takım sahibi için)
 export async function getTeamInvitations(teamId: string) {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   
   if (!user) return [];
   
@@ -849,7 +844,7 @@ export async function deleteTeam(team_id: string): Promise<void> {
   const supabase = getSupabase();
   
   // Yetki kontrolü - sadece takım sahibi silebilir
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team } = await supabase
@@ -874,7 +869,7 @@ export async function updateTeamName(input: { team_id: string; name: string }): 
   const supabase = getSupabase();
   
   // Yetki kontrolü - takım sahibi veya admin isim değiştirebilir
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team } = await supabase
@@ -910,7 +905,7 @@ export async function setTeamPrimaryProject(input: { team_id: string; project_id
   const supabase = getSupabase();
   
   // Yetki kontrolü - takım sahibi veya admin birincil proje ayarlayabilir
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
   const { data: team } = await supabase

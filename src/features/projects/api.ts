@@ -1,6 +1,7 @@
 "use client";
 
 import { getSupabase } from '@/lib/supabase';
+import { getUserCached } from '@/lib/auth-cache';
 
 export type Project = {
   id: string;
@@ -45,7 +46,7 @@ export async function fetchProjects(): Promise<Project[]> {
 
 export async function createProject(input: { title: string; description?: string | null; team_id?: string | null }): Promise<Project> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
@@ -66,7 +67,7 @@ export async function createProject(input: { title: string; description?: string
 
 export async function updateProject(input: { id: string; title?: string; description?: string | null; team_id?: string | null; status?: 'active' | 'archived' | 'completed' }): Promise<Project> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
@@ -106,7 +107,7 @@ export async function updateProject(input: { id: string; title?: string; descrip
 
 export async function deleteProject(projectId: string): Promise<void> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
   
@@ -133,7 +134,7 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 export async function getProjectById(projectId: string): Promise<Project | null> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   
   if (!user) return null;
   
@@ -149,7 +150,7 @@ export async function getProjectById(projectId: string): Promise<Project | null>
 
 export async function updateProjectSlackChannel(input: { id: string; slack_channel_id: string | null }): Promise<Project> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı girişi yapılmamış');
 
   const { data, error } = await supabase

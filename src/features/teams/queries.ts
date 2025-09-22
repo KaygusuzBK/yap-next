@@ -12,6 +12,11 @@ export function useTeams() {
   return useQuery<Team[]>({
     queryKey: teamKeys.all(),
     queryFn: () => fetchTeams(),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 }
 

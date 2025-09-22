@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, fetchRecentActivities, formatActivityMessage, getActivityIcon } from "@/lib/services/activities/activityService";
 import { Clock, User, Folder, CheckSquare } from "lucide-react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 interface RecentActivitiesProps {
   limit?: number;
@@ -21,27 +21,80 @@ export default function RecentActivities({
   className = "",
   compact = false,
 }: RecentActivitiesProps) {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: activities = [], isLoading: loading, error } = useQuery<Activity[]>({
+    queryKey: ["recent-activities", limit],
+    queryFn: () => fetchRecentActivities(limit),
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+  })
 
-  useEffect(() => {
-    async function loadActivities() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchRecentActivities(limit);
-        setActivities(data);
-      } catch (err) {
-        console.error('Error loading activities:', err);
-        setError('Aktiviteler yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
-      }
-    }
+  if (loading) {
+    return (
+      <Card className={className}>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Son Aktiviteler
+            </CardTitle>
+          </CardHeader>
+        )}
+        <CardContent className={compact ? "space-y-3 p-3" : "space-y-4" }>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={compact ? "flex items-start gap-2" : "flex items-start gap-3"}>
+              <Skeleton className={compact ? "h-6 w-6 rounded-full" : "h-8 w-8 rounded-full"} />
+              <div className="flex-1 space-y-2">
+                <Skeleton className={compact ? "h-3.5 w-3/4" : "h-4 w-3/4"} />
+                <Skeleton className={compact ? "h-3 w-1/2" : "h-3 w-1/2"} />
+              </div>
+              <Skeleton className={compact ? "h-3.5 w-14" : "h-4 w-16"} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
 
-    loadActivities();
-  }, [limit]);
+  if (error) {
+    return (
+      <Card className={className}>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Son Aktiviteler
+            </CardTitle>
+          </CardHeader>
+        )}
+        <CardContent>
+          <div className="text-center text-sm text-muted-foreground py-4">
+            {(error as Error).message || 'Aktiviteler yüklenirken bir hata oluştu'}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <Card className={className}>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Son Aktiviteler
+            </CardTitle>
+          </CardHeader>
+        )}
+        <CardContent>
+          <div className="text-center text-sm text-muted-foreground py-4">
+            Henüz aktivite bulunmuyor
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   function formatTimeAgo(dateString: string): string {
     const now = new Date();
@@ -89,73 +142,6 @@ export default function RecentActivities({
       default:
         return 'outline';
     }
-  }
-
-  if (loading) {
-    return (
-      <Card className={className}>
-        {showHeader && (
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Son Aktiviteler
-            </CardTitle>
-          </CardHeader>
-        )}
-        <CardContent className={compact ? "space-y-3 p-3" : "space-y-4" }>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className={compact ? "flex items-start gap-2" : "flex items-start gap-3"}>
-              <Skeleton className={compact ? "h-6 w-6 rounded-full" : "h-8 w-8 rounded-full"} />
-              <div className="flex-1 space-y-2">
-                <Skeleton className={compact ? "h-3.5 w-3/4" : "h-4 w-3/4"} />
-                <Skeleton className={compact ? "h-3 w-1/2" : "h-3 w-1/2"} />
-              </div>
-              <Skeleton className={compact ? "h-3.5 w-14" : "h-4 w-16"} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className={className}>
-        {showHeader && (
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Son Aktiviteler
-            </CardTitle>
-          </CardHeader>
-        )}
-        <CardContent>
-          <div className="text-center text-sm text-muted-foreground py-4">
-            {error}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (activities.length === 0) {
-    return (
-      <Card className={className}>
-        {showHeader && (
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Son Aktiviteler
-            </CardTitle>
-          </CardHeader>
-        )}
-        <CardContent>
-          <div className="text-center text-sm text-muted-foreground py-4">
-            Henüz aktivite bulunmuyor
-          </div>
-        </CardContent>
-      </Card>
-    );
   }
 
   return (

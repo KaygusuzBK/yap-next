@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Folder, Users, TrendingUp, Calendar as CalendarIcon, GripVertical } from "lucide-react"
+import { Folder, Kanban, Grid3X3, Table, Plus, ListTodo, CheckCircle, Clock, AlertCircle, Target, BarChart3, Activity, Settings, Palette, Layout, GripVertical } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
 import { toast } from "sonner"
@@ -28,6 +28,10 @@ import { Switch } from "@/components/ui/switch"
 import { getUserPrefs, saveUserPrefs, type UserPrefs } from "@/lib/services/account"
 import NewTaskForm from "@/features/tasks/components/NewTaskForm"
 import RecentActivities from "@/components/RecentActivities"
+import TaskKanban from "@/components/tasks/TaskKanban"
+import TaskBoard from "@/components/tasks/TaskBoard"
+import TaskTable from "@/components/tasks/TaskTable"
+// SprintList removed
 
 export default function Page() {
   const { t } = useI18n()
@@ -36,27 +40,42 @@ export default function Page() {
   const { data: myTasks = [], isLoading: loadingTasks } = useMyTasks()
   const updateTaskMutation = useUpdateTask()
   // Dashboard görünürlük tercihleri
-  const [dashboardPrefs, setDashboardPrefs] = useState<{ showOverview: boolean; showPerformance: boolean; showActivities: boolean; showInvites: boolean; showBoard: boolean; showBacklog: boolean }>(
-    { showOverview: true, showPerformance: true, showActivities: true, showInvites: true, showBoard: true, showBacklog: true }
+  const [dashboardPrefs, setDashboardPrefs] = useState<{ showActivities: boolean; showInvites: boolean; showBoard: boolean; showBacklog: boolean }>(
+    { showActivities: true, showInvites: true, showBoard: true, showBacklog: true }
   )
+
+  // Kişiselleştirme state'leri
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(['summary', 'tasks', 'activities', 'invites'])
+  const [widgetSizes, setWidgetSizes] = useState<Record<string, 'small' | 'medium' | 'large'>>({
+    summary: 'large',
+    tasks: 'large', 
+    activities: 'medium',
+    invites: 'small'
+  })
+  const [showSettings, setShowSettings] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [draggedWidget, setDraggedWidget] = useState<string | null>(null)
+  
+  // Görev görünümü tercihi
+  const [taskView, setTaskView] = useState<'kanban' | 'board' | 'table'>('kanban')
   const [prefsSaving, setPrefsSaving] = useState(false)
   const [editMode, setEditMode] = useState(false)
 
-  // Widget görünürlük ve sıralama (Hızlı, Yakın Vade, Gecikenler, Mini Kanban)
-  type WidgetId = 'quick' | 'upcoming' | 'overdue' | 'mini'
-  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>(['quick','upcoming','overdue','mini'])
-  const [widgetVisible, setWidgetVisible] = useState<Record<WidgetId, boolean>>({ quick: true, upcoming: true, overdue: true, mini: true })
 
   useEffect(() => {
     ;(async () => {
       try {
         const p = await getUserPrefs().catch(() => ({} as UserPrefs))
         const dp = (p as any).dashboard as Partial<typeof dashboardPrefs> | undefined
-        const wv = (p as any)?.dashboard?.widgetsVisible as Record<WidgetId, boolean> | undefined
-        const wo = (p as any)?.dashboard?.widgetsOrder as WidgetId[] | undefined
+        const wo = (p as any)?.dashboard?.widgetOrder as string[] | undefined
+        const ws = (p as any)?.dashboard?.widgetSizes as Record<string, 'small' | 'medium' | 'large'> | undefined
+        const th = (p as any)?.dashboard?.theme as 'light' | 'dark' | 'system' | undefined
+        
         if (dp) setDashboardPrefs(prev => ({ ...prev, ...dp }))
-        if (wv) setWidgetVisible(prev => ({ ...prev, ...wv }))
         if (wo && Array.isArray(wo) && wo.length) setWidgetOrder(wo)
+        if (ws) setWidgetSizes(prev => ({ ...prev, ...ws }))
+        if (th) setTheme(th)
       } catch {}
     })()
   }, [])
@@ -71,41 +90,63 @@ export default function Page() {
     }
   }
 
-  // Performans kartları için sıralama ve görünürlük
-  type PerfCardId = 'w7' | 'w14' | 'w30'
-  const [perfOrder, setPerfOrder] = useState<PerfCardId[]>(['w7','w14','w30'])
-  const [perfVisible, setPerfVisible] = useState<Record<PerfCardId, boolean>>({ w7: true, w14: true, w30: true })
-  const [dragPerf, setDragPerf] = useState<PerfCardId | null>(null)
-
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const p = await getUserPrefs().catch(() => ({} as UserPrefs))
-        const po = (p as any)?.dashboard?.perfOrder as PerfCardId[] | undefined
-        const pv = (p as any)?.dashboard?.perfVisible as Record<PerfCardId, boolean> | undefined
-        if (po && Array.isArray(po) && po.length) setPerfOrder(po)
-        if (pv) setPerfVisible(prev => ({ ...prev, ...pv }))
-      } catch {}
-    })()
-  }, [])
-
-  async function persistPerf(next?: { order?: PerfCardId[]; visible?: Record<PerfCardId, boolean> }) {
-    try {
-      await saveUserPrefs({ dashboard: { perfOrder: next?.order ?? perfOrder, perfVisible: next?.visible ?? perfVisible } } as any)
-    } catch {}
+  // Kişiselleştirme fonksiyonları
+  const handleWidgetDragStart = (e: React.DragEvent, widgetId: string) => {
+    setDraggedWidget(widgetId)
+    setIsDragging(true)
+    e.dataTransfer.effectAllowed = 'move'
   }
 
-  function addPerfCard(id: PerfCardId) {
-    const nv = { ...perfVisible, [id]: true }
-    setPerfVisible(nv)
-    if (!perfOrder.includes(id)) {
-      const no = [...perfOrder, id]
-      setPerfOrder(no)
-      persistPerf({ order: no, visible: nv })
+  const handleWidgetDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleWidgetDrop = (e: React.DragEvent, targetWidgetId: string) => {
+    e.preventDefault()
+    if (!draggedWidget || draggedWidget === targetWidgetId) return
+
+    const newOrder = [...widgetOrder]
+    const draggedIndex = newOrder.indexOf(draggedWidget)
+    const targetIndex = newOrder.indexOf(targetWidgetId)
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      newOrder.splice(draggedIndex, 1)
+      newOrder.splice(targetIndex, 0, draggedWidget)
+      setWidgetOrder(newOrder)
+      saveUserPrefs({ dashboard: { widgetOrder: newOrder } } as any)
+    }
+
+    setDraggedWidget(null)
+    setIsDragging(false)
+  }
+
+  const handleWidgetSizeChange = (widgetId: string, size: 'small' | 'medium' | 'large') => {
+    const newSizes = { ...widgetSizes, [widgetId]: size }
+    setWidgetSizes(newSizes)
+    saveUserPrefs({ dashboard: { widgetSizes: newSizes } } as any)
+  }
+
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme)
+    saveUserPrefs({ dashboard: { theme: newTheme } } as any)
+    
+    // Tema değişikliğini uygula
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark')
     } else {
-      persistPerf({ visible: nv })
+      // System tema - sistem tercihini takip et
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      if (prefersDark) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
     }
   }
+
 
   // Local board state for drag interactions
   const [boardTasks, setBoardTasks] = useState<Task[]>([])
@@ -117,68 +158,7 @@ export default function Page() {
   const [taskModalOpen, setTaskModalOpen] = useState(false)
   const [newTaskProjectId, setNewTaskProjectId] = useState<string>("")
 
-  // Performance metrics
-  const [perf7, setPerf7] = useState<{ completed: number; seconds: number } | null>(null)
-  const [perf14, setPerf14] = useState<{ completed: number; seconds: number } | null>(null)
-  const [perf30, setPerf30] = useState<{ completed: number; seconds: number } | null>(null)
 
-  function formatDurationBrief(totalSeconds: number): string {
-    const hours = Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    if (hours > 0) return `${hours}sa ${minutes}dk`
-    return `${minutes}dk`
-  }
-
-  async function computePerformance(days: number): Promise<{ completed: number; seconds: number }> {
-    const supabase = getSupabase()
-    const { data: auth } = await supabase.auth.getUser()
-    const uid = auth?.user?.id
-    if (!uid) return { completed: 0, seconds: 0 }
-    const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString()
-    // Completed count: status change to completed by this user in period
-    let completed = 0
-    try {
-      const { data: acts } = await supabase
-        .from('task_activities')
-        .select('id, details, created_at')
-        .eq('user_id', uid)
-        .eq('action', 'task_updated')
-        .gte('created_at', since)
-      type Act = { id: string; details: { status?: { old?: string | null; new?: string | null } } | null; created_at: string }
-      const list: Act[] = (acts as Act[] | null) ?? []
-      completed = list.filter(a => a.details?.status?.new === 'completed').length
-    } catch {}
-    // Time spent: sum durations of time logs by this user in period
-    let seconds = 0
-    try {
-      const { data: logs } = await supabase
-        .from('task_time_logs')
-        .select('start_time, end_time')
-        .eq('user_id', uid)
-        .gte('start_time', since)
-        .order('start_time', { ascending: true })
-      const nowMs = Date.now()
-      for (const row of (logs || []) as Array<{ start_time: string; end_time: string | null }>) {
-        const s = new Date(row.start_time).getTime()
-        const e = row.end_time ? new Date(row.end_time).getTime() : nowMs
-        if (e > s) seconds += Math.floor((e - s) / 1000)
-      }
-    } catch {}
-    return { completed, seconds }
-  }
-
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const [w7, w14, w30] = await Promise.all([
-          computePerformance(7),
-          computePerformance(14),
-          computePerformance(30),
-        ])
-        setPerf7(w7); setPerf14(w14); setPerf30(w30)
-      } catch {}
-    })()
-  }, [])
 
   const priorityTheme: Record<NonNullable<Task["priority"]>, { bar: string; chip: string; text: string; dot: string }> = {
     urgent: {
@@ -263,6 +243,97 @@ export default function Page() {
     return 'todo'
   }, [statusesByProject])
 
+  // Özet istatistikleri
+  const summaryStats = useMemo(() => {
+    if (!myTasks || myTasks.length === 0) {
+      return {
+        totalTasks: 0,
+        completedTasks: 0,
+        inProgressTasks: 0,
+        overdueTasks: 0,
+        dueTodayTasks: 0,
+        dueThisWeekTasks: 0,
+        urgentTasks: 0,
+        highPriorityTasks: 0,
+        completionRate: 0,
+        avgTasksPerProject: 0,
+        mostActiveProject: null as string | null,
+        recentActivity: 0
+      }
+    }
+
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    let totalTasks = myTasks.length
+    let completedTasks = 0
+    let inProgressTasks = 0
+    let overdueTasks = 0
+    let dueTodayTasks = 0
+    let dueThisWeekTasks = 0
+    let urgentTasks = 0
+    let highPriorityTasks = 0
+    let recentActivity = 0
+
+    const projectTaskCounts: Record<string, number> = {}
+
+    myTasks.forEach(task => {
+      // Durum sayıları
+      const group = getGroupForTask(task)
+      if (group === 'completed') completedTasks++
+      if (group === 'in_progress') inProgressTasks++
+
+      // Öncelik sayıları
+      if (task.priority === 'urgent') urgentTasks++
+      if (task.priority === 'high') highPriorityTasks++
+
+      // Tarih kontrolü
+      if (task.due_date) {
+        const dueDate = new Date(task.due_date)
+        const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
+        
+        if (dueDateOnly < today) overdueTasks++
+        if (dueDateOnly.getTime() === today.getTime()) dueTodayTasks++
+        if (dueDateOnly >= today && dueDateOnly <= weekFromNow) dueThisWeekTasks++
+      }
+
+      // Proje aktivitesi
+      if (task.project_id) {
+        projectTaskCounts[task.project_id] = (projectTaskCounts[task.project_id] || 0) + 1
+      }
+
+      // Son 7 gün aktivitesi (basit kontrol)
+      const createdDate = new Date(task.created_at)
+      if (createdDate >= sevenDaysAgo) recentActivity++
+    })
+
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+    const avgTasksPerProject = projects.length > 0 ? Math.round(totalTasks / projects.length) : 0
+    
+    // En aktif proje
+    const mostActiveProjectId = Object.keys(projectTaskCounts).reduce((a, b) => 
+      projectTaskCounts[a] > projectTaskCounts[b] ? a : b, Object.keys(projectTaskCounts)[0] || ''
+    )
+    const mostActiveProject = mostActiveProjectId ? projects.find(p => p.id === mostActiveProjectId)?.title || null : null
+
+    return {
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      overdueTasks,
+      dueTodayTasks,
+      dueThisWeekTasks,
+      urgentTasks,
+      highPriorityTasks,
+      completionRate,
+      avgTasksPerProject,
+      mostActiveProject,
+      recentActivity
+    }
+  }, [myTasks, projects, getGroupForTask])
+
   function getDefaultKeyForGroup(projectId: string, group: "todo" | "in_progress" | "review" | "completed"): string {
     const statuses = statusesByProject[projectId]
     if (statuses && statuses.length > 0) {
@@ -300,197 +371,20 @@ export default function Page() {
     return base
   }, [filteredMyTasks, myTasks, getGroupForTask])
 
-  // Overview grid drag-reorder state
-  type OverviewId = 'totalProjects' | 'totalTeams' | 'activeProjects' | 'thisMonth'
-  const defaultOverview: OverviewId[] = ['totalProjects','totalTeams','activeProjects','thisMonth']
-  const [overviewOrder, setOverviewOrder] = useState<OverviewId[]>([...defaultOverview])
-  const [dragOverview, setDragOverview] = useState<OverviewId | null>(null)
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const p = await getUserPrefs().catch(() => ({} as UserPrefs))
-        const ord = (p as any)?.dashboard?.overviewOrder as OverviewId[] | undefined
-        if (ord && Array.isArray(ord) && ord.length) setOverviewOrder(ord)
-      } catch {}
-    })()
-  }, [])
 
-  async function persistOverviewOrder(next: OverviewId[]) {
-    try {
-      await saveUserPrefs({ dashboard: { overviewOrder: next } } as any)
-    } catch {}
-  }
-
-  function renderOverviewCard(id: OverviewId) {
-    if (id === 'totalProjects') {
-      return (
-        <Card
-          key={id}
-          className={`relative overflow-hidden transition-all hover:shadow-md ${editMode ? 'wiggle cursor-move' : ''}`}
-          draggable={editMode}
-          onDragStart={() => setDragOverview(id)}
-          onDragOver={(e) => { if (editMode) e.preventDefault() }}
-          onDrop={() => {
-            if (!editMode || !dragOverview || dragOverview === id) return
-            const from = overviewOrder.indexOf(dragOverview)
-            const to = overviewOrder.indexOf(id)
-            if (from === -1 || to === -1) return
-            const copy = [...overviewOrder]
-            const [rm] = copy.splice(from, 1)
-            copy.splice(to, 0, rm as OverviewId)
-            setOverviewOrder(copy)
-            setDragOverview(null)
-            persistOverviewOrder(copy)
-          }}
-        >
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalProjects')}</CardTitle>
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Folder className="h-4 w-4" aria-hidden="true" />
-            </span>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.length}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {loadingProjects ? <Skeleton className="mt-1 h-4 w-32" /> : t('dashboard.overview.totalProjectsDesc')}
-            </div>
-          </CardContent>
-        </Card>
-      )
+  // Widget boyutları için CSS sınıfları
+  const getWidgetSizeClass = (size: 'small' | 'medium' | 'large') => {
+    switch (size) {
+      case 'small': return 'col-span-1'
+      case 'medium': return 'col-span-2'
+      case 'large': return 'col-span-4'
+      default: return 'col-span-4'
     }
-    if (id === 'totalTeams') {
-      return (
-        <Card
-          key={id}
-          className={`relative overflow-hidden transition-all hover:shadow-md ${editMode ? 'wiggle cursor-move' : ''}`}
-          draggable={editMode}
-          onDragStart={() => setDragOverview(id)}
-          onDragOver={(e) => { if (editMode) e.preventDefault() }}
-          onDrop={() => {
-            if (!editMode || !dragOverview || dragOverview === id) return
-            const from = overviewOrder.indexOf(dragOverview)
-            const to = overviewOrder.indexOf(id)
-            if (from === -1 || to === -1) return
-            const copy = [...overviewOrder]
-            const [rm] = copy.splice(from, 1)
-            copy.splice(to, 0, rm as OverviewId)
-            setOverviewOrder(copy)
-            setDragOverview(null)
-            persistOverviewOrder(copy)
-          }}
-        >
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.overview.totalTeams')}</CardTitle>
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Users className="h-4 w-4" aria-hidden="true" />
-            </span>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loadingTeams ? <Skeleton className="h-7 w-12" /> : teams.length}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {loadingTeams ? <Skeleton className="mt-1 h-4 w-40" /> : t('dashboard.overview.totalTeamsDesc')}
-            </div>
-          </CardContent>
-        </Card>
-      )
-    }
-    if (id === 'activeProjects') {
-      return (
-        <Card
-          key={id}
-          className={`relative overflow-hidden transition-all hover:shadow-md ${editMode ? 'wiggle cursor-move' : ''}`}
-          draggable={editMode}
-          onDragStart={() => setDragOverview(id)}
-          onDragOver={(e) => { if (editMode) e.preventDefault() }}
-          onDrop={() => {
-            if (!editMode || !dragOverview || dragOverview === id) return
-            const from = overviewOrder.indexOf(dragOverview)
-            const to = overviewOrder.indexOf(id)
-            if (from === -1 || to === -1) return
-            const copy = [...overviewOrder]
-            const [rm] = copy.splice(from, 1)
-            copy.splice(to, 0, rm as OverviewId)
-            setOverviewOrder(copy)
-            setDragOverview(null)
-            persistOverviewOrder(copy)
-          }}
-        >
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.overview.activeProjects')}</CardTitle>
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <TrendingUp className="h-4 w-4" aria-hidden="true" />
-            </span>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loadingProjects ? <Skeleton className="h-7 w-12" /> : projects.filter(p => p.status === 'active').length}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {t('dashboard.overview.activeProjectsDesc')}
-            </div>
-          </CardContent>
-        </Card>
-      )
-    }
-    // thisMonth
-    return (
-      <Card
-        key={id}
-        className={`relative overflow-hidden transition-all hover:shadow-md ${editMode ? 'wiggle cursor-move' : ''}`}
-        draggable={editMode}
-        onDragStart={() => setDragOverview(id)}
-        onDragOver={(e) => { if (editMode) e.preventDefault() }}
-        onDrop={() => {
-          if (!editMode || !dragOverview || dragOverview === id) return
-          const from = overviewOrder.indexOf(dragOverview)
-          const to = overviewOrder.indexOf(id)
-          if (from === -1 || to === -1) return
-          const copy = [...overviewOrder]
-          const [rm] = copy.splice(from, 1)
-          copy.splice(to, 0, rm as OverviewId)
-          setOverviewOrder(copy)
-          setDragOverview(null)
-          persistOverviewOrder(copy)
-        }}
-      >
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{t('dashboard.overview.thisMonth')}</CardTitle>
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <CalendarIcon className="h-4 w-4" aria-hidden="true" />
-          </span>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {loadingProjects ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              projects.filter(p => {
-                const created = new Date(p.created_at)
-                const now = new Date()
-                return created.getMonth() === now.getMonth() && 
-                       created.getFullYear() === now.getFullYear()
-              }).length
-            )}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {t('dashboard.overview.thisMonthDesc')}
-          </div>
-        </CardContent>
-      </Card>
-    )
   }
 
   return (
-    <main className="flex flex-1 flex-col w-full px-4 py-3 md:px-6 md:py-4 space-y-6">
+    <main className="flex flex-1 flex-col w-full px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 space-y-4 sm:space-y-6">
       <div className="w-full">
         <DashboardHeader
           title={t('dashboard.breadcrumb.dashboard')}
@@ -502,100 +396,233 @@ export default function Page() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Ayarlar
+              </Button>
+              <Button
+                size="sm"
                 variant={editMode ? 'default' : 'outline'}
                 onClick={() => setEditMode((v) => !v)}
               >
                 {editMode ? 'Bitti' : 'Düzenle'}
               </Button>
-              {editMode && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline">Yeni Card Ekle</Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Performans</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => addPerfCard('w7')}>Son 7 Gün</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addPerfCard('w14')}>Son 14 Gün</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addPerfCard('w30')}>Son 30 Gün</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Diğer</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => { const nv = { ...widgetVisible, upcoming: true }; setWidgetVisible(nv); /* persist later with other edits if needed */ }}>Yakın Vade</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { const nv = { ...widgetVisible, overdue: true }; setWidgetVisible(nv); /* persist later */ }}>Gecikenler</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { const nv = { ...widgetVisible, mini: true }; setWidgetVisible(nv); /* persist later */ }}>Mini Kanban</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
             </div>
           )}
         />
 
             <div className="space-y-6">
                 {/* Ana içerik ve sağ sidebar */}
-                <div className="grid gap-4 md:gap-6 xl:grid-cols-[1fr_20rem] xl:items-stretch">
+                <div className="grid gap-4 md:gap-6 lg:grid-cols-[1fr_18rem] xl:grid-cols-[1fr_20rem] xl:items-stretch">
                   {/* Sol taraf - Ana içerik */}
-                  <div className="space-y-4 md:space-y-6">
-                    {dashboardPrefs.showOverview && (
-                    <section className="space-y-3 md:space-y-4">
-                      <h2 className="text-base md:text-lg font-semibold">{t('dashboard.overview.title')}</h2>
-                      <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
-                        {overviewOrder.map(c => renderOverviewCard(c))}
-                      </div>
-                    </section>
-                    )}
+                  <div className="space-y-4 md:space-y-6 min-w-0">
 
-                    {/* Performance section */}
-                    {dashboardPrefs.showPerformance && (
-                    <section className="space-y-3 md:space-y-4">
-                      <h2 className="text-base md:text-lg font-semibold">Performans</h2>
-                      <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                        <Card className={editMode ? 'wiggle' : ''}>
-                          <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Son 7 Gün</CardTitle></CardHeader>
-                          <CardContent className="pb-2 sm:pb-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="text-xs text-muted-foreground">Görev</div>
-                                <div className="text-lg sm:text-xl font-bold">{perf7 ? perf7.completed : '—'}</div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-xs text-muted-foreground">Süre</div>
-                                <div className="text-xs sm:text-sm font-medium">{perf7 ? formatDurationBrief(perf7.seconds) : '—'}</div>
-                              </div>
+
+                    {/* Özet Bölümü */}
+                    <section 
+                      className={`space-y-4 ${editMode ? 'cursor-move' : ''} ${isDragging ? 'opacity-50' : ''}`}
+                      draggable={editMode}
+                      onDragStart={(e) => handleWidgetDragStart(e, 'summary')}
+                      onDragOver={handleWidgetDragOver}
+                      onDrop={(e) => handleWidgetDrop(e, 'summary')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5" />
+                          Görev Özeti
+                          {editMode && <GripVertical className="h-4 w-4 text-muted-foreground" />}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-sm">
+                            {summaryStats.totalTasks} Toplam Görev
+                          </Badge>
+                          {editMode && (
+                            <Select
+                              value={widgetSizes.summary}
+                              onValueChange={(value) => handleWidgetSizeChange('summary', value as 'small' | 'medium' | 'large')}
+                            >
+                              <SelectTrigger className="w-20 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="small">Küçük</SelectItem>
+                                <SelectItem value="medium">Orta</SelectItem>
+                                <SelectItem value="large">Büyük</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-3 grid-cols-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 min-w-0">
+                        {/* Tamamlanan Görevler */}
+                        <Card className="relative overflow-hidden">
+                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/20" />
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Tamamlanan</CardTitle>
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold text-green-600">{summaryStats.completedTasks}</div>
+                            <div className="text-xs text-muted-foreground">
+                              %{summaryStats.completionRate} tamamlanma oranı
                             </div>
                           </CardContent>
                         </Card>
-                        <Card className={editMode ? 'wiggle' : ''}>
-                          <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Son 14 Gün</CardTitle></CardHeader>
-                          <CardContent className="pb-2 sm:pb-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="text-xs text-muted-foreground">Görev</div>
-                                <div className="text-lg sm:text-xl font-bold">{perf14 ? perf14.completed : '—'}</div>
+
+                        {/* Devam Eden Görevler */}
+                        <Card className="relative overflow-hidden">
+                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/20" />
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Devam Eden</CardTitle>
+                            <Activity className="h-4 w-4 text-blue-600" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold text-blue-600">{summaryStats.inProgressTasks}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Aktif görevler
                               </div>
-                              <div className="text-right">
-                                <div className="text-xs text-muted-foreground">Süre</div>
-                                <div className="text-xs sm:text-sm font-medium">{perf14 ? formatDurationBrief(perf14.seconds) : '—'}</div>
-                              </div>
-                            </div>
                           </CardContent>
                         </Card>
-                        <Card className={editMode ? 'wiggle' : ''}>
-                          <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Son 30 Gün</CardTitle></CardHeader>
-                          <CardContent className="pb-2 sm:pb-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="text-xs text-muted-foreground">Görev</div>
-                                <div className="text-lg sm:text-xl font-bold">{perf30 ? perf30.completed : '—'}</div>
+
+                        {/* Geciken Görevler */}
+                        <Card className="relative overflow-hidden">
+                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/20" />
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Geciken</CardTitle>
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold text-red-600">{summaryStats.overdueTasks}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Acil müdahale gerekli
                               </div>
-                              <div className="text-right">
-                                <div className="text-xs text-muted-foreground">Süre</div>
-                                <div className="text-xs sm:text-sm font-medium">{perf30 ? formatDurationBrief(perf30.seconds) : '—'}</div>
-                              </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Bugün Biten Görevler */}
+                        <Card className="relative overflow-hidden">
+                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-orange-100 dark:bg-orange-900/20" />
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Bugün Biten</CardTitle>
+                            <Clock className="h-4 w-4 text-orange-600" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold text-orange-600">{summaryStats.dueTodayTasks}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Bugün bitmesi gereken
                             </div>
                           </CardContent>
                         </Card>
                       </div>
+
+          {/* İkinci satır - Detaylı istatistikler */}
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
+                        {/* Öncelik Dağılımı */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                              <Target className="h-4 w-4" />
+                              Öncelik Dağılımı
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Acil</span>
+                              <Badge variant="destructive" className="text-xs">
+                                {summaryStats.urgentTasks}
+                              </Badge>
+                              </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Yüksek</span>
+                              <Badge variant="outline" className="text-xs border-amber-200 text-amber-700">
+                                {summaryStats.highPriorityTasks}
+                              </Badge>
+                              </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Bu Hafta</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {summaryStats.dueThisWeekTasks}
+                              </Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Proje Aktivitesi */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                              <Folder className="h-4 w-4" />
+                              Proje Aktivitesi
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Ortalama Görev/Proje</span>
+                              <span className="text-sm font-medium">{summaryStats.avgTasksPerProject}</span>
+                              </div>
+                            {summaryStats.mostActiveProject && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">En Aktif Proje</span>
+                                <span className="text-sm font-medium truncate max-w-[120px]" title={summaryStats.mostActiveProject}>
+                                  {summaryStats.mostActiveProject}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Son 7 Gün</span>
+                              <span className="text-sm font-medium">{summaryStats.recentActivity} yeni görev</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Hızlı Eylemler */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                              <Plus className="h-4 w-4" />
+                              Hızlı Eylemler
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <Button 
+                              size="sm" 
+                              className="w-full justify-start" 
+                              variant="outline"
+                              onClick={() => setTaskModalOpen(true)}
+                            >
+                              <Plus className="h-3 w-3 mr-2" />
+                              Yeni Görev Ekle
+                            </Button>
+                            {summaryStats.overdueTasks > 0 && (
+                              <Button 
+                                size="sm" 
+                                className="w-full justify-start" 
+                                variant="destructive"
+                                onClick={() => setProjectFilter("overdue")}
+                              >
+                                <AlertCircle className="h-3 w-3 mr-2" />
+                                Geciken Görevleri Gör
+                              </Button>
+                            )}
+                            {summaryStats.dueTodayTasks > 0 && (
+                              <Button 
+                                size="sm" 
+                                className="w-full justify-start" 
+                                variant="outline"
+                                onClick={() => setProjectFilter("today")}
+                              >
+                                <Clock className="h-3 w-3 mr-2" />
+                                Bugün Biten Görevler
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
                     </section>
-                    )}
                   </div>
 
                   {/* Sağ taraf - Aktiviteler */}
@@ -615,7 +642,104 @@ export default function Page() {
 
             {dashboardPrefs.showInvites && (<PendingInvitations />)}
 
-            {/* Board & Backlog kaldırıldı */}
+            {/* Sprint section removed */}
+
+            {/* Görev Görünümleri */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold">Görevlerim</h2>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <Tabs value={taskView} onValueChange={(value) => setTaskView(value as 'kanban' | 'board' | 'table')} className="w-full sm:w-auto">
+                    <TabsList className="grid w-full grid-cols-3 sm:w-auto overflow-x-auto no-scrollbar">
+                      <TabsTrigger value="kanban" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                        <Kanban className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden xs:inline">Kanban</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="board" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                        <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden xs:inline">Pano</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="table" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                        <Table className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden xs:inline">Tablo</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  
+                  <Button
+                    size="sm"
+                    onClick={() => setTaskModalOpen(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Yeni Görev
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-4 overflow-x-auto">
+                {loadingTasks ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-20 bg-muted animate-pulse rounded"></div>
+                    ))}
+                  </div>
+                ) : myTasks && myTasks.length > 0 ? (
+                  <>
+                    {taskView === 'kanban' && (
+                      <div className="min-w-[720px]">
+                        <TaskKanban
+                        tasks={filteredMyTasks}
+                        statusesByProject={statusesByProject}
+                        onTaskUpdate={(taskId, updates) => {
+                          updateTaskMutation.mutate({ id: taskId, ...updates })
+                        }}
+                        getGroupForTask={getGroupForTask}
+                        getDefaultKeyForGroup={getDefaultKeyForGroup}
+                        projects={projects}
+                        />
+                      </div>
+                    )}
+                    
+                    {taskView === 'board' && (
+                      <div className="min-w-[720px]">
+                        <TaskBoard
+                        tasks={filteredMyTasks}
+                        statusesByProject={statusesByProject}
+                        onTaskUpdate={(taskId, updates) => {
+                          updateTaskMutation.mutate({ id: taskId, ...updates })
+                        }}
+                        getGroupForTask={getGroupForTask}
+                        projects={projects}
+                        />
+                      </div>
+                    )}
+                    
+                    {taskView === 'table' && (
+                      <div className="min-w-[720px]">
+                        <TaskTable
+                        tasks={filteredMyTasks}
+                        statusesByProject={statusesByProject}
+                        onTaskUpdate={(taskId, updates) => {
+                          updateTaskMutation.mutate({ id: taskId, ...updates })
+                        }}
+                        getGroupForTask={getGroupForTask}
+                        projects={projects}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-muted-foreground mb-4">
+                      <ListTodo className="h-12 w-12 mx-auto mb-2" />
+                      <p className="text-lg font-medium">Henüz görev yok</p>
+                      <p className="text-sm">İlk görevinizi oluşturmak için yukarıdaki butona tıklayın</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         </div>
 
@@ -655,7 +779,103 @@ export default function Page() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Edit modal kaldırıldı: düzenleme editMode ile yönetiliyor */}
+
+      {/* Ayarlar Modal */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Dashboard Ayarları
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Tema Seçimi */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Tema
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  variant={theme === 'light' ? 'default' : 'outline'}
+                  onClick={() => handleThemeChange('light')}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-4 h-4 rounded-full bg-white border-2 border-gray-300" />
+                  Açık
+                </Button>
+                <Button
+                  variant={theme === 'dark' ? 'default' : 'outline'}
+                  onClick={() => handleThemeChange('dark')}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-4 h-4 rounded-full bg-gray-800 border-2 border-gray-600" />
+                  Koyu
+                </Button>
+                <Button
+                  variant={theme === 'system' ? 'default' : 'outline'}
+                  onClick={() => handleThemeChange('system')}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-white to-gray-800 border-2 border-gray-300" />
+                  Sistem
+                </Button>
+              </div>
+            </div>
+
+            {/* Widget Görünürlüğü */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium flex items-center gap-2">
+                <Layout className="h-4 w-4" />
+                Widget Görünürlüğü
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Görev Özeti</span>
+                  <Switch
+                    checked={dashboardPrefs.showBoard}
+                    onCheckedChange={(checked) => saveDashboardPrefs({ showBoard: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Aktiviteler</span>
+                  <Switch
+                    checked={dashboardPrefs.showActivities}
+                    onCheckedChange={(checked) => saveDashboardPrefs({ showActivities: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Davetler</span>
+                  <Switch
+                    checked={dashboardPrefs.showInvites}
+                    onCheckedChange={(checked) => saveDashboardPrefs({ showInvites: checked })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Widget Sıralama */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium flex items-center gap-2">
+                <GripVertical className="h-4 w-4" />
+                Widget Sıralama
+              </h3>
+              <div className="text-sm text-muted-foreground">
+                Düzenleme modunda widget'ları sürükle-bırak ile yeniden sıralayabilirsiniz.
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setEditMode(true)}
+                className="w-full"
+              >
+                Düzenleme Modunu Aç
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

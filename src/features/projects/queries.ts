@@ -11,6 +11,11 @@ export function useProjects() {
   return useQuery<Project[]>({
     queryKey: projectKeys.all(),
     queryFn: () => fetchProjects(),
+    staleTime: 5 * 60_000, // 5 dk boyunca taze kabul et
+    gcTime: 30 * 60_000,   // 30 dk cache'te tut
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 }
 

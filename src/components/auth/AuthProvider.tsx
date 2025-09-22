@@ -7,6 +7,7 @@ import { getSupabase } from "@/lib/supabase";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 import { withRetry, handleAuthError } from "@/lib/auth-utils";
+import { setCachedUser } from "@/lib/auth-cache";
 
 type AuthContextValue = {
   user: User | null;
@@ -52,11 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('Auth init error:', error);
           setUser(null);
+          setCachedUser(null)
           return;
         }
         
         const u = data.session?.user ?? null
         setUser(u);
+        setCachedUser(u)
         // profile to user store
         const getMetaString = (obj: unknown, key: string): string | '' => {
           if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Auth init error:', error);
         setUser(null);
+        setCachedUser(null)
       } finally {
         setLoading(false);
       }
@@ -81,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
       setUser(u);
+      setCachedUser(u)
       const getMetaString = (obj: unknown, key: string): string | '' => {
         if (obj && typeof obj === 'object' && key in (obj as Record<string, unknown>)) {
           const val = (obj as Record<string, unknown>)[key]

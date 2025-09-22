@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase"
+import { getUserCached } from "@/lib/auth-cache"
 
 export type ModePalette = {
   background?: string
@@ -39,8 +40,8 @@ export type UserTheme = {
 
 export async function getUserTheme(): Promise<UserTheme | null> {
   const supabase = getSupabase()
-  const { data: auth } = await supabase.auth.getUser()
-  const userId = auth.user?.id
+  const user = await getUserCached()
+  const userId = user?.id
   if (!userId) return null
   const { data, error } = await supabase
     .from('user_preferences')
@@ -54,8 +55,8 @@ export async function getUserTheme(): Promise<UserTheme | null> {
 
 export async function saveUserTheme(theme: UserTheme): Promise<void> {
   const supabase = getSupabase()
-  const { data: auth } = await supabase.auth.getUser()
-  const userId = auth.user?.id
+  const user = await getUserCached()
+  const userId = user?.id
   if (!userId) throw new Error('not_authenticated')
   const payload = { user_id: userId, theme }
   const { error } = await supabase

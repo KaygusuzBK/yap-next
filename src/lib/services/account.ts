@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase"
+import { getUserCached } from "@/lib/auth-cache"
 
 export type NotificationPrefs = {
   mentionDm?: boolean
@@ -33,8 +34,8 @@ export type UserPrefs = {
 
 export async function getUserPrefs(): Promise<UserPrefs> {
   const supabase = getSupabase()
-  const { data: auth } = await supabase.auth.getUser()
-  const userId = auth.user?.id
+  const user = await getUserCached()
+  const userId = user?.id
   if (!userId) return {} as UserPrefs
   const { data } = await supabase
     .from('user_preferences')
@@ -47,8 +48,8 @@ export async function getUserPrefs(): Promise<UserPrefs> {
 
 export async function saveUserPrefs(partial: Partial<UserPrefs>): Promise<void> {
   const supabase = getSupabase()
-  const { data: auth } = await supabase.auth.getUser()
-  const userId = auth.user?.id
+  const user = await getUserCached()
+  const userId = user?.id
   if (!userId) throw new Error('not_authenticated')
   const current = await getUserPrefs().catch(() => ({} as UserPrefs))
   const merged = { ...current, ...partial }

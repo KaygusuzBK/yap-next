@@ -1,6 +1,7 @@
 "use client";
 
 import { getSupabase } from '@/lib/supabase';
+import { getUserCached } from '@/lib/auth-cache';
 
 export type Task = {
   id: string;
@@ -15,6 +16,8 @@ export type Task = {
   position?: number | null;
   creator_name?: string | null;
   creator_email?: string | null;
+  assignee_name?: string | null;
+  tags?: string[];
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -169,8 +172,8 @@ export async function createTask(input: {
 }): Promise<Task> {
   const supabase = getSupabase();
   
-  // Mevcut kullanıcıyı al
-  const { data: { user } } = await supabase.auth.getUser();
+  // Mevcut kullanıcıyı al (cached)
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
 
   const { data, error } = await supabase
@@ -219,8 +222,8 @@ export async function createTask(input: {
 export async function assignTaskToUser(taskId: string, userId: string): Promise<void> {
   const supabase = getSupabase();
   
-  // Mevcut kullanıcıyı al
-  const { data: { user } } = await supabase.auth.getUser();
+  // Mevcut kullanıcıyı al (cached)
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
 
   // Görevi güncelle
@@ -495,8 +498,8 @@ export async function fetchTaskById(taskId: string): Promise<Task> {
 export async function deleteTask(taskId: string): Promise<void> {
   const supabase = getSupabase();
   
-  // Mevcut kullanıcıyı al
-  const { data: { user } } = await supabase.auth.getUser();
+  // Mevcut kullanıcıyı al (cached)
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
 
   // İlişkili kayıtları sil

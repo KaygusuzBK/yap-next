@@ -34,6 +34,11 @@ export function useMyTasks() {
   return useQuery({
     queryKey: keys.tasks(),
     queryFn: () => fetchMyTasks(),
+    staleTime: 60_000, // 1 dk
+    gcTime: 15 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 }
 
@@ -42,6 +47,9 @@ export function useTask(taskId: string) {
     queryKey: keys.task(taskId),
     queryFn: () => fetchTaskById(taskId),
     enabled: Boolean(taskId),
+    staleTime: 2 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -50,6 +58,9 @@ export function useComments(taskId: string) {
     queryKey: keys.comments(taskId),
     queryFn: () => fetchComments(taskId),
     enabled: Boolean(taskId),
+    staleTime: 2 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -177,6 +188,9 @@ export function useTaskFiles(taskId: string) {
     queryKey: keys.files(taskId),
     queryFn: () => listTaskFiles(taskId),
     enabled: Boolean(taskId),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
