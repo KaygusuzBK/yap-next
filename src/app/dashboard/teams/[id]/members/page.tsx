@@ -78,7 +78,8 @@ export default function TeamMembersPage() {
       setLoading(true);
       // Get current user
       const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { getUserCached } = await import('@/lib/auth-cache')
+      const user = await getUserCached();
       setCurrentUser(user?.id || null);
       // Load team data
       const teams = await fetchTeams();

@@ -85,12 +85,7 @@ export async function fetchMyTasks(): Promise<Task[]> {
   try {
     console.log('🔍 fetchMyTasks - Starting...');
     
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error('❌ fetchMyTasks - User error:', userError);
-      throw userError;
-    }
-    
+    const user = await getUserCached();
     if (!user) {
       console.error('❌ fetchMyTasks - No user found');
       return [];
@@ -583,7 +578,7 @@ export async function fetchComments(taskId: string): Promise<TaskComment[]> {
 
 export async function addComment(taskId: string, content: string): Promise<TaskComment> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
   const { data, error } = await supabase
     .from('task_comments')
@@ -740,7 +735,7 @@ export async function fetchTaskTimeLogs(taskId: string): Promise<TaskTimeLog[]> 
 
 export async function addTimeLog(taskId: string, input: { start_time: string; end_time?: string | null; description?: string | null }): Promise<TaskTimeLog> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
 
   const payload = {
@@ -792,7 +787,7 @@ export async function addTimeLog(taskId: string, input: { start_time: string; en
 
 export async function startTimeLog(taskId: string): Promise<TaskTimeLog> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
   const startIso = new Date().toISOString();
   const { data, error } = await supabase
@@ -815,7 +810,7 @@ export async function startTimeLog(taskId: string): Promise<TaskTimeLog> {
 
 export async function stopTimeLog(taskId: string): Promise<TaskTimeLog | null> {
   const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUserCached();
   if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
   const { data: openList, error: selErr } = await supabase
     .from('task_time_logs')

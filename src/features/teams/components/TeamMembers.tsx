@@ -108,8 +108,10 @@ export default function TeamMembers({ teamId, teamName, isOwner, isAdmin }: Team
 
   const getCurrentUser = async () => {
     const supabase = getSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user?.id || null);
+    const { getUserCached } = await import('@/lib/auth-cache')
+    const user = await getUserCached();
+    if (!user) return;
+    setCurrentUser(user.id);
   };
 
   const handleInvite = async (email: string, role: TeamRole, message?: string) => {

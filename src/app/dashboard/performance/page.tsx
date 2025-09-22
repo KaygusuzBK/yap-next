@@ -38,9 +38,10 @@ export default function PerformancePage() {
         setProjects(projs)
 
         const supabase = getSupabase()
-        const { data: auth } = await supabase.auth.getUser()
-        const uid = auth?.user?.id
-        if (!uid) { setRows([]); setSummary({}); return }
+        const { getUserCached } = await import('@/lib/auth-cache')
+        const u = await getUserCached()
+        if (!u?.id) return
+        const userId = u.id
         const sinceIso = new Date(Date.now() - rangeDays * 24 * 3600 * 1000).toISOString()
 
         // Fetch status change activities in range
