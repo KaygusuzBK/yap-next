@@ -19,7 +19,8 @@ import {
   AdvancedInput
 } from '@/components/ui/form-components';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
 
 interface NewTaskFormProps {
@@ -88,11 +89,13 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
     }
     
     if (dueAtDate) {
-      const t = dueAtTime || '09:00'
-      const [hh, mm] = t.split(':')
-      const dt = new Date(dueAtDate)
-      dt.setHours(Number(hh || 0), Number(mm || 0), 0, 0)
-      if (dt < new Date()) newErrors.dueDate = 'Bitiş tarihi geçmiş bir tarih olamaz'
+      // Zaman verilmediyse gün sonunu varsay (23:59) ve yalnızca tarih bazında karşılaştır
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const picked = new Date(dueAtDate.getFullYear(), dueAtDate.getMonth(), dueAtDate.getDate())
+      if (picked < today) {
+        newErrors.dueDate = 'Bitiş tarihi geçmiş bir tarih olamaz'
+      }
     }
     
     if (notifySlack && slackWebhookUrl && !slackWebhookUrl.includes('hooks.slack.com')) {
@@ -114,7 +117,8 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
       setLoading(true);
       const dueIso = (() => {
         if (!dueAtDate) return null
-        const t = dueAtTime || '09:00'
+        // Zaman verilmediyse gün sonu kullan (23:59)
+        const t = dueAtTime || '23:59'
         const [hh, mm] = t.split(':')
         const dt = new Date(dueAtDate)
         dt.setHours(Number(hh || 0), Number(mm || 0), 0, 0)
@@ -225,33 +229,26 @@ export default function NewTaskForm({ projectId, onCreated, onCancel, defaultSla
 
         <FormField label="Bitiş Tarihi" error={errors.dueDate}>
           <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="w-[180px]">
-                  <button type="button" className="w-full inline-flex items-center justify-start border rounded-md px-3 py-2 text-sm hover:bg-muted disabled:opacity-50" disabled={loading}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueAtDate ? format(dueAtDate, 'dd.MM.yyyy') : 'Tarih seçin'}
-                  </button>
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dueAtDate ?? undefined}
-                  onSelect={(d) => setDueAtDate(d ?? null)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <Input
-              type="time"
-              value={dueAtTime}
-              onChange={(e) => setDueAtTime(e.target.value)}
-              className="w-[110px]"
-              disabled={loading}
-            />
+            <div className="w-[260px]">
+              <DatePicker
+                selected={dueAtDate}
+                onChange={(date: Date | null) => setDueAtDate(date)}
+                showTimeSelect
+                timeIntervals={15}
+                timeCaption="Saat"
+                dateFormat="dd.MM.yyyy HH:mm"
+                placeholderText="Tarih ve saat seçin"
+                className="w-full border rounded-md px-3 py-2 text-sm"
+                minDate={new Date()}
+                disabled={loading}
+                isClearable
+              />
+            </div>
             {dueAtDate && (
-              <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => { setDueAtDate(null); setDueAtTime('') }}>Temizle</button>
+              <span className="text-xs text-muted-foreground">
+                <CalendarIcon className="inline mr-1 h-3 w-3" />
+                {format(dueAtDate, 'dd.MM.yyyy HH:mm')}
+              </span>
             )}
           </div>
         </FormField>

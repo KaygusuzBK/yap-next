@@ -513,7 +513,7 @@ export default function TaskDetailPage() {
           <p className="text-muted-foreground mb-4">
             {error || t('task.notFoundDesc')}
           </p>
-          <Button onClick={() => router.back()}>
+          <Button size="sm" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
             {t('task.back')}
           </Button>
@@ -543,7 +543,10 @@ export default function TaskDetailPage() {
         actions={(
           <div className="hidden md:flex items-center gap-2">
             {getPriorityBadge(task.priority)}
-            <Button onClick={() => setEditing(true)}>
+            <Button size="sm" variant="outline" onClick={() => router.push('/dashboard')}>
+              {t('dashboard.breadcrumb.dashboard')}
+            </Button>
+            <Button size="sm" onClick={() => setEditing(true)}>
               <Edit className="h-4 w-4 mr-2" />
               {t('task.edit')}
             </Button>
@@ -1017,6 +1020,7 @@ export default function TaskDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
+                size="sm"
                 variant="outline" 
                 className="w-full justify-start"
                 onClick={() => setShowAssignment(true)}
@@ -1026,6 +1030,7 @@ export default function TaskDetailPage() {
               </Button>
               
               <Button 
+                size="sm"
                 variant="outline" 
                 className="w-full justify-start"
                 onClick={() => {
@@ -1039,12 +1044,13 @@ export default function TaskDetailPage() {
                 <Link className="h-4 w-4 mr-2" />
                 Bağımlılık Ekle
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button size="sm" variant="outline" className="w-full justify-start">
                 <Clock className="h-4 w-4 mr-2" />
                 {t('task.quick.logTime')}
               </Button>
-              <Button variant="outline" className="w-full justify-start hidden" />
+              <Button size="sm" variant="outline" className="w-full justify-start hidden" />
               <Button
+                size="sm"
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => {
@@ -1060,6 +1066,7 @@ export default function TaskDetailPage() {
               </Button>
               <div className="grid grid-cols-2 gap-2">
                 <Button
+                  size="sm"
                   variant="outline"
                   onClick={async () => {
                     try {
@@ -1073,6 +1080,7 @@ export default function TaskDetailPage() {
                   }}
                 >Başlat</Button>
                 <Button
+                  size="sm"
                   variant="outline"
                   onClick={async () => {
                     try {
@@ -1090,7 +1098,7 @@ export default function TaskDetailPage() {
                   }}
                 >Durdur</Button>
               </div>
-              <Button variant="outline" className="w-full justify-start">
+              <Button size="sm" variant="outline" className="w-full justify-start">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {t('task.quick.addComment')}
               </Button>

@@ -17,27 +17,66 @@ export type Project = {
 
 export async function fetchProjects(): Promise<Project[]> {
   const supabase = getSupabase();
-  
+  const user = await getUserCached();
+
+  if (!user) return [];
+
   try {
-    console.log('🔍 fetchProjects - Starting...');
-    
-    const { data, error, count } = await supabase
-      .from('projects')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false });
-    
-    console.log('📊 fetchProjects - Result:', { 
-      count, 
-      error,
-      data: data?.length || 0
-    });
-    
-    if (error) {
-      console.error('❌ fetchProjects - Error:', error);
-      throw error;
+    console.log('🔍 fetchProjects - Starting for user:', user.id);
+
+    // 1) Kullanıcının üye olduğu takım ID'leri
+    const { data: teamRows, error: teamErr } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id);
+    if (teamErr) console.warn('⚠️ fetchProjects - team_members error:', teamErr);
+    const teamIds = (teamRows ?? []).map(r => r.team_id as string);
+
+    // 2) Paralel sorgular: sahip olunan projeler, takım projeleri, proje üyelikleri
+    const [ownedRes, teamRes, memberRes] = await Promise.all([
+      supabase
+        .from('projects')
+        .select('*')
+        .eq('owner_id', user.id),
+      teamIds.length > 0
+        ? supabase
+            .from('projects')
+            .select('*')
+            .in('team_id', teamIds)
+        : Promise.resolve({ data: [] as Project[], error: null } as { data: Project[] | null; error: any }),
+      supabase
+        .from('project_members')
+        .select('project_id')
+        .eq('user_id', user.id)
+        .then(async ({ data: pmRows, error: pmErr }) => {
+          if (pmErr) {
+            console.warn('⚠️ fetchProjects - project_members error:', pmErr);
+            return { data: [] as Project[], error: pmErr } as { data: Project[] | null; error: any };
+          }
+          const memberProjectIds = (pmRows ?? []).map(r => (r as { project_id: string }).project_id);
+          if (memberProjectIds.length === 0) return { data: [] as Project[], error: null } as { data: Project[] | null; error: any };
+          const { data: memberProjects, error: memberErr } = await supabase
+            .from('projects')
+            .select('*')
+            .in('id', memberProjectIds);
+          if (memberErr) return { data: [] as Project[], error: memberErr } as { data: Project[] | null; error: any };
+          return { data: memberProjects as Project[] | null, error: null } as { data: Project[] | null; error: any };
+        }) as unknown as Promise<{ data: Project[] | null; error: any }>,
+    ]);
+
+    const owned = (ownedRes.data ?? []) as Project[];
+    const teamProjects = (teamRes as { data: Project[] | null }).data ?? [];
+    const memberProjects = (memberRes as { data: Project[] | null }).data ?? [];
+
+    // 3) Birleştir ve tekilleştir
+    const map = new Map<string, Project>();
+    for (const p of [...owned, ...teamProjects, ...memberProjects]) {
+      map.set(p.id, p);
     }
-    
-    return data ?? [];
+    const merged = Array.from(map.values()).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+    console.log('📊 fetchProjects - Merged result:', { total: merged.length, owned: owned.length, team: teamProjects.length, member: memberProjects.length });
+    return merged;
   } catch (error) {
     console.error('❌ fetchProjects - Exception:', error);
     throw error;

@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { useAuthStore } from "@/lib/store/auth"
 import { useUserStore } from "@/lib/store/user"
 import { getSupabase } from "@/lib/supabase"
-import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations } from "@/features/teams/api"
+import { updateTeamName, deleteTeam, setTeamPrimaryProject, inviteToTeam, getPendingInvitations, fetchTeams } from "@/features/teams/api"
 import { updateTask } from "@/features/tasks/api"
 import { useSidebarData } from "./sidebar/hooks/useSidebarData"
 
@@ -57,12 +57,6 @@ const navData: NavItem[] = [
     isActive: true,
   },
   {
-    title: "Takvim",
-    url: "/dashboard/tasks/calendar",
-    icon: () => <div>📅</div>,
-    isActive: false,
-  },
-  {
     title: "Projeler",
     url: "/dashboard#projects",
     icon: () => <div>📁</div>,
@@ -72,6 +66,12 @@ const navData: NavItem[] = [
     title: "Takımlar",
     url: "/dashboard#teams",
     icon: () => <div>👥</div>,
+    isActive: false,
+  },
+  {
+    title: "Takvim",
+    url: "/dashboard/tasks/calendar",
+    icon: () => <div>📅</div>,
     isActive: false,
   },
   {
@@ -97,6 +97,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
     projectStats,
     taskStats,
+    myTasksView,
+    setMyTasksView,
     nearestTask,
     loadingProjects,
     projectError,
@@ -189,25 +191,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     try {
       setLoadingTeams(true)
       setTeamError(null)
-      const supabase = getSupabase()
-      const { data: teams, error: tErr } = await supabase
-        .from("teams")
-        .select("id,name")
-        .order("created_at", { ascending: false })
-      if (tErr) throw tErr
-      
-      const teamIds = (teams ?? []).map((t) => t.id)
-      if (teamIds.length === 0) {
+      // Sadece kullanıcının sahibi olduğu veya üyesi olduğu takımlar
+      const teams = await fetchTeams()
+
+      if ((teams ?? []).length === 0) {
         setTeamStats([])
         return
       }
 
-      const [{ data: projects }] = await Promise.all([
-        supabase
-          .from("projects")
-          .select("id,title,team_id")
-          .in("team_id", teamIds),
-      ])
+      const supabase = getSupabase()
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id,title,team_id")
+        .in("team_id", teams.map(t => t.id))
 
       const teamIdToProjectTitle = new Map<string, string>()
       ;(projects ?? []).forEach((p) => {
@@ -216,10 +212,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         }
       })
 
-      setTeamStats((teams ?? []).map((t) => ({
+      setTeamStats(teams.map((t) => ({
         id: t.id,
         name: t.name,
-        memberCount: null, // Simplified for now
+        memberCount: null,
         projectTitle: teamIdToProjectTitle.get(t.id) ?? null,
       })))
     } catch (e) {
@@ -284,6 +280,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
         qc.invalidateQueries({ queryKey: ['projects'] }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => {
+        qc.invalidateQueries({ queryKey: ['projects'] }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_comments' }, () => {
+        qc.invalidateQueries({ queryKey: ['tasks'] }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_activities' }, () => {
+        qc.invalidateQueries({ queryKey: ['tasks'] }).catch(() => {})
       })
       .subscribe()
 
@@ -494,6 +499,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       </Button>
                     </>
                   )}
+                  {isProjectsActive && (
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => setCreateProjectOpen(true)}
+                      title="Proje Oluştur"
+                    >
+                      <Plus className="size-4" />
+                    </Button>
+                  )}
                   {isTasksActive && (
                     <div className="flex items-center gap-2">
                       {nearestTask && (
@@ -577,6 +593,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </div>
                   ) : isTasksActive ? (
                     <div className="p-4 min-h-0">
+                      <div className="mb-2 flex items-center gap-2 text-xs">
+                        <button
+                          className={`px-2 py-1 rounded border ${myTasksView === 'assigned' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                          onClick={() => setMyTasksView('assigned')}
+                        >
+                          Bana atananlar
+                        </button>
+                        <button
+                          className={`px-2 py-1 rounded border ${myTasksView === 'created' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                          onClick={() => setMyTasksView('created')}
+                        >
+                          Oluşturduklarım
+                        </button>
+                        <button
+                          className={`px-2 py-1 rounded border ${myTasksView === 'all' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                          onClick={() => setMyTasksView('all')}
+                        >
+                          Tümü
+                        </button>
+                      </div>
                       <TasksSection
                         taskStats={taskStats}
                         loadingTasks={loadingTasks}

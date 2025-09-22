@@ -1,6 +1,7 @@
 "use client";
 
 import { getSupabase } from "@/lib/supabase";
+import { getUserCached } from "@/lib/auth-cache";
 
 export type ActivityType = 
   | 'task_created'
@@ -39,7 +40,9 @@ export async function fetchRecentActivities(limit = 20): Promise<Activity[]> {
     });
 
     if (!error && data) {
-      return (data ?? []) as Activity[];
+      // RPC varsa bile sonuçları kullanıcı kapsamına göre süzelim
+      const scoped = await scopeActivitiesToUser((data ?? []) as Activity[]);
+      return scoped.slice(0, limit);
     }
   } catch (rpcError) {
     console.warn('RPC function not available, using manual fetch:', rpcError);
@@ -53,11 +56,19 @@ async function fetchActivitiesManually(limit: number): Promise<Activity[]> {
   const supabase = getSupabase();
 
   try {
+    // Kullanıcının görebileceği projeleri belirle
+    const user = await getUserCached();
+    const allowedProjectIds = await getAllowedProjectIdsForUser();
+
     // 1) Ana kaynakları paralel al
     const [taskActivitiesRes, taskCommentsRes, newTasksRes] = await Promise.all([
       supabase.from('task_activities').select('id, task_id, user_id, action, details, created_at').order('created_at', { ascending: false }).limit(limit),
       supabase.from('task_comments').select('id, task_id, created_by, content, created_at').order('created_at', { ascending: false }).limit(limit),
-      supabase.from('project_tasks').select('id, project_id, title, created_by, created_at').order('created_at', { ascending: false }).limit(limit),
+      supabase.from('project_tasks')
+        .select('id, project_id, title, created_by, created_at')
+        .in('project_id', allowedProjectIds.length ? allowedProjectIds : ['00000000-0000-0000-0000-000000000000'])
+        .order('created_at', { ascending: false })
+        .limit(limit),
     ])
 
     const taskActivities = taskActivitiesRes.data ?? []
@@ -97,11 +108,12 @@ async function fetchActivitiesManually(limit: number): Promise<Activity[]> {
 
     const activities: Activity[] = []
 
-    // Task activities
+    // Task activities (proje kapsamına göre filtrele)
     for (const activity of taskActivities) {
       const profile = profileMap.get(activity.user_id)
       const task = activity.task_id ? taskMap.get(activity.task_id) : null
       const project = task && task.project_id ? projectMap.get(task.project_id) : null
+      if (project && allowedProjectIds.length > 0 && !allowedProjectIds.includes(project.id)) continue
       activities.push({
         id: activity.id,
         type: mapTaskActionToType(activity.action),
@@ -117,11 +129,12 @@ async function fetchActivitiesManually(limit: number): Promise<Activity[]> {
       })
     }
 
-    // Task comments
+    // Task comments (proje kapsamına göre filtrele)
     for (const comment of taskComments) {
       const profile = profileMap.get(comment.created_by)
       const task = comment.task_id ? taskMap.get(comment.task_id) : null
       const project = task && task.project_id ? projectMap.get(task.project_id) : null
+      if (project && allowedProjectIds.length > 0 && !allowedProjectIds.includes(project.id)) continue
       activities.push({
         id: comment.id,
         type: 'task_comment',
@@ -162,6 +175,44 @@ async function fetchActivitiesManually(limit: number): Promise<Activity[]> {
     console.error('Error fetching activities manually:', error);
     return [];
   }
+}
+
+// Aktiviteleri kullanıcı kapsamına (üye olduğu takımlar ve dahil olduğu projeler) göre filtreler
+async function scopeActivitiesToUser(list: Activity[]): Promise<Activity[]> {
+  const allowed = new Set<string>(await getAllowedProjectIdsForUser())
+  return list.filter(a => !a.project_id || allowed.has(a.project_id))
+}
+
+// Kullanıcının görebileceği proje ID'lerini getirir: sahibi olduğu projeler,
+// üyesi olduğu takımların projeleri ve project_members olduğu projeler
+async function getAllowedProjectIdsForUser(): Promise<string[]> {
+  const supabase = getSupabase();
+  const user = await getUserCached();
+  if (!user) return []
+
+  // Üye olduğu takım id'leri
+  const { data: tm } = await supabase
+    .from('team_members')
+    .select('team_id')
+    .eq('user_id', user.id)
+
+  const teamIds = (tm ?? []).map(r => r.team_id as string)
+
+  const [owned, teamProjects, memberProjects] = await Promise.all([
+    supabase.from('projects').select('id').eq('owner_id', user.id),
+    teamIds.length > 0
+      ? supabase.from('projects').select('id').in('team_id', teamIds)
+      : Promise.resolve({ data: [] as Array<{ id: string }>, error: null } as any),
+    supabase.from('project_members').select('project_id').eq('user_id', user.id)
+  ])
+
+  const memberIds = (memberProjects.data ?? []).map(r => (r as { project_id: string }).project_id)
+  const ids = new Set<string>([
+    ...(((owned.data ?? []) as Array<{ id: string }>).map(p => p.id)),
+    ...(((teamProjects.data ?? []) as Array<{ id: string }>).map(p => p.id)),
+    ...memberIds,
+  ])
+  return Array.from(ids)
 }
 
 function mapTaskActionToType(action: string): ActivityType {
