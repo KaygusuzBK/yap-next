@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { type Task } from "@/features/tasks/api"
 import { type ProjectTaskStatus } from "@/features/tasks/api"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,9 @@ import { format, isAfter, isBefore, isToday, isTomorrow } from "date-fns"
 import { tr } from "date-fns/locale"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+// virtualization temporarily removed due to bundler incompatibility
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 interface TaskTableProps {
   tasks: Task[]
@@ -213,6 +215,15 @@ export default function TaskTable({
     dueDateFilter !== "all"
   ].filter(Boolean).length
 
+  // Virtualizer setup
+  const parentRef = useRef<HTMLDivElement | null>(null)
+  const rowVirtualizer = useVirtualizer({
+    count: filteredAndSortedTasks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 56,
+    overscan: 6,
+  })
+
   return (
     <div className="space-y-4">
       {/* Filtre ve Sıralama Bölümü */}
@@ -409,15 +420,20 @@ export default function TaskTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedTasks.map((task, index) => {
-              const group = getGroupForTask(task)
-              const isOverdue = task.due_date && isBefore(new Date(task.due_date), new Date())
-              const isDueToday = task.due_date && isToday(new Date(task.due_date))
-              const isDueTomorrow = task.due_date && isTomorrow(new Date(task.due_date))
-              
-              return (
+            <div ref={parentRef} style={{ height: 480, overflow: 'auto' }}>
+              <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+                {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                  const index = virtualRow.index
+                  const task = filteredAndSortedTasks[index]
+                  const group = getGroupForTask(task)
+                  const isOverdue = task.due_date && isBefore(new Date(task.due_date), new Date())
+                  const isDueToday = task.due_date && isToday(new Date(task.due_date))
+                  const isDueTomorrow = task.due_date && isTomorrow(new Date(task.due_date))
+                  
+                  return (
                 <TableRow 
-                  key={task.id} 
+                  key={task.id}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
                   className={`hover:bg-muted/50 ${draggedTaskId === task.id ? 'opacity-50' : ''} ${isOverdue ? 'bg-red-50/50 dark:bg-red-900/20' : ''}`}
                   draggable
                   onDragStart={() => setDraggedTaskId(task.id)}
@@ -531,8 +547,10 @@ export default function TaskTable({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              )
-            })}
+                  )
+                })}
+              </div>
+            </div>
           </TableBody>
         </Table>
       </div>

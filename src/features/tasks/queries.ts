@@ -8,6 +8,8 @@ import {
   deleteTask,
   fetchComments,
   fetchMyTasks,
+  fetchMyCreatedTasks,
+  fetchMyAllTasks,
   fetchProjectStatuses,
   fetchStatusesForProjects,
   fetchTaskById,
@@ -22,6 +24,8 @@ import {
 
 export const keys = {
   tasks: () => ["tasks"] as const,
+  myCreated: () => ["tasks", "createdByMe"] as const,
+  myAll: () => ["tasks", "mineAll"] as const,
   task: (id: string) => ["task", id] as const,
   comments: (taskId: string) => ["task", taskId, "comments"] as const,
   files: (taskId: string) => ["task", taskId, "files"] as const,
@@ -40,6 +44,26 @@ export function useMyTasks() {
     refetchOnReconnect: false,
     refetchOnMount: true,
   });
+}
+
+export function useMyCreatedTasks() {
+  return useQuery({
+    queryKey: keys.myCreated(),
+    queryFn: () => fetchMyCreatedTasks(),
+    staleTime: 60_000,
+    gcTime: 15 * 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useMyAllTasks() {
+  return useQuery({
+    queryKey: keys.myAll(),
+    queryFn: () => fetchMyAllTasks(),
+    staleTime: 60_000,
+    gcTime: 15 * 60_000,
+    refetchOnWindowFocus: false,
+  })
 }
 
 export function useTask(taskId: string) {

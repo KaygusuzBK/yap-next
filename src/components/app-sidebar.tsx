@@ -97,6 +97,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
     projectStats,
     taskStats,
+    myTasksView,
+    setMyTasksView,
     nearestTask,
     loadingProjects,
     projectError,
@@ -278,6 +280,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
         qc.invalidateQueries({ queryKey: ['projects'] }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => {
+        qc.invalidateQueries({ queryKey: ['projects'] }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_comments' }, () => {
+        qc.invalidateQueries({ queryKey: ['tasks'] }).catch(() => {})
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_activities' }, () => {
+        qc.invalidateQueries({ queryKey: ['tasks'] }).catch(() => {})
       })
       .subscribe()
 
@@ -582,6 +593,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </div>
                   ) : isTasksActive ? (
                     <div className="p-4 min-h-0">
+                      <div className="mb-2 flex items-center gap-2 text-xs">
+                        <button
+                          className={`px-2 py-1 rounded border ${myTasksView === 'assigned' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                          onClick={() => setMyTasksView('assigned')}
+                        >
+                          Bana atananlar
+                        </button>
+                        <button
+                          className={`px-2 py-1 rounded border ${myTasksView === 'created' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                          onClick={() => setMyTasksView('created')}
+                        >
+                          Oluşturduklarım
+                        </button>
+                        <button
+                          className={`px-2 py-1 rounded border ${myTasksView === 'all' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                          onClick={() => setMyTasksView('all')}
+                        >
+                          Tümü
+                        </button>
+                      </div>
                       <TasksSection
                         taskStats={taskStats}
                         loadingTasks={loadingTasks}

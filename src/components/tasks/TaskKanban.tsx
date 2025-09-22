@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useRef } from "react"
 import { type Task } from "@/features/tasks/api"
 import { type ProjectTaskStatus } from "@/features/tasks/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +12,8 @@ import { Calendar, Clock, User, Flag, Search, Filter, X, ChevronDown, ChevronUp 
 import { format, isAfter, isBefore, isToday, isTomorrow, isYesterday } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useVirtualizer } from '@tanstack/react-virtual'
+// virtualization temporarily removed due to bundler incompatibility
 
 interface TaskKanbanProps {
   tasks: Task[]
@@ -354,7 +356,15 @@ export default function TaskKanban({
 
       {/* Kanban Board */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
-      {Object.entries(statusGroups).map(([status, statusTasks]) => (
+      {Object.entries(statusGroups).map(([status, statusTasks]) => {
+        const parentRef = useRef<HTMLDivElement | null>(null)
+        const virtualizer = useVirtualizer({
+          count: statusTasks.length,
+          getScrollElement: () => parentRef.current,
+          estimateSize: () => 160,
+          overscan: 4,
+        })
+        return (
         <div
           key={status}
           className={`rounded-lg border-2 border-dashed p-4 min-h-[400px] transition-colors ${
@@ -371,15 +381,18 @@ export default function TaskKanban({
             </Badge>
           </div>
           
-          <div className="space-y-3">
-            {statusTasks.map(task => {
-              const isOverdue = task.due_date && isBefore(new Date(task.due_date), new Date())
-              const isDueToday = task.due_date && isToday(new Date(task.due_date))
-              const isDueTomorrow = task.due_date && isTomorrow(new Date(task.due_date))
-              
-              return (
+          <div className="space-y-3" ref={parentRef} style={{ maxHeight: 560, overflow: 'auto', position: 'relative' }}>
+            <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+            {virtualizer.getVirtualItems().map(vItem => {
+              const index = vItem.index
+              const task = statusTasks[index]
+                const isOverdue = task.due_date && isBefore(new Date(task.due_date), new Date())
+                const isDueToday = task.due_date && isToday(new Date(task.due_date))
+                const isDueTomorrow = task.due_date && isTomorrow(new Date(task.due_date))
+                return (
                 <Card
                   key={task.id}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, transform: `translateY(${vItem.start}px)` }}
                   className={`cursor-move hover:shadow-md transition-all ${
                     dragTaskId === task.id ? 'opacity-50' : ''
                   } ${isOverdue ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-900/20' : ''}`}
@@ -472,17 +485,11 @@ export default function TaskKanban({
                     </div>
                   </CardContent>
                 </Card>
-              )
-            })}
-            
-            {statusTasks.length === 0 && (
-              <div className="text-center text-muted-foreground text-sm py-8">
-                Bu durumda görev yok
-              </div>
-            )}
+              )})}
+            </div>
           </div>
         </div>
-      ))}
+      )})}
       </div>
     </div>
   )

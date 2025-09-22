@@ -155,6 +155,34 @@ export async function fetchMyTasks(): Promise<Task[]> {
   }
 }
 
+export async function fetchMyCreatedTasks(): Promise<Task[]> {
+  const supabase = getSupabase();
+  const user = await getUserCached();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('project_tasks')
+    .select(`*, projects(title)`) // join for project title
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  type Row = { projects?: { title?: string | null } } & Task
+  return ((data as Row[] | null) ?? []).map(r => ({ ...r, project_title: r.projects?.title })) as Task[];
+}
+
+export async function fetchMyAllTasks(): Promise<Task[]> {
+  const supabase = getSupabase();
+  const user = await getUserCached();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('project_tasks')
+    .select(`*, projects(title)`) // join for project title
+    .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  type Row = { projects?: { title?: string | null } } & Task
+  return ((data as Row[] | null) ?? []).map(r => ({ ...r, project_title: r.projects?.title })) as Task[];
+}
+
 export async function createTask(input: {
   project_id: string;
   title: string;
