@@ -113,7 +113,7 @@ export async function fetchMyTasks(): Promise<Task[]> {
     const { data, error, count } = await supabase
       .from('project_tasks')
       .select(`*, projects(title)`, { count: 'exact' }) // join for project title
-      .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+      .eq('assigned_to', user.id)
       .order('created_at', { ascending: false });
 
     console.log('📊 fetchMyTasks - Result:', { 
@@ -181,6 +181,8 @@ export async function createTask(input: {
       status: input.status || 'todo',
       due_date: input.due_date || null,
       created_by: user.id,
+      // Sidebar "Bana atananlar" filtresi için, varsayılan olarak oluşturana ata
+      assigned_to: user.id,
     })
     .select('*')
     .single();
