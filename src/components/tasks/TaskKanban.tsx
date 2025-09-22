@@ -12,8 +12,7 @@ import { Calendar, Clock, User, Flag, Search, Filter, X, ChevronDown, ChevronUp 
 import { format, isAfter, isBefore, isToday, isTomorrow, isYesterday } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useVirtualizer } from '@tanstack/react-virtual'
-// virtualization temporarily removed due to bundler incompatibility
+// virtualization removed - using simple map for better performance
 
 interface TaskKanbanProps {
   tasks: Task[]
@@ -357,87 +356,68 @@ export default function TaskKanban({
       {/* Kanban Board */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
       {Object.entries(statusGroups).map(([status, statusTasks]) => {
-        const parentRef = useRef<HTMLDivElement | null>(null)
-        const virtualizer = useVirtualizer({
-          count: statusTasks.length,
-          getScrollElement: () => parentRef.current,
-          estimateSize: () => 160,
-          overscan: 4,
-        })
         return (
         <div
           key={status}
-          className={`rounded-lg border-2 border-dashed p-4 min-h-[400px] transition-colors ${
+          className={`rounded-lg border-2 border-dashed p-1.5 min-h-[250px] transition-colors ${
             dragOverStatus === status ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700'
           } ${getStatusColor(status as any)}`}
           onDragOver={(e) => handleDragOver(e, status as any)}
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, status as any)}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm">{getStatusTitle(status as any)}</h3>
-            <Badge variant="secondary" className="text-xs">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-xs">{getStatusTitle(status as any)}</h3>
+            <Badge variant="secondary" className="text-xs h-4 px-1">
               {statusTasks.length}
             </Badge>
           </div>
           
-          <div className="space-y-3" ref={parentRef} style={{ maxHeight: 560, overflow: 'auto', position: 'relative' }}>
-            <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-            {virtualizer.getVirtualItems().map(vItem => {
-              const index = vItem.index
-              const task = statusTasks[index]
+          <div className="space-y-0.5">
+            {statusTasks.map((task, index) => {
                 const isOverdue = task.due_date && isBefore(new Date(task.due_date), new Date())
                 const isDueToday = task.due_date && isToday(new Date(task.due_date))
                 const isDueTomorrow = task.due_date && isTomorrow(new Date(task.due_date))
                 return (
-                <Card
-                  key={task.id}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, transform: `translateY(${vItem.start}px)` }}
-                  className={`cursor-move hover:shadow-md transition-all ${
-                    dragTaskId === task.id ? 'opacity-50' : ''
-                  } ${isOverdue ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-900/20' : ''}`}
-                  draggable
-                  onDragStart={() => handleDragStart(task.id)}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-sm font-medium line-clamp-2 flex-1">
-                        {task.title}
-                      </CardTitle>
-                      {isOverdue && (
-                        <Badge variant="destructive" className="text-xs shrink-0">
-                          Gecikti
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {task.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-3">
-                          {task.description}
-                        </p>
-                      )}
-                      
-                      {/* Proje bilgisi */}
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Proje:</span> {task.project_title}
+                  <Card
+                    key={task.id}
+                    className={`cursor-move hover:shadow-sm transition-all ${
+                      dragTaskId === task.id ? 'opacity-50' : ''
+                    } ${isOverdue ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-900/20' : ''}`}
+                    draggable
+                    onDragStart={() => handleDragStart(task.id)}
+                  >
+                    <CardContent className="p-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <CardTitle className="text-xs font-medium leading-tight line-clamp-1 flex-1">
+                          {task.title}
+                        </CardTitle>
+                        {isOverdue && (
+                          <Badge variant="destructive" className="text-xs h-3 px-1 shrink-0">
+                            !
+                          </Badge>
+                        )}
                       </div>
-                      
-                      {/* Öncelik ve durum */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
+                        {/* Proje adı */}
+                        <div className="text-xs text-muted-foreground truncate flex-1">
+                          {task.project_title}
+                        </div>
+                        
+                        {/* Öncelik */}
                         {task.priority && (
                           <Badge 
                             variant="outline" 
-                            className={`text-xs ${priorityTheme[task.priority].chip}`}
+                            className={`text-xs h-3 px-1 ${priorityTheme[task.priority].chip}`}
                           >
-                            <div className={`w-2 h-2 rounded-full mr-1 ${priorityTheme[task.priority].dot}`} />
-                            {task.priority === 'urgent' ? 'Acil' : 
-                             task.priority === 'high' ? 'Yüksek' :
-                             task.priority === 'medium' ? 'Orta' : 'Düşük'}
+                            <div className={`w-1 h-1 rounded-full mr-0.5 ${priorityTheme[task.priority].dot}`} />
+                            {task.priority === 'urgent' ? 'A' : 
+                             task.priority === 'high' ? 'Y' :
+                             task.priority === 'medium' ? 'O' : 'D'}
                           </Badge>
                         )}
                         
+                        {/* Tarih */}
                         {task.due_date && (
                           <div className={`flex items-center text-xs ${
                             isOverdue ? 'text-red-600 font-medium' :
@@ -445,48 +425,25 @@ export default function TaskKanban({
                             isDueTomorrow ? 'text-yellow-600 font-medium' :
                             'text-muted-foreground'
                           }`}>
-                            <Calendar className="w-3 h-3 mr-1" />
+                            <Calendar className="w-2 h-2 mr-0.5" />
                             {isDueToday ? 'Bugün' :
                              isDueTomorrow ? 'Yarın' :
-                             format(new Date(task.due_date), 'dd MMM', { locale: tr })}
+                             format(new Date(task.due_date), 'dd/MM', { locale: tr })}
+                          </div>
+                        )}
+                        
+                        {/* Atanan kişi */}
+                        {task.assignee_name && (
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <User className="w-2 h-2 mr-0.5" />
+                            <span className="truncate max-w-16">{task.assignee_name.split(' ')[0]}</span>
                           </div>
                         )}
                       </div>
-                      
-                      {/* Atanan kişi ve oluşturulma tarihi */}
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center">
-                          <User className="w-3 h-3 mr-1" />
-                          {task.assignee_name || 'Atanmamış'}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {format(new Date(task.created_at), 'dd MMM', { locale: tr })}
-                        </div>
-                      </div>
-                      
-                      {/* Etiketler veya ek bilgiler */}
-                      <div className="flex flex-wrap gap-1">
-                        {task.tags && task.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {task.tags.slice(0, 2).map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                            {task.tags.length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{task.tags.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )})}
-            </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
           </div>
         </div>
       )})}
