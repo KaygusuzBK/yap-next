@@ -16,6 +16,11 @@ type InviteRow = {
 
 export async function POST(req: NextRequest) {
   try {
+    // Guard: missing admin env → no-op to avoid 500 in local/dev
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ ok: true, inserted: 0, skipped: 'missing_env' })
+    }
+
     const { userId, email } = await req.json().catch(() => ({ userId: undefined, email: undefined }))
     if (!userId || !email) {
       return NextResponse.json({ ok: false, error: 'missing_user' }, { status: 400 })

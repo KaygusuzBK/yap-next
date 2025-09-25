@@ -534,7 +534,7 @@ const data = {
   user: {
     name: "",
     email: "",
-    avatar: "/YAP-Proje-Yönetimi-Logosu.svg",
+    avatar: "/logo.svg",
   },
   navMain: [
     {

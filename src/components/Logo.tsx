@@ -18,7 +18,7 @@ export default function Logo({
 }: LogoProps) {
   const img = (
     <Image
-      src="/YAP-Proje-Yönetimi-Logosu.svg"
+      src="/logo.svg"
       width={size}
       height={size}
       alt={alt}
