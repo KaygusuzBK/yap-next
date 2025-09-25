@@ -386,11 +386,20 @@ export async function fetchProjectStatuses(projectId: string): Promise<ProjectTa
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('project_task_statuses')
-    .select('*')
+    .select('id, project_id, key, label, "group", position, is_default, color, created_at, updated_at')
     .eq('project_id', projectId)
     .order('position', { ascending: true });
   if (error) throw error;
-  return (data ?? []) as ProjectTaskStatus[];
+  // Map data to ensure group field exists
+  return (data ?? []).map(item => ({
+    ...item,
+    group: item.group || (item.name === 'Yapılacak' ? 'todo' : 
+                          item.name === 'Devam Ediyor' ? 'in_progress' :
+                          item.name === 'İncelemede' ? 'review' :
+                          item.name === 'Tamamlandı' ? 'completed' : 'todo'),
+    key: item.key || item.name?.toLowerCase().replace(/\s+/g, '_') || 'todo',
+    label: item.label || item.name || 'Yapılacak'
+  })) as ProjectTaskStatus[];
 }
 
 export async function fetchStatusesForProjects(projectIds: string[]): Promise<Record<string, ProjectTaskStatus[]>> {
