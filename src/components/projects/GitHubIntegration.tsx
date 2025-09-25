@@ -55,11 +55,15 @@ export default function GitHubIntegration({ projectId, currentSettings, onSettin
 
   const loadCurrentSettings = async () => {
     try {
-      const res = await fetch(`/api/integrations/github?projectId=${projectId}&userId=me`, { method: 'GET' })
-      const json = await res.json()
-      const projectIntegration = json.projectIntegration
-      if (projectIntegration?.repo_full_name) setGithubRepo(projectIntegration.repo_full_name)
-      if (projectIntegration?.default_branch) setDefaultBranch(projectIntegration.default_branch)
+      const supabase = getSupabase()
+      const { data } = await supabase
+        .from('project_integrations')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('provider', 'github')
+        .maybeSingle()
+      if (data?.repo_full_name) setGithubRepo(data.repo_full_name as string)
+      if (data?.default_branch) setDefaultBranch((data.default_branch as string) || 'main')
     } catch {}
   }
 
@@ -148,11 +152,17 @@ export default function GitHubIntegration({ projectId, currentSettings, onSettin
         return
       }
 
-      await fetch(`/api/integrations/github?projectId=${projectId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repo_full_name: githubRepo, default_branch: defaultBranch })
-      })
+      const supabase = getSupabase()
+      const { error } = await supabase
+        .from('project_integrations')
+        .upsert({
+          project_id: projectId,
+          provider: 'github',
+          repo_full_name: githubRepo,
+          default_branch: defaultBranch || 'main',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'project_id,provider' } as any)
+      if (error) throw error
       onSettingsUpdate(currentSettings)
     } catch (error) {
       console.error('Save error:', error)
@@ -241,6 +251,17 @@ export default function GitHubIntegration({ projectId, currentSettings, onSettin
             </div>
           </div>
         )}
+
+        <div>
+          <Label htmlFor="default-branch">Varsayılan Base Branch</Label>
+          <Input
+            id="default-branch"
+            placeholder="main"
+            value={defaultBranch}
+            onChange={(e) => setDefaultBranch(e.target.value || 'main')}
+            className="mt-1"
+          />
+        </div>
 
         <div className="flex gap-2">
           <Button onClick={handleSave} disabled={!githubRepo}>
