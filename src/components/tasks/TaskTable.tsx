@@ -530,12 +530,12 @@ export default function TaskTable({
                         )}
                         {group !== 'in_progress' && (
                           <DropdownMenuItem onClick={() => handleStatusChange(task.id, 'in_progress')}>
-                            Devam Eden'e Taşı
+                            Devam Eden&apos;e Taşı
                           </DropdownMenuItem>
                         )}
                         {group !== 'review' && (
                           <DropdownMenuItem onClick={() => handleStatusChange(task.id, 'review')}>
-                            İnceleme'ye Taşı
+                            İnceleme&apos;ye Taşı
                           </DropdownMenuItem>
                         )}
                         {group !== 'completed' && (

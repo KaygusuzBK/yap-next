@@ -55,7 +55,9 @@ export function TasksSection({
   }
 
   if (taskError) {
-    return <p className="text-sm text-red-600">{taskError}</p>
+    // Şema henüz uygulanmamış olabilir veya kullanıcıda veri yok olabilir
+    // Ham hata yerine sade boş durum göster
+    return <p className="text-sm text-muted-foreground">Şu an bir göreviniz yok.</p>
   }
 
   const activeCount = [

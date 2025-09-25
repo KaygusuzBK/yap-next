@@ -3,15 +3,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createTeam, deleteTeam, fetchTeams, type Team, updateTeamName } from "./api";
 import { getSupabase } from '@/lib/supabase';
+import { useAuthStore } from "@/lib/store/auth";
 
 export const teamKeys = {
   all: () => ["teams"] as const,
 };
 
 export function useTeams() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery<Team[]>({
     queryKey: teamKeys.all(),
     queryFn: () => fetchTeams(),
+    enabled: isAuthenticated,
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,

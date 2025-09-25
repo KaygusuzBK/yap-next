@@ -40,6 +40,106 @@ export const tr = {
     empty: {
       backlog: "Backlog boş",
     },
+    summary: {
+      title: "Görev Özeti",
+      completed: "Tamamlanan",
+      inProgress: "Devam Eden",
+      overdue: "Geciken",
+      dueToday: "Bugün Biten",
+      completionRate: "tamamlanma oranı",
+      activeTasks: "Aktif görevler",
+      urgentAction: "Acil müdahale gerekli",
+      dueTodayDesc: "Bugün bitmesi gereken",
+    },
+    cards: {
+      priority: {
+        title: "Öncelik Dağılımı",
+        urgent: "Acil",
+        high: "Yüksek",
+        thisWeek: "Bu Hafta",
+      },
+      activity: {
+        title: "Proje Aktivitesi",
+        avgTasksPerProject: "Ortalama Görev/Proje",
+        mostActiveProject: "En Aktif Proje",
+        last7Days: "Son 7 Gün",
+        newTasks: "yeni görev",
+      },
+      actions: {
+        title: "Hızlı Eylemler",
+        addTask: "Yeni Görev Ekle",
+        viewOverdue: "Geciken Görevleri Gör",
+        viewDueToday: "Bugün Biten Görevler",
+      },
+    },
+    settings: {
+      title: "Dashboard Ayarları",
+      theme: "Tema",
+      light: "Açık",
+      dark: "Koyu",
+      system: "Sistem",
+      widgetVisibility: "Widget Görünürlüğü",
+      taskSummary: "Görev Özeti",
+      activities: "Aktiviteler",
+      invites: "Davetler",
+      widgetOrdering: "Widget Sıralama",
+      editModeDescription: "Düzenleme modunda widget'ları sürükle-bırak ile yeniden sıralayabilirsiniz.",
+      openEditMode: "Düzenleme Modunu Aç",
+    },
+    controls: {
+      settings: "Ayarlar",
+      edit: "Düzenle",
+      done: "Bitti",
+      size: {
+        small: "Küçük",
+        medium: "Orta",
+        large: "Büyük",
+      },
+    },
+  },
+  integrations: {
+    title: "Entegrasyonlar",
+    subtitle: "Takvim ve diğer servislerle bağlantılarınızı yönetin",
+    calendar: {
+      title: "Takvim Entegrasyonları",
+      google: {
+        title: "Google Calendar",
+        description: "Google Calendar'ınızı YAP ile senkronize edin",
+        connect: "Google Calendar Bağla",
+        connected: "Bağlandı",
+        disconnected: "Bağlantı kesildi"
+      },
+      outlook: {
+        title: "Outlook Calendar", 
+        description: "Microsoft Outlook Calendar'ınızı YAP ile senkronize edin",
+        comingSoon: "Yakında Gelecek"
+      }
+    },
+    github: {
+      title: "GitHub Entegrasyonu",
+      description: "GitHub repository'lerinizi ve issue'larınızı YAP ile senkronize edin",
+      comingSoon: "Yakında Gelecek"
+    },
+    status: {
+      active: "Aktif",
+      inactive: "Pasif",
+      syncEnabled: "Senkronizasyon",
+      lastSync: "Son senkronizasyon"
+    },
+    actions: {
+      syncNow: "Şimdi Senkronize Et",
+      disconnect: "Bağlantıyı Kes",
+      confirmDisconnect: "Bu entegrasyonu kaldırmak istediğinizden emin misiniz?"
+    },
+    messages: {
+      syncEnabled: "Senkronizasyon etkinleştirildi",
+      syncDisabled: "Senkronizasyon devre dışı bırakıldı",
+      syncCompleted: "Senkronizasyon tamamlandı",
+      syncFailed: "Senkronizasyon başarısız",
+      integrationRemoved: "Entegrasyon kaldırıldı",
+      connectionError: "Bağlantı hatası",
+      loadError: "Entegrasyonlar yüklenemedi"
+    }
   },
   project: {
     notFound: "Proje bulunamadı",

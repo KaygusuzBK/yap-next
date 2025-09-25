@@ -69,6 +69,12 @@ const navData: NavItem[] = [
     isActive: false,
   },
   {
+    title: "Entegrasyonlar",
+    url: "/dashboard/integrations",
+    icon: () => <div>🔗</div>,
+    isActive: false,
+  },
+  {
     title: "Takvim",
     url: "/dashboard/tasks/calendar",
     icon: () => <div>📅</div>,
@@ -428,6 +434,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const isTeamsActive = activeItem?.title === "Takımlar"
   const isProjectsActive = activeItem?.title === "Projeler"
   const isPerformanceActive = activeItem?.title === "Performans"
+  const isIntegrationsActive = activeItem?.title === "Entegrasyonlar"
 
   return (
     <ContextMenu>
@@ -527,7 +534,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         size="icon"
                         variant="outline"
                         data-tour="create-task"
-                        onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}
+                        onClick={() => {
+                          if ((projectStats ?? []).length === 0) {
+                            toast.info('Önce bir proje oluşturun.');
+                            setCreateProjectOpen(true)
+                            return
+                          }
+                          setTaskProjectId(projectStats[0]?.id ?? null)
+                          setCreateTaskOpen(true)
+                        }}
                         className="h-8 w-8 rounded-full border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
                       >
                         <Plus className="size-4" />
@@ -543,22 +558,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarGroupContent>
                   {isTeamsActive ? (
                     <div className="p-4 min-h-0">
-                      <TeamsSection
-                        teamStats={teamStats}
-                        loadingTeams={loadingTeams}
-                        teamError={teamError}
-                        pendingInvites={pendingInvites}
-                        onOpenRename={onOpenRename}
-                        onDelete={onDeleteTeam}
-                        onAssignProject={onAssignProject}
-                        onAddMember={onAddMember}
-                        onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
-                        onDragStart={onDragStartGeneric}
-                        onDragOver={onDragOverGeneric}
-                        onDrop={onDropGeneric}
-                        dragType={dragType}
-                        dragOverIndex={dragOverIndex}
-                      />
+                      {teamStats.length === 0 && !loadingTeams && !teamError ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                          <div className="text-sm text-muted-foreground">Henüz takım yok.</div>
+                          <Button onClick={() => setCreateTeamOpen(true)}>
+                            Yeni Takım Oluştur
+                          </Button>
+                        </div>
+                      ) : (
+                        <TeamsSection
+                          teamStats={teamStats}
+                          loadingTeams={loadingTeams}
+                          teamError={teamError}
+                          pendingInvites={pendingInvites}
+                          onOpenRename={onOpenRename}
+                          onDelete={onDeleteTeam}
+                          onAssignProject={onAssignProject}
+                          onAddMember={onAddMember}
+                          onSelect={(id) => router.push(`/dashboard/teams/${id}`)}
+                          onDragStart={onDragStartGeneric}
+                          onDragOver={onDragOverGeneric}
+                          onDrop={onDropGeneric}
+                          dragType={dragType}
+                          dragOverIndex={dragOverIndex}
+                        />
+                      )}
                     </div>
                   ) : isPerformanceActive ? (
                     <div className="p-4 min-h-0">
@@ -578,59 +602,88 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     />
                   ) : isProjectsActive ? (
                     <div className="p-4 min-h-0">
-                      <ProjectsSection
-                        projectStats={projectStats}
-                        taskStats={taskStats}
-                        loadingProjects={loadingProjects}
-                        projectError={projectError}
-                        onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
-                        onDragStart={onDragStartGeneric}
-                        onDragOver={onDragOverGeneric}
-                        onDrop={onDropGeneric}
-                        dragType={dragType}
-                        dragOverIndex={dragOverIndex}
-                      />
+                      {projectStats.length === 0 && !loadingProjects && !projectError ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                          <div className="text-sm text-muted-foreground">Henüz proje yok.</div>
+                          <Button onClick={() => setCreateProjectOpen(true)}>
+                            Yeni Proje Oluştur
+                          </Button>
+                        </div>
+                      ) : (
+                        <ProjectsSection
+                          projectStats={projectStats}
+                          taskStats={taskStats}
+                          loadingProjects={loadingProjects}
+                          projectError={projectError}
+                          onSelect={(id) => router.push(`/dashboard/projects/${id}`)}
+                          onDragStart={onDragStartGeneric}
+                          onDragOver={onDragOverGeneric}
+                          onDrop={onDropGeneric}
+                          dragType={dragType}
+                          dragOverIndex={dragOverIndex}
+                        />
+                      )}
                     </div>
                   ) : isTasksActive ? (
                     <div className="p-4 min-h-0">
-                      <div className="mb-2 flex items-center gap-2 text-xs">
-                        <button
-                          className={`px-2 py-1 rounded border ${myTasksView === 'assigned' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
-                          onClick={() => setMyTasksView('assigned')}
-                        >
-                          Bana atananlar
-                        </button>
-                        <button
-                          className={`px-2 py-1 rounded border ${myTasksView === 'created' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
-                          onClick={() => setMyTasksView('created')}
-                        >
-                          Oluşturduklarım
-                        </button>
-                        <button
-                          className={`px-2 py-1 rounded border ${myTasksView === 'all' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
-                          onClick={() => setMyTasksView('all')}
-                        >
-                          Tümü
-                        </button>
+                      {taskStats.length === 0 && !loadingTasks && !taskError ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                          <div className="text-sm text-muted-foreground">Henüz görev yok.</div>
+                          <Button onClick={() => { setTaskProjectId(projectStats[0]?.id ?? null); setCreateTaskOpen(true) }}>
+                            İlk Görevini Oluştur
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="mb-2 flex items-center gap-2 text-xs">
+                            <button
+                              className={`px-2 py-1 rounded border ${myTasksView === 'assigned' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                              onClick={() => setMyTasksView('assigned')}
+                            >
+                              Bana atananlar
+                            </button>
+                            <button
+                              className={`px-2 py-1 rounded border ${myTasksView === 'created' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                              onClick={() => setMyTasksView('created')}
+                            >
+                              Oluşturduklarım
+                            </button>
+                            <button
+                              className={`px-2 py-1 rounded border ${myTasksView === 'all' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                              onClick={() => setMyTasksView('all')}
+                            >
+                              Tümü
+                            </button>
+                          </div>
+                          <TasksSection
+                            taskStats={taskStats}
+                            loadingTasks={loadingTasks}
+                            taskError={taskError}
+                            selectedTaskId={selectedTaskId}
+                            currentPath={currentPath}
+                            onSelect={onTaskSelect}
+                            onStatusChange={onTaskStatusChange}
+                            onMyTasksOpen={() => setMyTasksOpen(true)}
+                            taskStatusFilter={taskStatusFilter}
+                            taskDueFilter={taskDueFilter}
+                            taskPriorityFilter={taskPriorityFilter}
+                            taskSortBy={taskSortBy}
+                            onStatusFilterChange={setTaskStatusFilter}
+                            onDueFilterChange={setTaskDueFilter}
+                            onPriorityFilterChange={setTaskPriorityFilter}
+                            onSortByChange={setTaskSortBy}
+                          />
+                        </>
+                      )}
+                    </div>
+                  ) : isIntegrationsActive ? (
+                    <div className="p-4 min-h-0">
+                      <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                        <div className="text-sm text-muted-foreground">Entegrasyonlar sayfasına yönlendiriliyorsunuz...</div>
+                        <Button onClick={() => router.push('/dashboard/integrations')}>
+                          Entegrasyonları Aç
+                        </Button>
                       </div>
-                      <TasksSection
-                        taskStats={taskStats}
-                        loadingTasks={loadingTasks}
-                        taskError={taskError}
-                        selectedTaskId={selectedTaskId}
-                        currentPath={currentPath}
-                        onSelect={onTaskSelect}
-                        onStatusChange={onTaskStatusChange}
-                        onMyTasksOpen={() => setMyTasksOpen(true)}
-                        taskStatusFilter={taskStatusFilter}
-                        taskDueFilter={taskDueFilter}
-                        taskPriorityFilter={taskPriorityFilter}
-                        taskSortBy={taskSortBy}
-                        onStatusFilterChange={setTaskStatusFilter}
-                        onDueFilterChange={setTaskDueFilter}
-                        onPriorityFilterChange={setTaskPriorityFilter}
-                        onSortByChange={setTaskSortBy}
-                      />
                     </div>
                   ) : (
                     <div className="p-4 text-center text-muted-foreground">
