@@ -32,6 +32,36 @@ export async function POST(req: NextRequest) {
         const repos = await gh.getRepositories()
         return NextResponse.json({ repos })
       }
+    case 'create_branch_for_task': {
+      const { taskId, base = 'main' } = body
+      if (!taskId) return NextResponse.json({ error: 'taskId required' }, { status: 400 })
+
+      // Fetch task with project settings
+      const { data: task, error: taskErr } = await supabase
+        .from('tasks')
+        .select('id, title, project_id, projects:project_id(id, settings)')
+        .eq('id', taskId)
+        .single()
+
+      if (taskErr || !task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+
+      const settings = (task as any).projects?.settings as any
+      const githubRepo: string | undefined = settings?.github_repo
+      if (!githubRepo) return NextResponse.json({ error: 'Project has no github_repo configured' }, { status: 400 })
+
+      const [owner, repo] = githubRepo.split('/')
+      // Simple branch name from task title
+      const slug = (task.title as string)
+        .toLowerCase()
+        .replace(/[^a-z0-9\-\s_]/g, '')
+        .trim()
+        .replace(/[\s_]+/g, '-')
+        .slice(0, 60)
+      const branchName = `feat/${slug || 'task-' + task.id}`
+
+      const res = await gh.createBranchFrom(owner, repo, base, branchName)
+      return NextResponse.json({ ok: true, branch: branchName, res })
+    }
       case 'list_branches': {
         const { owner, repo } = body
         const branches = await gh.getBranches(owner, repo)

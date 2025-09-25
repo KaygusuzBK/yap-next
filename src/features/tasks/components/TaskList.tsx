@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchTasksByProject, deleteTask, type Task } from '../api';
-import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User, Edit, MoreVertical, Filter } from 'lucide-react';
+import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User, Edit, MoreVertical, Filter, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
 import TaskEditForm from './TaskEditForm';
 import SyncButtons from '@/components/sync/SyncButtons';
@@ -369,6 +369,28 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
                         <DropdownMenuItem onClick={() => setEditingTask(task)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Düzenle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/github', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'create_branch_for_task', taskId: task.id, base: 'main' })
+                              })
+                              const json = await res.json()
+                              if (res.ok) {
+                                toast.success(`Branch oluşturuldu: ${json.branch}`)
+                              } else {
+                                toast.error(json.error || 'Branch oluşturulamadı')
+                              }
+                            } catch (e) {
+                              toast.error('Branch oluşturulamadı')
+                            }
+                          }}
+                        >
+                          <GitBranch className="h-4 w-4 mr-2" />
+                          Branch Oluştur
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
