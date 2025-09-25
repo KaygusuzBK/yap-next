@@ -18,6 +18,7 @@ interface GitHubIntegrationProps {
 
 export default function GitHubIntegration({ projectId, currentSettings, onSettingsUpdate }: GitHubIntegrationProps) {
   const [githubRepo, setGithubRepo] = useState('')
+  const [defaultBranch, setDefaultBranch] = useState('main')
   const [isConnected, setIsConnected] = useState(false)
   const [repositories, setRepositories] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -52,10 +53,14 @@ export default function GitHubIntegration({ projectId, currentSettings, onSettin
     }
   }
 
-  const loadCurrentSettings = () => {
-    if (currentSettings?.github_repo) {
-      setGithubRepo(currentSettings.github_repo)
-    }
+  const loadCurrentSettings = async () => {
+    try {
+      const res = await fetch(`/api/integrations/github?projectId=${projectId}&userId=me`, { method: 'GET' })
+      const json = await res.json()
+      const projectIntegration = json.projectIntegration
+      if (projectIntegration?.repo_full_name) setGithubRepo(projectIntegration.repo_full_name)
+      if (projectIntegration?.default_branch) setDefaultBranch(projectIntegration.default_branch)
+    } catch {}
   }
 
   const loadRepositories = async (_accessToken: string) => {
@@ -143,12 +148,12 @@ export default function GitHubIntegration({ projectId, currentSettings, onSettin
         return
       }
 
-      const newSettings = {
-        ...currentSettings,
-        github_repo: githubRepo
-      }
-
-      onSettingsUpdate(newSettings)
+      await fetch(`/api/integrations/github?projectId=${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_full_name: githubRepo, default_branch: defaultBranch })
+      })
+      onSettingsUpdate(currentSettings)
     } catch (error) {
       console.error('Save error:', error)
       alert('Ayarlar kaydedilemedi')

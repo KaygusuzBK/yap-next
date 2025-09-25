@@ -39,15 +39,22 @@ export async function POST(req: NextRequest) {
       // Fetch task with project settings
       const { data: task, error: taskErr } = await supabase
         .from('tasks')
-        .select('id, title, project_id, projects:project_id(id, settings)')
+        .select('id, title, project_id')
         .eq('id', taskId)
         .single()
 
       if (taskErr || !task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
 
-      const settings = (task as any).projects?.settings as any
-      const githubRepo: string | undefined = settings?.github_repo
-      if (!githubRepo) return NextResponse.json({ error: 'Project has no github_repo configured' }, { status: 400 })
+      // read project integration mapping
+      const { data: projectIntegration } = await supabase
+        .from('project_integrations')
+        .select('*')
+        .eq('project_id', task.project_id)
+        .eq('provider', 'github')
+        .single()
+      const githubRepo: string | undefined = (projectIntegration as any)?.repo_full_name
+      const baseBranch: string = (projectIntegration as any)?.default_branch || base
+      if (!githubRepo) return NextResponse.json({ error: 'Project has no github repo mapping' }, { status: 400 })
 
       const [owner, repo] = githubRepo.split('/')
       // Simple branch name from task title
@@ -59,7 +66,7 @@ export async function POST(req: NextRequest) {
         .slice(0, 60)
       const branchName = `feat/${slug || 'task-' + task.id}`
 
-      const res = await gh.createBranchFrom(owner, repo, base, branchName)
+      const res = await gh.createBranchFrom(owner, repo, baseBranch, branchName)
       return NextResponse.json({ ok: true, branch: branchName, res })
     }
       case 'list_branches': {
