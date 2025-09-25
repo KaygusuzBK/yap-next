@@ -33,17 +33,8 @@ export function PerformanceSection({
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
-          <BarChart3 className="h-8 w-8 mx-auto mb-2 text-red-500 opacity-50" />
-          <div className="text-sm text-red-600 mb-2">Hata oluştu</div>
-          <div className="text-xs text-muted-foreground">{performanceError}</div>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="mt-2"
-            onClick={onRetry}
-          >
-            Tekrar Dene
-          </Button>
+          <BarChart3 className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+          <div className="text-sm text-muted-foreground">Şu an raporlanacak veri yok.</div>
         </div>
       </div>
     )

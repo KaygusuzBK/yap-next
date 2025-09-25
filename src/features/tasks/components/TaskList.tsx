@@ -10,6 +10,7 @@ import { fetchTasksByProject, deleteTask, type Task } from '../api';
 import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User, Edit, MoreVertical, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import TaskEditForm from './TaskEditForm';
+import SyncButtons from '@/components/sync/SyncButtons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -222,10 +223,13 @@ export default function TaskList({ projectId, onCreateNew }: TaskListProps) {
                 Proje görevlerini yönetin ve takip edin
               </CardDescription>
             </div>
-            <Button onClick={onCreateNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Görev
-            </Button>
+            <div className="flex items-center gap-2">
+              <SyncButtons projectId={projectId} onSyncComplete={loadTasks} />
+              <Button onClick={onCreateNew}>
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni Görev
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

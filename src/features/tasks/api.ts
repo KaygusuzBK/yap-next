@@ -83,15 +83,15 @@ export async function fetchMyTasks(): Promise<Task[]> {
   const supabase = getSupabase();
   
   try {
-    console.log('🔍 fetchMyTasks - Starting...');
+    // Avoid noisy logs on unauthenticated homepage
+    // console.debug('fetchMyTasks - start');
     
     const user = await getUserCached();
     if (!user) {
-      console.error('❌ fetchMyTasks - No user found');
       return [];
     }
     
-    console.log('🔍 fetchMyTasks - User ID:', user.id);
+    // console.debug('fetchMyTasks - user', user.id);
 
     type SupabaseTaskRow = {
       id: string;
@@ -109,21 +109,16 @@ export async function fetchMyTasks(): Promise<Task[]> {
       projects?: { title?: string } | null;
     };
 
-    console.log('🔍 fetchMyTasks - Fetching tasks...');
+    // console.debug('fetchMyTasks - querying');
     const { data, error, count } = await supabase
       .from('project_tasks')
       .select(`*, projects(title)`, { count: 'exact' }) // join for project title
       .eq('assigned_to', user.id)
       .order('created_at', { ascending: false });
 
-    console.log('📊 fetchMyTasks - Result:', { 
-      count, 
-      error,
-      data: data?.length || 0
-    });
+    // console.debug('fetchMyTasks - result count', count);
 
     if (error) {
-      console.error('❌ fetchMyTasks - Error:', error);
       throw error;
     }
 
@@ -143,14 +138,10 @@ export async function fetchMyTasks(): Promise<Task[]> {
       project_title: row.projects?.title,
     })) as Task[];
     
-    console.log('✅ fetchMyTasks - Final result:', {
-      total: tasks.length,
-      tasks: tasks
-    });
+    // console.debug('fetchMyTasks - done', tasks.length);
     
     return tasks;
   } catch (error) {
-    console.error('❌ fetchMyTasks - Exception:', error);
     throw error;
   }
 }

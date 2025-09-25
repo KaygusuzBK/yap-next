@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/lib/store/auth";
 import {
   addComment,
   createTask,
@@ -35,9 +36,11 @@ export const keys = {
 };
 
 export function useMyTasks() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: keys.tasks(),
     queryFn: () => fetchMyTasks(),
+    enabled: isAuthenticated,
     staleTime: 60_000, // 1 dk
     gcTime: 15 * 60_000,
     refetchOnWindowFocus: false,
@@ -47,9 +50,11 @@ export function useMyTasks() {
 }
 
 export function useMyCreatedTasks() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: keys.myCreated(),
     queryFn: () => fetchMyCreatedTasks(),
+    enabled: isAuthenticated,
     staleTime: 60_000,
     gcTime: 15 * 60_000,
     refetchOnWindowFocus: false,
@@ -57,9 +62,11 @@ export function useMyCreatedTasks() {
 }
 
 export function useMyAllTasks() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: keys.myAll(),
     queryFn: () => fetchMyAllTasks(),
+    enabled: isAuthenticated,
     staleTime: 60_000,
     gcTime: 15 * 60_000,
     refetchOnWindowFocus: false,

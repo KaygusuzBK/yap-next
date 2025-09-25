@@ -12,15 +12,32 @@ import { toast } from 'sonner'
 import { Settings } from 'lucide-react'
 import { usePreferencesStore, type Locale } from '@/lib/store/preferences'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import GitHubIntegration from '@/components/projects/GitHubIntegration'
 
 export default function ProjectSettingsButton({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false)
   const [channel, setChannel] = useState('')
+  const [project, setProject] = useState<any>(null)
   const enabledLocales = usePreferencesStore(s => s.enabledLocales)
   const setEnabledLocales = usePreferencesStore(s => s.setEnabledLocales)
 
   async function load() {
-    try { const p = await getProjectById(projectId); setChannel(p?.slack_channel_id ?? '') } catch {}
+    try { 
+      const p = await getProjectById(projectId)
+      setChannel(p?.slack_channel_id ?? '')
+      setProject(p)
+    } catch {}
+  }
+
+  const handleSettingsUpdate = async (newSettings: any) => {
+    if (!project) return
+    try {
+      const updatedProject = { ...project, settings: newSettings }
+      setProject(updatedProject)
+      toast.success('Ayarlar güncellendi')
+    } catch (error) {
+      toast.error('Ayarlar güncellenemedi')
+    }
   }
   return (
     <>
@@ -38,6 +55,7 @@ export default function ProjectSettingsButton({ projectId }: { projectId: string
               <TabsList>
                 <TabsTrigger value="general">Genel</TabsTrigger>
                 <TabsTrigger value="statuses">Durumlar</TabsTrigger>
+                <TabsTrigger value="integrations">Entegrasyonlar</TabsTrigger>
               </TabsList>
               <TabsContent value="general">
                 <div className="space-y-3">
@@ -80,6 +98,15 @@ export default function ProjectSettingsButton({ projectId }: { projectId: string
               </TabsContent>
               <TabsContent value="statuses">
                 <ProjectStatusManager projectId={projectId} />
+              </TabsContent>
+              <TabsContent value="integrations">
+                <div className="space-y-4">
+                  <GitHubIntegration
+                    projectId={projectId}
+                    currentSettings={project?.settings}
+                    onSettingsUpdate={handleSettingsUpdate}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>

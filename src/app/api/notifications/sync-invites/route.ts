@@ -27,7 +27,14 @@ export async function POST(req: NextRequest) {
     // Fetch pending invitations by email
     const { data: invites, error: invErr } = await admin
       .from('team_invitations')
-      .select('id, team_id, role, accepted_at, expires_at, teams(name)')
+      .select(`
+        id, 
+        team_id, 
+        role, 
+        accepted_at, 
+        expires_at,
+        teams!inner(name)
+      `)
       .eq('email', email)
       .is('accepted_at', null)
       .gt('expires_at', nowIso)

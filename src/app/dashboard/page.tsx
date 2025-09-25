@@ -56,6 +56,17 @@ export default function Page() {
   const [showSettings, setShowSettings] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [draggedWidget, setDraggedWidget] = useState<string | null>(null)
+  // Özetteki kartları yeniden sıralamak için state
+  const [summaryOrder, setSummaryOrder] = useState<Array<'completed' | 'in_progress' | 'overdue' | 'due_today'>>([
+    'completed', 'in_progress', 'overdue', 'due_today'
+  ])
+  const [draggedSummary, setDraggedSummary] = useState<null | 'completed' | 'in_progress' | 'overdue' | 'due_today'>(null)
+  
+  // Alttaki 3 kartı yeniden sıralamak için state
+  const [bottomCardsOrder, setBottomCardsOrder] = useState<Array<'priority' | 'activity' | 'actions'>>([
+    'priority', 'activity', 'actions'
+  ])
+  const [draggedBottomCard, setDraggedBottomCard] = useState<null | 'priority' | 'activity' | 'actions'>(null)
   
   // Görev görünümü tercihi
   const [taskView, setTaskView] = useState<'kanban' | 'board' | 'table'>('kanban')
@@ -71,11 +82,15 @@ export default function Page() {
         const wo = (p as any)?.dashboard?.widgetOrder as string[] | undefined
         const ws = (p as any)?.dashboard?.widgetSizes as Record<string, 'small' | 'medium' | 'large'> | undefined
         const th = (p as any)?.dashboard?.theme as 'light' | 'dark' | 'system' | undefined
+        const so = (p as any)?.dashboard?.summaryOrder as Array<'completed' | 'in_progress' | 'overdue' | 'due_today'> | undefined
+        const bco = (p as any)?.dashboard?.bottomCardsOrder as Array<'priority' | 'activity' | 'actions'> | undefined
         
         if (dp) setDashboardPrefs(prev => ({ ...prev, ...dp }))
         if (wo && Array.isArray(wo) && wo.length) setWidgetOrder(wo)
         if (ws) setWidgetSizes(prev => ({ ...prev, ...ws }))
         if (th) setTheme(th)
+        if (so && Array.isArray(so) && so.length === 4) setSummaryOrder(so)
+        if (bco && Array.isArray(bco) && bco.length === 3) setBottomCardsOrder(bco)
       } catch {}
     })()
   }, [])
@@ -119,6 +134,58 @@ export default function Page() {
 
     setDraggedWidget(null)
     setIsDragging(false)
+  }
+
+  // Summary kartları için drag & drop
+  const handleSummaryDragStart = (e: React.DragEvent, id: 'completed' | 'in_progress' | 'overdue' | 'due_today') => {
+    if (!editMode) return
+    setDraggedSummary(id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const handleSummaryDragOver = (e: React.DragEvent) => {
+    if (!editMode) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+  const handleSummaryDrop = (e: React.DragEvent, targetId: 'completed' | 'in_progress' | 'overdue' | 'due_today') => {
+    if (!editMode) return
+    e.preventDefault()
+    if (!draggedSummary || draggedSummary === targetId) return
+    const order = [...summaryOrder]
+    const from = order.indexOf(draggedSummary)
+    const to = order.indexOf(targetId)
+    if (from === -1 || to === -1) return
+    order.splice(from, 1)
+    order.splice(to, 0, draggedSummary)
+    setSummaryOrder(order)
+    saveUserPrefs({ dashboard: { summaryOrder: order } } as any)
+    setDraggedSummary(null)
+  }
+
+  // Alttaki kartlar için drag & drop
+  const handleBottomCardDragStart = (e: React.DragEvent, id: 'priority' | 'activity' | 'actions') => {
+    if (!editMode) return
+    setDraggedBottomCard(id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const handleBottomCardDragOver = (e: React.DragEvent) => {
+    if (!editMode) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+  const handleBottomCardDrop = (e: React.DragEvent, targetId: 'priority' | 'activity' | 'actions') => {
+    if (!editMode) return
+    e.preventDefault()
+    if (!draggedBottomCard || draggedBottomCard === targetId) return
+    const order = [...bottomCardsOrder]
+    const from = order.indexOf(draggedBottomCard)
+    const to = order.indexOf(targetId)
+    if (from === -1 || to === -1) return
+    order.splice(from, 1)
+    order.splice(to, 0, draggedBottomCard)
+    setBottomCardsOrder(order)
+    saveUserPrefs({ dashboard: { bottomCardsOrder: order } } as any)
+    setDraggedBottomCard(null)
   }
 
   const handleWidgetSizeChange = (widgetId: string, size: 'small' | 'medium' | 'large') => {
@@ -401,14 +468,23 @@ export default function Page() {
                 className="flex items-center gap-2"
               >
                 <Settings className="h-4 w-4" />
-                Ayarlar
+{t('dashboard.controls.settings')}
               </Button>
               <Button
                 size="sm"
                 variant={editMode ? 'default' : 'outline'}
-                onClick={() => setEditMode((v) => !v)}
+                onClick={() => {
+                  if (editMode) {
+                    // Düzenleme modundan çıkarken tüm drag state'lerini temizle
+                    setDraggedWidget(null)
+                    setIsDragging(false)
+                    setDraggedSummary(null)
+                    setDraggedBottomCard(null)
+                  }
+                  setEditMode((v) => !v)
+                }}
               >
-                {editMode ? 'Bitti' : 'Düzenle'}
+{editMode ? t('dashboard.controls.done') : t('dashboard.controls.edit')}
               </Button>
             </div>
           )}
@@ -423,7 +499,7 @@ export default function Page() {
 
                     {/* Özet Bölümü */}
                     <section 
-                      className={`space-y-4 ${editMode ? 'cursor-move' : ''} ${isDragging ? 'opacity-50' : ''}`}
+                      className={`space-y-4 ${editMode ? 'cursor-move' : ''} ${isDragging ? 'opacity-50' : ''} ${getWidgetSizeClass(widgetSizes.summary)}`}
                       draggable={editMode}
                       onDragStart={(e) => handleWidgetDragStart(e, 'summary')}
                       onDragOver={handleWidgetDragOver}
@@ -432,7 +508,7 @@ export default function Page() {
                       <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
                           <BarChart3 className="h-5 w-5" />
-                          Görev Özeti
+{t('dashboard.summary.title')}
                           {editMode && <GripVertical className="h-4 w-4 text-muted-foreground" />}
                         </h2>
                         <div className="flex items-center gap-2">
@@ -448,179 +524,198 @@ export default function Page() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="small">Küçük</SelectItem>
-                                <SelectItem value="medium">Orta</SelectItem>
-                                <SelectItem value="large">Büyük</SelectItem>
+                                <SelectItem value="small">{t('dashboard.controls.size.small')}</SelectItem>
+                                <SelectItem value="medium">{t('dashboard.controls.size.medium')}</SelectItem>
+                                <SelectItem value="large">{t('dashboard.controls.size.large')}</SelectItem>
                               </SelectContent>
                             </Select>
                           )}
                         </div>
                       </div>
                       
-                      <div className="grid gap-3 grid-cols-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 min-w-0">
-                        {/* Tamamlanan Görevler */}
-                        <Card className="relative overflow-hidden">
-                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/20" />
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tamamlanan</CardTitle>
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold text-green-600">{summaryStats.completedTasks}</div>
-                            <div className="text-xs text-muted-foreground">
-                              %{summaryStats.completionRate} tamamlanma oranı
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Devam Eden Görevler */}
-                        <Card className="relative overflow-hidden">
-                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/20" />
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Devam Eden</CardTitle>
-                            <Activity className="h-4 w-4 text-blue-600" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold text-blue-600">{summaryStats.inProgressTasks}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Aktif görevler
-                              </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Geciken Görevler */}
-                        <Card className="relative overflow-hidden">
-                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/20" />
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Geciken</CardTitle>
-                            <AlertCircle className="h-4 w-4 text-red-600" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold text-red-600">{summaryStats.overdueTasks}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Acil müdahale gerekli
-                              </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Bugün Biten Görevler */}
-                        <Card className="relative overflow-hidden">
-                          <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-orange-100 dark:bg-orange-900/20" />
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Bugün Biten</CardTitle>
-                            <Clock className="h-4 w-4 text-orange-600" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold text-orange-600">{summaryStats.dueTodayTasks}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Bugün bitmesi gereken
-                            </div>
-                          </CardContent>
-                        </Card>
+                      <div className={`grid gap-3 ${widgetSizes.summary === 'small' ? 'grid-cols-1' : widgetSizes.summary === 'medium' ? 'grid-cols-2' : 'grid-cols-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4'} min-w-0`}>
+                        {summaryOrder.map((id) => (
+                          <div
+                            key={id}
+                            draggable={editMode}
+                            onDragStart={(e) => handleSummaryDragStart(e, id)}
+                            onDragOver={handleSummaryDragOver}
+                            onDrop={(e) => handleSummaryDrop(e, id)}
+                            className={editMode ? 'cursor-move' : ''}
+                          >
+                            {id === 'completed' && (
+                              <Card className="relative overflow-hidden">
+                                <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/20" />
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">{t('dashboard.summary.completed')}</CardTitle>
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-green-600">{summaryStats.completedTasks}</div>
+                                  <div className="text-xs text-muted-foreground">%{summaryStats.completionRate} {t('dashboard.summary.completionRate')}</div>
+                                </CardContent>
+                              </Card>
+                            )}
+                            {id === 'in_progress' && (
+                              <Card className="relative overflow-hidden">
+                                <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/20" />
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">{t('dashboard.summary.inProgress')}</CardTitle>
+                                  <Activity className="h-4 w-4 text-blue-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-blue-600">{summaryStats.inProgressTasks}</div>
+                                  <div className="text-xs text-muted-foreground">{t('dashboard.summary.activeTasks')}</div>
+                                </CardContent>
+                              </Card>
+                            )}
+                            {id === 'overdue' && (
+                              <Card className="relative overflow-hidden">
+                                <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/20" />
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">{t('dashboard.summary.overdue')}</CardTitle>
+                                  <AlertCircle className="h-4 w-4 text-red-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-red-600">{summaryStats.overdueTasks}</div>
+                                  <div className="text-xs text-muted-foreground">{t('dashboard.summary.urgentAction')}</div>
+                                </CardContent>
+                              </Card>
+                            )}
+                            {id === 'due_today' && (
+                              <Card className="relative overflow-hidden">
+                                <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-orange-100 dark:bg-orange-900/20" />
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                  <CardTitle className="text-sm font-medium">{t('dashboard.summary.dueToday')}</CardTitle>
+                                  <Clock className="h-4 w-4 text-orange-600" />
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold text-orange-600">{summaryStats.dueTodayTasks}</div>
+                                  <div className="text-xs text-muted-foreground">{t('dashboard.summary.dueTodayDesc')}</div>
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        ))}
                       </div>
 
           {/* İkinci satır - Detaylı istatistikler */}
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
-                        {/* Öncelik Dağılımı */}
-                        <Card>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                              <Target className="h-4 w-4" />
-                              Öncelik Dağılımı
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">Acil</span>
-                              <Badge variant="destructive" className="text-xs">
-                                {summaryStats.urgentTasks}
-                              </Badge>
-                              </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">Yüksek</span>
-                              <Badge variant="outline" className="text-xs border-amber-200 text-amber-700">
-                                {summaryStats.highPriorityTasks}
-                              </Badge>
-                              </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">Bu Hafta</span>
-                              <Badge variant="secondary" className="text-xs">
-                                {summaryStats.dueThisWeekTasks}
-                              </Badge>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Proje Aktivitesi */}
-                        <Card>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                              <Folder className="h-4 w-4" />
-                              Proje Aktivitesi
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">Ortalama Görev/Proje</span>
-                              <span className="text-sm font-medium">{summaryStats.avgTasksPerProject}</span>
-                              </div>
-                            {summaryStats.mostActiveProject && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted-foreground">En Aktif Proje</span>
-                                <span className="text-sm font-medium truncate max-w-[120px]" title={summaryStats.mostActiveProject}>
-                                  {summaryStats.mostActiveProject}
-                                </span>
-                              </div>
+          <div className={`grid gap-3 ${widgetSizes.summary === 'small' ? 'grid-cols-1' : widgetSizes.summary === 'medium' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} min-w-0`}>
+                        {bottomCardsOrder.map((id) => (
+                          <div
+                            key={id}
+                            draggable={editMode}
+                            onDragStart={(e) => handleBottomCardDragStart(e, id)}
+                            onDragOver={handleBottomCardDragOver}
+                            onDrop={(e) => handleBottomCardDrop(e, id)}
+                            className={editMode ? 'cursor-move' : ''}
+                          >
+                            {id === 'priority' && (
+                              <Card className="h-full flex flex-col">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <Target className="h-4 w-4" />
+{t('dashboard.cards.priority.title')}
+                                    {editMode && <GripVertical className="h-4 w-4 text-muted-foreground ml-auto" />}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">{t('dashboard.cards.priority.urgent')}</span>
+                                    <Badge variant="destructive" className="text-xs">
+                                      {summaryStats.urgentTasks}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">{t('dashboard.cards.priority.high')}</span>
+                                    <Badge variant="outline" className="text-xs border-amber-200 text-amber-700">
+                                      {summaryStats.highPriorityTasks}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">{t('dashboard.cards.priority.thisWeek')}</span>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {summaryStats.dueThisWeekTasks}
+                                    </Badge>
+                                  </div>
+                                </CardContent>
+                              </Card>
                             )}
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">Son 7 Gün</span>
-                              <span className="text-sm font-medium">{summaryStats.recentActivity} yeni görev</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Hızlı Eylemler */}
-                        <Card>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                              <Plus className="h-4 w-4" />
-                              Hızlı Eylemler
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <Button 
-                              size="sm" 
-                              className="w-full justify-start" 
-                              variant="outline"
-                              onClick={() => setTaskModalOpen(true)}
-                            >
-                              <Plus className="h-3 w-3 mr-2" />
-                              Yeni Görev Ekle
-                            </Button>
-                            {summaryStats.overdueTasks > 0 && (
-                              <Button 
-                                size="sm" 
-                                className="w-full justify-start" 
-                                variant="destructive"
-                                onClick={() => setProjectFilter("overdue")}
-                              >
-                                <AlertCircle className="h-3 w-3 mr-2" />
-                                Geciken Görevleri Gör
-                              </Button>
+                            {id === 'activity' && (
+                              <Card className="h-full flex flex-col">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <Folder className="h-4 w-4" />
+{t('dashboard.cards.activity.title')}
+                                    {editMode && <GripVertical className="h-4 w-4 text-muted-foreground ml-auto" />}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">{t('dashboard.cards.activity.avgTasksPerProject')}</span>
+                                    <span className="text-sm font-medium">{summaryStats.avgTasksPerProject}</span>
+                                  </div>
+                                  {summaryStats.mostActiveProject && (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">{t('dashboard.cards.activity.mostActiveProject')}</span>
+                                      <span className="text-sm font-medium truncate max-w-[120px]" title={summaryStats.mostActiveProject}>
+                                        {summaryStats.mostActiveProject}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">{t('dashboard.cards.activity.last7Days')}</span>
+                                    <span className="text-sm font-medium">{summaryStats.recentActivity} {t('dashboard.cards.activity.newTasks')}</span>
+                                  </div>
+                                </CardContent>
+                              </Card>
                             )}
-                            {summaryStats.dueTodayTasks > 0 && (
-                              <Button 
-                                size="sm" 
-                                className="w-full justify-start" 
-                                variant="outline"
-                                onClick={() => setProjectFilter("today")}
-                              >
-                                <Clock className="h-3 w-3 mr-2" />
-                                Bugün Biten Görevler
-                              </Button>
+                            {id === 'actions' && (
+                              <Card className="h-full flex flex-col">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <Plus className="h-4 w-4" />
+{t('dashboard.cards.actions.title')}
+                                    {editMode && <GripVertical className="h-4 w-4 text-muted-foreground ml-auto" />}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 flex-1">
+                                  <Button 
+                                    size="sm" 
+                                    className="w-full justify-start" 
+                                    variant="outline"
+                                    onClick={() => setTaskModalOpen(true)}
+                                  >
+                                    <Plus className="h-3 w-3 mr-2" />
+{t('dashboard.cards.actions.addTask')}
+                                  </Button>
+                                  {summaryStats.overdueTasks > 0 && (
+                                    <Button 
+                                      size="sm" 
+                                      className="w-full justify-start" 
+                                      variant="destructive"
+                                      onClick={() => setProjectFilter("overdue")}
+                                    >
+                                      <AlertCircle className="h-3 w-3 mr-2" />
+{t('dashboard.cards.actions.viewOverdue')}
+                                    </Button>
+                                  )}
+                                  {summaryStats.dueTodayTasks > 0 && (
+                                    <Button 
+                                      size="sm" 
+                                      className="w-full justify-start" 
+                                      variant="outline"
+                                      onClick={() => setProjectFilter("today")}
+                                    >
+                                      <Clock className="h-3 w-3 mr-2" />
+{t('dashboard.cards.actions.viewDueToday')}
+                                    </Button>
+                                  )}
+                                </CardContent>
+                              </Card>
                             )}
-                          </CardContent>
-                        </Card>
+                          </div>
+                        ))}
                       </div>
                     </section>
                   </div>
@@ -668,7 +763,17 @@ export default function Page() {
                   
                   <Button
                     size="sm"
-                    onClick={() => setTaskModalOpen(true)}
+                    onClick={() => {
+                      if ((projects ?? []).length === 0) {
+                        toast.info('Önce bir proje oluşturun.');
+                        // Açık "Yeni Görev" yerine proje oluşturma deneyimi verelim
+                        // Dashboard genelinde proje oluşturma modali yok; hızlı yönlendirme:
+                        const el = document.querySelector('[data-tour="create-project"]') as HTMLElement | null
+                        if (el) el.click();
+                        return;
+                      }
+                      setTaskModalOpen(true)
+                    }}
                     className="w-full sm:w-auto"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -756,7 +861,13 @@ export default function Page() {
             <DialogTitle>Yeni Görev</DialogTitle>
           </DialogHeader>
           {projects.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Önce bir proje oluşturun.</div>
+            <div className="text-center py-6 space-y-3">
+              <div className="text-sm text-muted-foreground">Önce bir proje oluşturun.</div>
+              <Button onClick={() => {
+                const el = document.querySelector('[data-tour="create-project"]') as HTMLElement | null
+                if (el) el.click();
+              }}>Yeni Proje Oluştur</Button>
+            </div>
           ) : (
             <div className="space-y-3">
               <div className="space-y-1">
@@ -786,7 +897,7 @@ export default function Page() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Dashboard Ayarları
+{t('dashboard.settings.title')}
             </DialogTitle>
           </DialogHeader>
           
@@ -795,7 +906,7 @@ export default function Page() {
             <div className="space-y-3">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <Palette className="h-4 w-4" />
-                Tema
+{t('dashboard.settings.theme')}
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 <Button
@@ -804,7 +915,7 @@ export default function Page() {
                   className="flex items-center gap-2"
                 >
                   <div className="w-4 h-4 rounded-full bg-white border-2 border-gray-300" />
-                  Açık
+{t('dashboard.settings.light')}
                 </Button>
                 <Button
                   variant={theme === 'dark' ? 'default' : 'outline'}
@@ -812,7 +923,7 @@ export default function Page() {
                   className="flex items-center gap-2"
                 >
                   <div className="w-4 h-4 rounded-full bg-gray-800 border-2 border-gray-600" />
-                  Koyu
+{t('dashboard.settings.dark')}
                 </Button>
                 <Button
                   variant={theme === 'system' ? 'default' : 'outline'}
@@ -820,7 +931,7 @@ export default function Page() {
                   className="flex items-center gap-2"
                 >
                   <div className="w-4 h-4 rounded-full bg-gradient-to-r from-white to-gray-800 border-2 border-gray-300" />
-                  Sistem
+{t('dashboard.settings.system')}
                 </Button>
               </div>
             </div>
@@ -829,25 +940,25 @@ export default function Page() {
             <div className="space-y-3">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <Layout className="h-4 w-4" />
-                Widget Görünürlüğü
+{t('dashboard.settings.widgetVisibility')}
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Görev Özeti</span>
+                  <span className="text-sm">{t('dashboard.settings.taskSummary')}</span>
                   <Switch
                     checked={dashboardPrefs.showBoard}
                     onCheckedChange={(checked) => saveDashboardPrefs({ showBoard: checked })}
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Aktiviteler</span>
+                  <span className="text-sm">{t('dashboard.settings.activities')}</span>
                   <Switch
                     checked={dashboardPrefs.showActivities}
                     onCheckedChange={(checked) => saveDashboardPrefs({ showActivities: checked })}
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Davetler</span>
+                  <span className="text-sm">{t('dashboard.settings.invites')}</span>
                   <Switch
                     checked={dashboardPrefs.showInvites}
                     onCheckedChange={(checked) => saveDashboardPrefs({ showInvites: checked })}
@@ -860,17 +971,17 @@ export default function Page() {
             <div className="space-y-3">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <GripVertical className="h-4 w-4" />
-                Widget Sıralama
+{t('dashboard.settings.widgetOrdering')}
               </h3>
               <div className="text-sm text-muted-foreground">
-                Düzenleme modunda widget'ları sürükle-bırak ile yeniden sıralayabilirsiniz.
+{t('dashboard.settings.editModeDescription')}
               </div>
               <Button
                 variant="outline"
                 onClick={() => setEditMode(true)}
                 className="w-full"
               >
-                Düzenleme Modunu Aç
+{t('dashboard.settings.openEditMode')}
               </Button>
             </div>
           </div>

@@ -117,68 +117,55 @@ export async function fetchTeams(): Promise<Team[]> {
   const supabase = getSupabase();
   
   try {
-    console.log('🔍 fetchTeams - Starting...');
+    // Avoid noisy logs on unauthenticated homepage
     const user = await getUserCached();
     if (!user) {
-      console.error('❌ fetchTeams - No user found');
       return [];
     }
     
-    console.log('🔍 fetchTeams - User ID:', user.id);
+    // console.debug('fetchTeams - user', user.id);
 
     // 1) Sahibi olduğu takımlar
-    console.log('🔍 fetchTeams - Fetching owned teams...');
+    // console.debug('fetchTeams - owned');
     const { data: owned, error: ownedErr, count: ownedCount } = await supabase
       .from('teams')
       .select('*', { count: 'exact' })
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
     
-    console.log('📊 fetchTeams - Owned teams result:', { 
-      count: ownedCount, 
-      error: ownedErr,
-      data: owned?.length || 0
-    });
+    // console.debug('fetchTeams - owned count', ownedCount);
     
     if (ownedErr) {
-      console.error('❌ fetchTeams - Owned teams error:', ownedErr);
+      // non-fatal
     }
 
     // 2) Üye olduğu takımların id listesini çek (RLS daha stabil)
-    console.log('🔍 fetchTeams - Fetching member teams...');
+    // console.debug('fetchTeams - members');
     const { data: memberRows, error: memberErr, count: memberCount } = await supabase
       .from('team_members')
       .select('team_id', { count: 'exact' })
       .eq('user_id', user.id);
     
-    console.log('📊 fetchTeams - Member teams result:', { 
-      count: memberCount, 
-      error: memberErr,
-      data: memberRows?.length || 0
-    });
+    // console.debug('fetchTeams - members count', memberCount);
     
     if (memberErr) {
-      console.error('❌ fetchTeams - Member teams error:', memberErr);
+      // non-fatal
     }
 
     const memberIds = (memberRows || []).map(r => r.team_id);
     let memberTeams: Team[] = [];
     
     if (memberIds.length > 0) {
-      console.log('🔍 fetchTeams - Fetching teams by IDs:', memberIds);
+      // console.debug('fetchTeams - by ids');
       const { data: teamsByIds, error: teamsErr, count: teamsCount } = await supabase
         .from('teams')
         .select('*', { count: 'exact' })
         .in('id', memberIds);
       
-      console.log('📊 fetchTeams - Teams by IDs result:', { 
-        count: teamsCount, 
-        error: teamsErr,
-        data: teamsByIds?.length || 0
-      });
+      // console.debug('fetchTeams - by ids count', teamsCount);
       
       if (teamsErr) {
-        console.error('❌ fetchTeams - Teams by IDs error:', teamsErr);
+        // non-fatal
       }
       
       memberTeams = (teamsByIds || []) as Team[];
@@ -187,16 +174,10 @@ export async function fetchTeams(): Promise<Team[]> {
     const all = [ ...(owned || []), ...memberTeams ];
     const unique = all.filter((team, index, self) => index === self.findIndex(t => t.id === team.id));
     
-    console.log('✅ fetchTeams - Final result:', {
-      owned: owned?.length || 0,
-      memberTeams: memberTeams.length,
-      total: unique.length,
-      teams: unique
-    });
+    // console.debug('fetchTeams - done', unique.length);
     
     return unique;
   } catch (error) {
-    console.error('❌ fetchTeams - Error:', error);
     throw error;
   }
 }
