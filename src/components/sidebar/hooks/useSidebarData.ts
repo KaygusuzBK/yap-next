@@ -5,10 +5,14 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useProjects, projectKeys } from "@/features/projects/queries"
 import { useMyTasks, useMyCreatedTasks, useMyAllTasks, keys as taskQueryKeys } from "@/features/tasks/queries"
 import { applySavedOrder } from "@/lib/sidebarOrder"
+import { useActiveProjectStore } from '@/lib/store/project'
 import type { TeamStat, ProjectStat, TaskStat } from "../types"
 
 export function useSidebarData() {
   const qc = useQueryClient()
+  const activeProjectId = useActiveProjectStore(s => s.activeProjectId)
+  const loadActive = useActiveProjectStore(s => s.load)
+  React.useEffect(() => { loadActive() }, [loadActive])
   const { data: hookProjects = [], isLoading: hookLoadingProjects, error: hookProjectsError } = useProjects()
   const { data: hookMyTasksAssigned = [], isLoading: loadAssigned, error: errAssigned } = useMyTasks()
   const { data: hookMyTasksCreated = [], isLoading: loadCreated } = useMyCreatedTasks()
@@ -30,7 +34,8 @@ export function useSidebarData() {
       teamName: p.team_id ? null : null,
       createdAt: p.created_at,
     })) as ProjectStat[]
-    return applySavedOrder('projects', base)
+    const ordered = applySavedOrder('projects', base)
+    return activeProjectId ? ordered.filter(p => p.id === activeProjectId) : ordered
   }, [hookProjects])
 
   const baseTasks = React.useMemo(() => {

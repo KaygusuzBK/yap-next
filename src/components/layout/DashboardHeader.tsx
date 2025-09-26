@@ -13,6 +13,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { ArrowLeft, Home } from "lucide-react"
+import { useActiveProjectStore } from '@/lib/store/project'
+import { getSupabase } from '@/lib/supabase'
 
 type Crumb = {
   label: string
@@ -35,6 +37,19 @@ export default function DashboardHeader({
   meta,
 }: DashboardHeaderProps) {
   const pathname = usePathname()
+  const activeProjectId = useActiveProjectStore(s => s.activeProjectId)
+  const setActiveProject = useActiveProjectStore(s => s.setActiveProject)
+  const [projects, setProjects] = React.useState<Array<{ id: string; title: string }>>([])
+
+  React.useEffect(() => {
+    ;(async () => {
+      try {
+        const supabase = getSupabase()
+        const { data } = await supabase.from('projects').select('id,title').order('created_at', { ascending: false })
+        setProjects(data ?? [])
+      } catch {}
+    })()
+  }, [])
 
   // Eğer breadcrumb prop verilmediyse, otomatik üret
   const autoBreadcrumb: Crumb[] = React.useMemo(() => {
@@ -65,33 +80,7 @@ export default function DashboardHeader({
   }, [breadcrumb, pathname])
 
   return (
-    <div className="w-full space-y-3 mb-4 md:mb-6">
-      {autoBreadcrumb.length > 0 && (
-        <section>
-          <Breadcrumb>
-            <BreadcrumbList>
-              {autoBreadcrumb.map((c, idx) => {
-                const isLast = idx === autoBreadcrumb.length - 1
-                return (
-                  <React.Fragment key={`${c.label}-${idx}`}>
-                    <BreadcrumbItem>
-                      {isLast || !c.href ? (
-                        <BreadcrumbPage>{c.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink asChild>
-                          <Link href={c.href}>{c.label}</Link>
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                    {!isLast && <BreadcrumbSeparator />}
-                  </React.Fragment>
-                )
-              })}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </section>
-      )}
-
+    <div className="w-full">
       <section className="flex items-center justify-between">
         <div className="flex items-start gap-2 min-w-0">
           {backHref && (
@@ -106,15 +95,7 @@ export default function DashboardHeader({
             {meta ? <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">{meta}</div> : null}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard">
-            <Button aria-label="Ana Sayfa" title="Ana Sayfa" variant="outline" size="sm">
-              <Home className="h-4 w-4 mr-1" />
-              Ana Sayfa
-            </Button>
-          </Link>
-          {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-        </div>
+        <div className="flex items-center gap-2" />
       </section>
     </div>
   )
