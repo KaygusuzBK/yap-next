@@ -15,6 +15,25 @@ export const tr = {
     delete: "Sil",
     deleting: "Siliniyor...",
     soon: "Yakında",
+    more: "Daha Fazla",
+    search: "Ara",
+    actions: "Aksiyonlar",
+    confirm: "Onayla",
+    close: "Kapat",
+    retry: "Tekrar Dene",
+    next: "İleri",
+    previous: "Geri",
+    create: "Oluştur",
+    update: "Güncelle",
+    required: "Zorunlu",
+    optional: "Opsiyonel",
+  },
+  header: {
+    activeProject: "Aktif Proje",
+    allProjects: "Tüm Projeler",
+    newTask: "Yeni Görev",
+    newProject: "Yeni Proje",
+    notifications: "Bildirimler",
   },
   dashboard: {
     breadcrumb: { home: "Ana Sayfa", dashboard: "Dashboard" },
@@ -141,6 +160,50 @@ export const tr = {
       loadError: "Entegrasyonlar yüklenemedi"
     }
   },
+  auth: {
+    login: {
+      title: "Giriş",
+      email: "E‑posta",
+      password: "Şifre",
+      remember: "Beni hatırla",
+      submit: "Giriş Yap",
+      noAccount: "Hesabın yok mu?",
+      goRegister: "Kayıt Ol",
+      withProviders: "Veya hesapla devam et",
+    },
+    register: {
+      title: "Kayıt",
+      name: "Ad Soyad",
+      email: "E‑posta",
+      password: "Şifre",
+      submit: "Kayıt Ol",
+      haveAccount: "Zaten hesabın var mı?",
+      goLogin: "Giriş Yap",
+    },
+    forgot: {
+      title: "Şifremi Unuttum",
+      sendLink: "Sıfırlama bağlantısı gönder",
+      backToLogin: "Girişe dön",
+    },
+    reset: {
+      title: "Şifre Sıfırla",
+      newPassword: "Yeni şifre",
+      confirmPassword: "Şifreyi doğrula",
+      submit: "Şifreyi Sıfırla",
+    },
+    errors: {
+      invalidCreds: "E‑posta veya şifre hatalı",
+      weakPassword: "Şifre çok zayıf",
+      emailInUse: "Bu e‑posta zaten kullanımda",
+      unknown: "Beklenmeyen bir hata oluştu",
+    },
+    success: {
+      loggedIn: "Giriş başarılı",
+      registered: "Kayıt başarılı",
+      linkSent: "Sıfırlama bağlantısı gönderildi",
+      passwordReset: "Şifre başarıyla güncellendi",
+    },
+  },
   project: {
     notFound: "Proje bulunamadı",
     loadError: "Proje yüklenirken bir hata oluştu",
@@ -167,6 +230,14 @@ export const tr = {
     tasks: { createTitle: "Yeni Görev Oluştur", createDesc: "Proje için yeni bir görev ekleyin" },
     files: { upload: "Dosya Yükle" },
     comments: { title: "Yorumlar", desc: "Proje yorumlarını görüntüleyin", add: "Yorum Ekle" },
+    list: {
+      create: "Yeni Proje",
+      empty: "Henüz proje yok",
+      filterAll: "Tümü",
+      filterActive: "Aktif",
+      filterCompleted: "Tamamlandı",
+      filterArchived: "Arşivlenmiş",
+    },
   },
   task: {
     loading: "Görev yükleniyor...",
@@ -194,6 +265,27 @@ export const tr = {
     quick: { title: "Hızlı İşlemler", assign: "Kişi Ata", logTime: "Zaman Kaydet", addComment: "Yorum Ekle" },
     priority: { low: "Düşük", medium: "Orta", high: "Yüksek", urgent: "Acil" },
     date: { late: "gün gecikmiş", today: "Bugün", oneDay: "1 gün kaldı", daysLeft: "gün kaldı" },
+    filters: {
+      all: "Tüm Durumlar",
+      todo: "Yapılacak",
+      in_progress: "Devam Ediyor",
+      review: "İncelemede",
+      completed: "Tamamlandı",
+      overdue: "Gecikmiş",
+      today: "Bugün",
+      week: "7 Gün",
+      priority: "Öncelik",
+      sort: "Sırala",
+    },
+    create: {
+      title: "Yeni Görev",
+      placeholders: {
+        title: "Görev başlığı",
+        description: "Açıklama (opsiyonel)",
+      },
+      submit: "Oluştur",
+    },
+    update: { submit: "Güncelle" },
   },
   team: {
     back: "← Geri",
@@ -235,6 +327,16 @@ export const tr = {
       register: "Kayıt Ol",
       login: "Giriş Yap",
     },
+  },
+  errors: {
+    rls: "Erişim yetkiniz yok",
+    network: "Ağ hatası",
+    notFound: "Kayıt bulunamadı",
+    required: "Bu alan zorunludur",
+  },
+  notificationsUi: {
+    empty: "Bildirim yok",
+    markAllRead: "Tümünü okundu işaretle",
   },
 };
 
