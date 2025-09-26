@@ -3,7 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { ChevronDown, Check } from "lucide-react"
+import ThemeToggle from "@/components/theme/ThemeToggle"
 import { usePathname } from "next/navigation"
 import { getSupabase } from "@/lib/supabase"
 import { useActiveProjectStore } from "@/lib/store/project"
@@ -70,31 +71,39 @@ export default function GlobalHeader() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <LanguageSwitcher />
+          <ThemeToggle />
           <Popover>
-            <PopoverTrigger className="h-8 rounded-md border bg-background px-2 text-sm inline-flex items-center gap-2 hover:bg-muted/60">
-              <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-              <span className="max-w-[180px] truncate">
+            <PopoverTrigger className="h-8 rounded-full bg-muted/40 px-3 text-sm inline-flex items-center gap-2 hover:bg-muted/70 border border-transparent">
+              <span className="inline-block h-2 w-2 rounded-full bg-primary shadow-[0_0_0_2px_var(--background)]" />
+              <span className="max-w-[180px] truncate font-medium">
                 {projects.find(p => p.id === activeProjectId)?.title || 'Tüm Projeler'}
               </span>
+              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
             </PopoverTrigger>
             <PopoverContent align="end" className="w-64 p-0">
               <div className="max-h-64 overflow-auto py-1">
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
                   onClick={() => setActiveProject(null)}
                 >
-                  Tüm Projeler
+                  <span className="inline-block h-2 w-2 rounded-full bg-foreground/50" />
+                  <span className="flex-1">Tüm Projeler</span>
+                  {!activeProjectId && <Check className="h-3.5 w-3.5" />}
                 </button>
-                {projects.map(p => (
-                  <button
-                    key={p.id}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-muted ${activeProjectId === p.id ? 'bg-muted' : ''}`}
-                    onClick={() => setActiveProject(p.id)}
-                  >
-                    {p.title}
-                  </button>
-                ))}
+                {projects.map(p => {
+                  const selected = activeProjectId === p.id
+                  return (
+                    <button
+                      key={p.id}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 ${selected ? 'bg-muted' : ''}`}
+                      onClick={() => setActiveProject(p.id)}
+                    >
+                      <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+                      <span className="flex-1 truncate">{p.title}</span>
+                      {selected && <Check className="h-3.5 w-3.5" />}
+                    </button>
+                  )
+                })}
               </div>
             </PopoverContent>
           </Popover>

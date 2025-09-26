@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isTurbopack = process.env.TURBOPACK === '1'
+
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
@@ -9,11 +11,13 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ["@supabase/supabase-js", "@supabase/realtime-js"],
   outputFileTracingRoot: __dirname,
-  webpack: (config) => {
-    // Silence known realtime-js dynamic require warning during prod build
-    // without affecting runtime behavior.
-    // This warning originates from optional server-side ws fallback.
-    // We don't rely on Node ws in Vercel runtime.
+};
+
+// Only apply webpack customizations when NOT running Turbopack (e.g. production builds)
+if (!isTurbopack) {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - NextConfig is mutable before export
+  nextConfig.webpack = (config) => {
     config.ignoreWarnings = [
       ...(config.ignoreWarnings || []),
       {
@@ -22,7 +26,7 @@ const nextConfig: NextConfig = {
       },
     ]
     return config
-  },
-};
+  }
+}
 
 export default nextConfig;
