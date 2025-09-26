@@ -72,8 +72,11 @@ export default function GlobalHeader() {
         <div className="ml-auto flex items-center gap-2">
           <LanguageSwitcher />
           <Popover>
-            <PopoverTrigger className="h-8 px-2 rounded border text-sm bg-background">
-              {projects.find(p => p.id === activeProjectId)?.title || 'Tüm Projeler'}
+            <PopoverTrigger className="h-8 rounded-md border bg-background px-2 text-sm inline-flex items-center gap-2 hover:bg-muted/60">
+              <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+              <span className="max-w-[180px] truncate">
+                {projects.find(p => p.id === activeProjectId)?.title || 'Tüm Projeler'}
+              </span>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-64 p-0">
               <div className="max-h-64 overflow-auto py-1">
