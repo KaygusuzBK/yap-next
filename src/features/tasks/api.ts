@@ -391,14 +391,11 @@ export async function fetchProjectStatuses(projectId: string): Promise<ProjectTa
     .order('position', { ascending: true });
   if (error) throw error;
   // Map data to ensure group field exists
-  return (data ?? []).map(item => ({
+  return (data ?? []).map((item: any) => ({
     ...item,
-    group: item.group || (item.name === 'Yapılacak' ? 'todo' : 
-                          item.name === 'Devam Ediyor' ? 'in_progress' :
-                          item.name === 'İncelemede' ? 'review' :
-                          item.name === 'Tamamlandı' ? 'completed' : 'todo'),
-    key: item.key || item.name?.toLowerCase().replace(/\s+/g, '_') || 'todo',
-    label: item.label || item.name || 'Yapılacak'
+    group: item.group || 'todo',
+    key: item.key || 'todo',
+    label: item.label || 'Yapılacak'
   })) as ProjectTaskStatus[];
 }
 
