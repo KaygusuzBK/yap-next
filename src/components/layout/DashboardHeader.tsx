@@ -80,33 +80,7 @@ export default function DashboardHeader({
   }, [breadcrumb, pathname])
 
   return (
-    <div className="w-full space-y-3 mb-4 md:mb-6">
-      {autoBreadcrumb.length > 0 && (
-        <section>
-          <Breadcrumb>
-            <BreadcrumbList>
-              {autoBreadcrumb.map((c, idx) => {
-                const isLast = idx === autoBreadcrumb.length - 1
-                return (
-                  <React.Fragment key={`${c.label}-${idx}`}>
-                    <BreadcrumbItem>
-                      {isLast || !c.href ? (
-                        <BreadcrumbPage>{c.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink asChild>
-                          <Link href={c.href}>{c.label}</Link>
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                    {!isLast && <BreadcrumbSeparator />}
-                  </React.Fragment>
-                )
-              })}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </section>
-      )}
-
+    <div className="w-full">
       <section className="flex items-center justify-between">
         <div className="flex items-start gap-2 min-w-0">
           {backHref && (
@@ -121,28 +95,7 @@ export default function DashboardHeader({
             {meta ? <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">{meta}</div> : null}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard">
-            <Button aria-label="Ana Sayfa" title="Ana Sayfa" variant="outline" size="sm">
-              <Home className="h-4 w-4 mr-1" />
-              Ana Sayfa
-            </Button>
-          </Link>
-          <div className="relative">
-            <select
-              value={activeProjectId ?? ''}
-              onChange={(e) => setActiveProject(e.target.value || null)}
-              className="h-8 border rounded px-2 text-sm bg-background"
-              title="Aktif Proje"
-            >
-              <option value="">Tüm Projeler</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.title}</option>
-              ))}
-            </select>
-          </div>
-          {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-        </div>
+        <div className="flex items-center gap-2" />
       </section>
     </div>
   )

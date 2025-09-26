@@ -52,9 +52,16 @@ export function NavUser({
   const userStoreEmail = useUserStore(s => s.email)
   const loadProfile = useUserStore(s => s.loadFromLocalStorage)
   React.useEffect(() => { loadProfile() }, [loadProfile])
-  // removed initials helper (icon fallback kullanılacak)
   const displayName = userStoreName || user.name
   const displayEmail = userStoreEmail || user.email
+  const initials = React.useMemo(() => {
+    const src = (displayName || displayEmail || '').trim()
+    if (!src) return 'U'
+    const parts = src.split(/\s+/).filter(Boolean)
+    const first = parts[0]?.[0] || src[0]
+    const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+    return (first + last).toUpperCase()
+  }, [displayName, displayEmail])
   // const initials = computeInitials(displayName, displayEmail)
 
   return (
@@ -68,8 +75,8 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 {user.avatar ? (<AvatarImage src={user.avatar} alt={displayName} />) : null}
-                <AvatarFallback className="rounded-lg">
-                  <Users className="h-4 w-4" />
+                <AvatarFallback className="rounded-lg text-[10px] font-semibold">
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -89,8 +96,8 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   {user.avatar ? (<AvatarImage src={user.avatar} alt={displayName} />) : null}
-                  <AvatarFallback className="rounded-lg">
-                    <Users className="h-4 w-4" />
+                  <AvatarFallback className="rounded-lg text-[10px] font-semibold">
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
