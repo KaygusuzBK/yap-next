@@ -13,6 +13,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { ArrowLeft, Home } from "lucide-react"
+import { useActiveProjectStore } from '@/lib/store/project'
+import { getSupabase } from '@/lib/supabase'
 
 type Crumb = {
   label: string
@@ -35,6 +37,19 @@ export default function DashboardHeader({
   meta,
 }: DashboardHeaderProps) {
   const pathname = usePathname()
+  const activeProjectId = useActiveProjectStore(s => s.activeProjectId)
+  const setActiveProject = useActiveProjectStore(s => s.setActiveProject)
+  const [projects, setProjects] = React.useState<Array<{ id: string; title: string }>>([])
+
+  React.useEffect(() => {
+    ;(async () => {
+      try {
+        const supabase = getSupabase()
+        const { data } = await supabase.from('projects').select('id,title').order('created_at', { ascending: false })
+        setProjects(data ?? [])
+      } catch {}
+    })()
+  }, [])
 
   // Eğer breadcrumb prop verilmediyse, otomatik üret
   const autoBreadcrumb: Crumb[] = React.useMemo(() => {
@@ -113,6 +128,19 @@ export default function DashboardHeader({
               Ana Sayfa
             </Button>
           </Link>
+          <div className="relative">
+            <select
+              value={activeProjectId ?? ''}
+              onChange={(e) => setActiveProject(e.target.value || null)}
+              className="h-8 border rounded px-2 text-sm bg-background"
+              title="Aktif Proje"
+            >
+              <option value="">Tüm Projeler</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.title}</option>
+              ))}
+            </select>
+          </div>
           {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
         </div>
       </section>
