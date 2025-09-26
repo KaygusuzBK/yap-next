@@ -43,6 +43,19 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("tr");
 
   useEffect(() => { loadPrefs() }, [loadPrefs])
+  // Read locale from cookie on first mount (auth pages refresh, SSR navigations)
+  useEffect(() => {
+    try {
+      const cookie = document.cookie.split('; ').find(x => x.startsWith('locale='))
+      const val = cookie?.split('=')[1]
+      if (val && ["tr","en","de","es","fr","ar","zh-CN"].includes(val)) {
+        setLocaleState(val as Locale)
+        // keep store in sync silently
+        Promise.resolve().then(() => setPrefLocale(val as Locale))
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   useEffect(() => { setLocaleState(prefLocale) }, [prefLocale])
 
   // Keep html lang/dir in sync with current locale (RTL for Arabic)
@@ -63,6 +76,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setLocaleState(next)
     // Then persist to store (async-ish side effect)
     Promise.resolve().then(() => setPrefLocale(next))
+    // Also persist to cookie for SSR/refresh continuity (180 days)
+    try {
+      const expires = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toUTCString()
+      document.cookie = `locale=${next}; Path=/; Expires=${expires}; SameSite=Lax`
+    } catch {}
   }, [setPrefLocale]);
 
   const t = useMemo(() => {

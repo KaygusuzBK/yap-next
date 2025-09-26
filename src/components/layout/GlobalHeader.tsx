@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
 import { usePathname } from "next/navigation"
 import { getSupabase } from "@/lib/supabase"
 import { useActiveProjectStore } from "@/lib/store/project"
@@ -69,6 +70,7 @@ export default function GlobalHeader() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <LanguageSwitcher />
           <Popover>
             <PopoverTrigger className="h-8 px-2 rounded border text-sm bg-background">
               {projects.find(p => p.id === activeProjectId)?.title || 'Tüm Projeler'}
