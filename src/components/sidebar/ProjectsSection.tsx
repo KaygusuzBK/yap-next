@@ -3,6 +3,7 @@
 import React from "react"
 import { ProjectRow } from "./ProjectRow"
 import type { ProjectStat, TaskStat, TaskCounts } from "./types"
+import { useActiveProjectStore } from '@/lib/store/project'
 
 interface ProjectsSectionProps {
   projectStats: ProjectStat[]
@@ -29,6 +30,8 @@ export function ProjectsSection({
   dragType,
   dragOverIndex
 }: ProjectsSectionProps) {
+  const activeProjectId = useActiveProjectStore(s => s.activeProjectId)
+  const setActive = useActiveProjectStore(s => s.setActiveProject)
   if (loadingProjects) {
     return <p className="text-sm text-muted-foreground">Yükleniyor...</p>
   }
@@ -50,7 +53,7 @@ export function ProjectsSection({
           onDragStart={() => onDragStart('project', index)}
           onDragOver={(e) => onDragOver(e, 'project', index)}
           onDrop={() => onDrop('project', index)}
-          className={dragType === 'project' && dragOverIndex === index ? 'outline outline-2 outline-primary/60 rounded-sm' : ''}
+          className={`${dragType === 'project' && dragOverIndex === index ? 'outline outline-2 outline-primary/60 rounded-sm' : ''} ${activeProjectId === p.id ? 'bg-muted/50' : ''}`}
         >
           <ProjectRow
             project={p}
@@ -60,7 +63,7 @@ export function ProjectsSection({
               review: taskStats.filter(t => t.project_id === p.id && t.status === 'review').length,
               completed: taskStats.filter(t => t.project_id === p.id && t.status === 'completed').length,
             }}
-            onSelect={onSelect}
+            onSelect={(id) => { setActive(id); onSelect(id) }}
           />
         </div>
       ))}
