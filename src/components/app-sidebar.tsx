@@ -86,6 +86,12 @@ const navData: NavItem[] = [
     icon: () => <div>📊</div>,
     isActive: false,
   },
+  {
+    title: "AI Asistanı",
+    url: "/dashboard/ai",
+    icon: () => <div>🤖</div>,
+    isActive: false,
+  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
