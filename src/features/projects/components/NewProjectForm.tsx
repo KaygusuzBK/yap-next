@@ -18,13 +18,17 @@ type Team = {
   owner_id: string;
 };
 
-export default function NewProjectForm({ onCreated }: { onCreated?: () => void }) {
+export default function NewProjectForm({ onCreated, defaultTeamId, lockTeam = false }: { onCreated?: () => void; defaultTeamId?: string | null; lockTeam?: boolean }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('personal');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(defaultTeamId ?? 'personal');
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(true);
+
+  useEffect(() => {
+    if (defaultTeamId) setSelectedTeamId(defaultTeamId)
+  }, [defaultTeamId])
 
   useEffect(() => {
     loadTeams();
@@ -59,7 +63,7 @@ export default function NewProjectForm({ onCreated }: { onCreated?: () => void }
       toast.success('Proje başarıyla oluşturuldu!');
       setTitle('');
       setDescription('');
-      setSelectedTeamId('personal');
+      setSelectedTeamId(defaultTeamId ?? 'personal');
       onCreated?.();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Proje oluşturulurken bir hata oluştu');
@@ -71,46 +75,28 @@ export default function NewProjectForm({ onCreated }: { onCreated?: () => void }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Yeni Proje Oluştur
-        </CardTitle>
-        <CardDescription>
-          Yeni bir proje oluşturun ve takımınızla işbirliği yapın
-        </CardDescription>
+        <CardTitle>Yeni Proje</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Proje Başlığı *</Label>
-            <Input
-              id="title"
-              placeholder="Proje başlığını girin"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
+            <Label htmlFor="title">Proje Başlığı</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Proje başlığı" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Açıklama</Label>
-            <Textarea
-              id="description"
-              placeholder="Proje açıklamasını girin (opsiyonel)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
+            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Kısa açıklama" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="team">Takım (Opsiyonel)</Label>
-            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+            <Select value={selectedTeamId} onValueChange={setSelectedTeamId} disabled={lockTeam}>
               <SelectTrigger>
                 <SelectValue placeholder="Takım seçin (opsiyonel)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="personal">Kişisel Proje</SelectItem>
+                {!lockTeam && <SelectItem value="personal">Kişisel Proje</SelectItem>}
                 {loadingTeams ? (
                   <SelectItem value="loading" disabled>Takımlar yükleniyor...</SelectItem>
                 ) : teams.length === 0 ? (

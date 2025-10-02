@@ -251,7 +251,7 @@ export async function inviteToTeam(input: {
     .from('teams')
     .select('name, owner_id')
     .eq('id', input.team_id)
-    .single();
+    .maybeSingle();
   
   if (teamError) throw teamError;
   if (!team) throw new Error('Takım bulunamadı');
@@ -262,7 +262,7 @@ export async function inviteToTeam(input: {
     .select('role')
     .eq('team_id', input.team_id)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
     
   if (team.owner_id !== user.id && (!membership || !['owner', 'admin'].includes(membership.role))) {
     throw new Error('Bu işlem için yetkiniz yok. Sadece takım sahibi ve admin\'ler davet gönderebilir.');
@@ -279,7 +279,7 @@ export async function inviteToTeam(input: {
       expires_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
     })
     .select('*')
-    .single();
+    .maybeSingle();
   
   if (error) throw error;
   
@@ -677,7 +677,7 @@ export async function acceptTeamInvitation(token: string) {
     .from('team_invitations')
     .select('*')
     .eq('token', token)
-    .single();
+    .maybeSingle();
   
   if (inviteError) throw inviteError;
   if (!invitation) throw new Error('Davet bulunamadı');
