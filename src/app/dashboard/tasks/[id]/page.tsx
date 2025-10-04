@@ -38,6 +38,12 @@ import {
 import { useI18n } from '@/i18n/I18nProvider';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 // import Image from 'next/image';
+import {
+  ChainOfThought,
+  ChainOfThoughtHeader,
+  ChainOfThoughtStep,
+  ChainOfThoughtContent,
+} from '@/components/ai-elements/chain-of-thought'
 
 export default function TaskDetailPage() {
   const { t, locale } = useI18n();
@@ -324,7 +330,19 @@ export default function TaskDetailPage() {
     const map: Record<string, string> = Object.fromEntries(cachedStatuses.map(s => [s.key, s.label]))
     if (map[status]) return map[status]
     // i18n keys support
-    if (status.startsWith('taskStatus.')) return t(status)
+    if (status.startsWith('taskStatus.')) {
+      const translated = t(status)
+      // Eğer çeviri bulunamadıysa, anahtarı insan okunur hale getir
+      if (!translated || translated === status) {
+        const raw = status.split('.').pop() || status
+        if (raw === 'todo') return 'Yapılacak'
+        if (raw === 'in_progress') return 'Devam ediyor'
+        if (raw === 'review') return 'İncelemede'
+        if (raw === 'completed') return 'Tamamlandı'
+        return raw.replace(/_/g, ' ')
+      }
+      return translated
+    }
     // Fallback to base keys
     if (status === 'todo') return t('taskStatus.todo') || 'Todo'
     if (status === 'in_progress') return t('taskStatus.in_progress') || 'In Progress'
@@ -364,6 +382,17 @@ export default function TaskDetailPage() {
     const m = projectMembers.find(x => x.id === userId)
     if (m) return m.name || (m.email?.split('@')[0] ?? m.email) || userId
     return userId
+  }
+
+  const getDisplayName = (
+    name?: string | null,
+    email?: string | null,
+    id?: string | null
+  ): string => {
+    if (name && name.trim().length > 0) return name
+    if (email && email.trim().length > 0) return (email.split('@')[0] || email)
+    if (id && id.trim().length > 0) return id
+    return '—'
   }
 
   const getDaysRemaining = (dueDate: string) => {
@@ -537,7 +566,7 @@ export default function TaskDetailPage() {
             <span className="inline-flex items-center gap-1 whitespace-nowrap"><Folder className="h-3 w-3" aria-hidden="true" /> Proje:</span>
             <span className="truncate">{task.project_title || 'Bilinmeyen Proje'}</span>
             <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" aria-hidden="true" /> {(task.creator_name || task.creator_email || task.created_by)}</span>
+            <span className="hidden md:inline-flex items-center gap-1"><User className="h-3 w-3" aria-hidden="true" /> {getDisplayName(task.creator_name, task.creator_email, null)}</span>
           </p>
         )}
         actions={(
@@ -554,6 +583,8 @@ export default function TaskDetailPage() {
         )}
       />
 
+      
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Ana İçerik */}
         <div className="xl:col-span-2 space-y-6">
@@ -566,26 +597,40 @@ export default function TaskDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {task.description && (
-                <div>
-                  <h3 className="font-medium mb-2">{t('task.details.description')}</h3>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {task.description}
-                  </p>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium mb-2">{t('task.details.status')}</h3>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(task.status)}
-                    <span>{getStatusText(task.status)}</span>
+              <div className="grid grid-cols-1 gap-4">
+                {task.description && (
+                  <div className="rounded-md border p-3 bg-background/40">
+                    <h3 className="text-sm font-medium mb-1">{t('task.details.description')}</h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap text-sm leading-6">
+                      {task.description}
+                    </p>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-2">{t('task.details.priority')}</h3>
-                  {getPriorityBadge(task.priority)}
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="rounded-md border p-3">
+                    <div className="text-xs text-muted-foreground mb-1">{t('task.details.status')}</div>
+                    <div className="flex items-center gap-2 text-sm">
+                      {getStatusIcon(task.status)}
+                      <span className="font-medium">{getStatusText(task.status)}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <div className="text-xs text-muted-foreground mb-1">{t('task.details.priority')}</div>
+                    <div className="text-sm">{getPriorityBadge(task.priority)}</div>
+                  </div>
+                  {task.due_date && (
+                    <div className="rounded-md border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">{t('task.details.dueDate')}</div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDate(task.due_date)}</span>
+                        <Badge variant="outline" className={getDaysRemainingColor(task.due_date)}>
+                          {getDaysRemaining(task.due_date)}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -602,9 +647,9 @@ export default function TaskDetailPage() {
                 </div>
               )}
 
-              <div>
-                <h3 className="font-medium mb-2">{t('task.details.assignee')}</h3>
-                <div className="flex items-center gap-2">
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground mb-1">{t('task.details.assignee')}</div>
+                <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
                     {task.assigned_to ? (
@@ -890,6 +935,44 @@ export default function TaskDetailPage() {
                     )}
                   </div>
 
+                  {/* Chain of Thought - Geçmişi Aç/Kapat Gösterimi */}
+                  <div className="mb-6">
+                    <ChainOfThought defaultOpen={false} className="w-full">
+                      <ChainOfThoughtHeader>
+                        Görev geçmişini adım adım göster
+                      </ChainOfThoughtHeader>
+                      <ChainOfThoughtContent>
+                        <ChainOfThoughtStep
+                          label="Oluşturma"
+                          status={'complete'}
+                          description={`Başlangıç: ${historySummary ? new Date(historySummary.startedAt).toLocaleString('tr-TR') : '-'}`}
+                        />
+                        <ChainOfThoughtStep
+                          label="Durum değişiklikleri"
+                          status={'complete'}
+                          description={`${(() => {
+                            try {
+                              return cleanActivities.filter(a => {
+                                const det = a.details as Record<string, unknown> | null
+                                return !!(det && typeof det === 'object' && (det as any).status)
+                              }).length
+                            } catch { return 0 }
+                          })()} adet geçiş`}
+                        />
+                        <ChainOfThoughtStep
+                          label="Yorumlar"
+                          status={'complete'}
+                          description={`${comments.length} yorum`}
+                        />
+                        <ChainOfThoughtStep
+                          label="Dosyalar"
+                          status={'complete'}
+                          description={`${files.length} dosya`}
+                        />
+                      </ChainOfThoughtContent>
+                    </ChainOfThought>
+                  </div>
+
                   {/* Time logs */}
                   <div className="mb-6">
                     <h4 className="font-medium mb-2">Zaman Kayıtları</h4>
@@ -901,7 +984,7 @@ export default function TaskDetailPage() {
                           <li key={log.id} className="rounded border p-2 text-sm">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div className="min-w-0">
-                                <span className="font-medium">{log.actor_name || log.actor_email || log.user_id}</span>
+                                <span className="font-medium">{getDisplayName(log.actor_name, log.actor_email, log.user_id)}</span>
                                 <span className="text-muted-foreground"> • {new Date(log.start_time).toLocaleString('tr-TR')}</span>
                                 {log.end_time && (
                                   <span className="text-muted-foreground"> → {new Date(log.end_time).toLocaleString('tr-TR')}</span>
@@ -945,7 +1028,7 @@ export default function TaskDetailPage() {
                           return (
                             <li key={a.id} className="border rounded p-3">
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>{who}</span>
+                                <span>{getDisplayName(a.actor_name, a.actor_email, a.user_id)}</span>
                                 <span>{when}</span>
                               </div>
                               <div className="mt-1 text-sm">
@@ -1011,8 +1094,56 @@ export default function TaskDetailPage() {
           </Tabs>
         </div>
 
-        {/* Yan Panel */}
+        {/* Sağ Bilgi Paneli */}
         <div className="space-y-6">
+          {/* Ayrıntılar */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Ayrıntılar</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Atanan Kişi</span>
+                <span>{task.assigned_to ? getUserLabelById(task.assigned_to) : t('task.details.unassigned')}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Etiketler</span>
+                <span className="text-muted-foreground">Yok</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Üst Öğe</span>
+                <span className="text-muted-foreground">Yok</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Bitiş tarihi</span>
+                <span>{task.due_date ? new Date(task.due_date).toLocaleString('tr-TR') : 'Yok'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Team</span>
+                <span className="text-muted-foreground">{task.project_title || '—'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Start date</span>
+                <span className="text-muted-foreground">Yok</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Raporlayan</span>
+                <span>{getDisplayName(task.creator_name, task.creator_email, null)}</span>
+              </div>
+              <div className="border-t my-2" />
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center justify-between">
+                  <span>Oluşturulma</span>
+                  <span>{new Date(task.created_at).toLocaleString('tr-TR')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Güncelleme</span>
+                  <span>{new Date(task.updated_at).toLocaleString('tr-TR')}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Hızlı İşlemler */}
           <Card>
             <CardHeader>

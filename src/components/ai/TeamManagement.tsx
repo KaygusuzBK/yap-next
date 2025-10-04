@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import { useCompletion } from '@ai-sdk/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,13 +38,8 @@ export function TeamManagement({ teamData }: TeamManagementProps) {
     actionItems: ''
   });
   const [copied, setCopied] = useState(false);
-
-  const { completion, isLoading, complete } = useCompletion({
-    api: '/api/ai/team-analysis',
-    onError: (error) => {
-      toast.error('Analiz oluşturulamadı: ' + error.message);
-    },
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [completion, setCompletion] = useState<string>('');
 
   const handleGenerate = async () => {
     if (!analysisType) {
@@ -53,17 +47,38 @@ export function TeamManagement({ teamData }: TeamManagementProps) {
       return;
     }
 
+    setIsLoading(true);
+    setCompletion('');
+
     try {
-      await complete('', {
-        body: {
+      const response = await fetch('/api/ai/team-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           type: analysisType,
-          teamData: teamData || {},
           meetingData: analysisType === 'meeting-summary' ? meetingData : undefined
-        }
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('API isteği başarısız');
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setCompletion(data.content || '');
       toast.success('Analiz başarıyla oluşturuldu!');
     } catch (error) {
-      toast.error('Bir hata oluştu');
+      console.error('Analiz oluşturma hatası:', error);
+      toast.error('Analiz oluşturulamadı: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -76,18 +91,48 @@ export function TeamManagement({ teamData }: TeamManagementProps) {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadPDF = () => {
     if (completion) {
-      const blob = new Blob([completion], { type: 'text/plain' });
+      // HTML içeriğini PDF'e dönüştür
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Takım Analizi - ${getAnalysisTypeLabel(analysisType)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+            h1, h2, h3 { color: #333; }
+            pre { background: #f5f5f5; padding: 20px; border-radius: 5px; white-space: pre-wrap; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .footer { border-top: 1px solid #ccc; padding-top: 20px; margin-top: 30px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${getAnalysisTypeLabel(analysisType)}</h1>
+            <p>Oluşturulma Tarihi: ${new Date().toLocaleString('tr-TR')}</p>
+          </div>
+          <div class="content">
+            <pre>${completion}</pre>
+          </div>
+          <div class="footer">
+            <p>Bu analiz YAP Proje Yönetimi AI Asistanı tarafından oluşturulmuştur.</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      const blob = new Blob([htmlContent], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `team-analysis-${analysisType}-${new Date().toISOString().split('T')[0]}.txt`;
+      a.download = `team-analysis-${analysisType}-${new Date().toISOString().split('T')[0]}.html`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Analiz indirildi!');
+      toast.success('Analiz HTML olarak indirildi!');
     }
   };
 
@@ -240,7 +285,7 @@ export function TeamManagement({ teamData }: TeamManagementProps) {
                 <Button variant="outline" size="sm" onClick={handleCopy}>
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownload}>
+                <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
                   <Download className="h-4 w-4" />
                 </Button>
               </div>

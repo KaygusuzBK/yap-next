@@ -583,9 +583,9 @@ export async function fetchComments(taskId: string): Promise<TaskComment[]> {
   const uniqueUserIds = Array.from(new Set(rows.map(r => r.created_by)))
   let idToProfile: Record<string, { full_name?: string | null; email?: string | null }> = {}
   if (uniqueUserIds.length > 0) {
-    const { data: profs } = await supabase
+  const { data: profs } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, name, email')
       .in('id', uniqueUserIds)
     if (profs) {
       type Prof = { id: string; full_name?: string | null; email?: string | null }
@@ -702,8 +702,8 @@ export async function fetchTaskActivities(taskId: string): Promise<TaskActivity[
       .select('id, full_name, email')
       .in('id', userIds);
     if (profs) {
-      type Prof = { id: string; full_name?: string | null; email?: string | null };
-      idToProfile = Object.fromEntries((profs as Prof[]).map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+      type Prof = { id: string; name?: string | null; email?: string | null };
+      idToProfile = Object.fromEntries((profs as Prof[]).map(p => [p.id, { name: p.name, email: p.email }]));
     }
   }
   return rows.map(r => ({
@@ -713,7 +713,7 @@ export async function fetchTaskActivities(taskId: string): Promise<TaskActivity[
     action: r.action,
     details: r.details ?? null,
     created_at: r.created_at,
-    actor_name: idToProfile[r.user_id]?.full_name ?? null,
+    actor_name: idToProfile[r.user_id]?.name ?? null,
     actor_email: idToProfile[r.user_id]?.email ?? null,
   }));
 }
@@ -731,13 +731,13 @@ export async function fetchTaskTimeLogs(taskId: string): Promise<TaskTimeLog[]> 
   const userIds = Array.from(new Set(rows.map(r => r.user_id)));
   let idToProfile: Record<string, { full_name?: string | null; email?: string | null }> = {};
   if (userIds.length > 0) {
-    const { data: profs } = await supabase
+  const { data: profs } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, name, email')
       .in('id', userIds);
     if (profs) {
-      type Prof = { id: string; full_name?: string | null; email?: string | null };
-      idToProfile = Object.fromEntries((profs as Prof[]).map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+      type Prof = { id: string; name?: string | null; email?: string | null };
+      idToProfile = Object.fromEntries((profs as Prof[]).map(p => [p.id, { name: p.name, email: p.email }]));
     }
   }
   const nowMs = Date.now();
@@ -754,7 +754,7 @@ export async function fetchTaskTimeLogs(taskId: string): Promise<TaskTimeLog[]> 
       description: r.description,
       created_at: r.created_at,
       duration_seconds,
-      actor_name: idToProfile[r.user_id]?.full_name ?? null,
+      actor_name: idToProfile[r.user_id]?.name ?? null,
       actor_email: idToProfile[r.user_id]?.email ?? null,
     } as TaskTimeLog;
   });
@@ -786,11 +786,11 @@ export async function addTimeLog(taskId: string, input: { start_time: string; en
   try {
     const { data: prof } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('name, email')
       .eq('id', row.user_id)
       .single();
     if (prof) {
-      actor_name = (prof as { full_name?: string | null }).full_name ?? null;
+      actor_name = (prof as { name?: string | null }).name ?? null;
       actor_email = (prof as { email?: string | null }).email ?? null;
     }
   } catch {}

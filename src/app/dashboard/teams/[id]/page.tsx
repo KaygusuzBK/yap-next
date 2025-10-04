@@ -32,6 +32,7 @@ import {
 import { getProjectById, type Project } from '@/features/projects/api';
 import TeamMembers from '@/features/teams/components/TeamMembers';
 import TeamSettings from '@/features/teams/components/TeamSettings';
+import { Context, ContextContent, ContextContentBody, ContextContentHeader, ContextTrigger } from '@/components/ai-elements/context'
 import { getSupabase } from '@/lib/supabase';
 
 const ROLE_LABELS: Record<TeamRole, { label: string; color: string; icon: React.ReactNode }> = {
@@ -430,12 +431,36 @@ export default function TeamDetailPage() {
               {projects.map((project) => (
                 <Card key={project.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-base line-clamp-2">{project.title}</CardTitle>
-                      <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                        {project.status === 'active' ? 'Aktif' : 
-                         project.status === 'completed' ? 'Tamamlandı' : 'Arşivlendi'}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Context usedTokens={1} maxTokens={1}>
+                          <ContextTrigger>
+                            <Button variant="ghost" size="icon" aria-label="Detay">
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </ContextTrigger>
+                          <ContextContent align="end">
+                            <ContextContentHeader>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">Proje Özeti</span>
+                                <span className="font-medium">{project.title}</span>
+                              </div>
+                            </ContextContentHeader>
+                            <ContextContentBody>
+                              <div className="space-y-1 text-xs">
+                                <div className="flex items-center justify-between"><span className="text-muted-foreground">Durum</span><span className="font-medium">{project.status}</span></div>
+                                <div className="flex items-center justify-between"><span className="text-muted-foreground">Oluşturulma</span><span className="font-medium">{new Date(project.created_at).toLocaleDateString('tr-TR')}</span></div>
+                                <div className="flex items-center justify-between"><span className="text-muted-foreground">Güncelleme</span><span className="font-medium">{new Date(project.updated_at).toLocaleDateString('tr-TR')}</span></div>
+                              </div>
+                            </ContextContentBody>
+                          </ContextContent>
+                        </Context>
+                        <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                          {project.status === 'active' ? 'Aktif' : 
+                           project.status === 'completed' ? 'Tamamlandı' : 'Arşivlendi'}
+                        </Badge>
+                      </div>
                     </div>
                     {project.description && (
                       <CardDescription className="line-clamp-2">

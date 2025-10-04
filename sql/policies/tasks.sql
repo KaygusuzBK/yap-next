@@ -261,12 +261,20 @@ do $$ begin
   ) then
     create policy "read_task_time_logs" on public.task_time_logs
       for select using (
-        task_id in (
-          select id from public.project_tasks 
-          where project_id in (
-            select id from public.projects 
-            where owner_id = auth.uid() or 
-                  id in (select project_id from public.project_members where user_id = auth.uid())
+        (
+          task_id in (
+            select id from public.project_tasks 
+            where project_id in (
+              select id from public.projects 
+              where owner_id = auth.uid() or 
+                    id in (select project_id from public.project_members where user_id = auth.uid())
+            )
+          )
+        )
+        or (
+          task_id in (
+            select id from public.project_tasks
+            where assigned_to = auth.uid() or created_by = auth.uid()
           )
         )
       );
@@ -279,15 +287,21 @@ do $$ begin
   ) then
     create policy "create_task_time_logs" on public.task_time_logs
       for insert with check (
-        task_id in (
-          select id from public.project_tasks 
-          where project_id in (
-            select id from public.projects 
-            where owner_id = auth.uid() or 
-                  id in (select project_id from public.project_members where user_id = auth.uid())
+        user_id = auth.uid() and (
+          task_id in (
+            select id from public.project_tasks 
+            where project_id in (
+              select id from public.projects 
+              where owner_id = auth.uid() or 
+                    id in (select project_id from public.project_members where user_id = auth.uid())
+            )
           )
-        ) and
-        user_id = auth.uid()
+          or
+          task_id in (
+            select id from public.project_tasks
+            where assigned_to = auth.uid() or created_by = auth.uid()
+          )
+        )
       );
   end if;
 

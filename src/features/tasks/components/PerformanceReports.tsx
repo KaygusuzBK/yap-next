@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabase } from '@/lib/supabase';
+import { getUserCached } from '@/lib/auth-cache';
 import type { Task } from '../api';
 
 interface PerformanceData {
@@ -90,13 +91,34 @@ export default function PerformanceReports({
   const loadPerformanceData = useCallback(async () => {
     setLoading(true);
     try {
+      // Kullanıcı authentication kontrolü
+      const user = await getUserCached();
+      if (!user) {
+        toast.error('Performans raporları için giriş yapmanız gerekiyor');
+        setLoading(false);
+        return;
+      }
+
       const startDate = dateRange?.start || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const endDate = dateRange?.end || new Date();
 
-      // Temel görev istatistikleri - tüm görevleri çek (tarih filtresi olmadan)
+      // Kullanıcının projelerini al (sahip olduğu veya üye olduğu)
+      const { data: userProjects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, title')
+        .or(`owner_id.eq.${user.id},id.in.(select project_id from project_members where user_id.eq.${user.id})`);
+
+      if (projectsError) {
+        console.warn('User projects error:', projectsError);
+      }
+
+      const projectIds = userProjects?.map(p => p.id) || [];
+
+      // Temel görev istatistikleri - kullanıcının erişebileceği projelerdeki görevler
       let taskQuery = supabase
         .from('tasks')
-        .select('*');
+        .select('*')
+        .in('project_id', projectIds);
 
       if (projectId) {
         taskQuery = taskQuery.eq('project_id', projectId);
@@ -124,14 +146,14 @@ export default function PerformanceReports({
         return taskDate >= startDate && taskDate <= endDate;
       }) || [];
 
-      // Takım üyeleri - sadece kullanıcı bilgilerini çek
+      // Takım üyeleri - kullanıcının projelerinden üyeleri çek
       const { data: teamMembers, error: teamError } = await supabase
         .from('project_members')
         .select(`
           user_id,
-          users!inner(id, full_name)
+          profiles!inner(id, name, email)
         `)
-        .eq('project_id', projectId || '');
+        .in('project_id', projectIds);
       
       if (teamError) {
         console.warn('Team members could not be loaded:', teamError);
@@ -230,7 +252,7 @@ export default function PerformanceReports({
       });
 
       // Proje istatistikleri - gerçek verilerle
-      const projectStats = projects?.map(project => {
+      const projectStats = userProjects?.map(project => {
         const projectTasks = tasks?.filter(t => t.project_id === project.id) || [];
         const projectCompleted = projectTasks.filter(t => t.status === 'completed').length;
         const projectCompletedWithTime = projectTasks.filter(t => 

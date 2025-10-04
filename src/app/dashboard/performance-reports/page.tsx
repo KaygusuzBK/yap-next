@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import PerformanceReports from '@/features/tasks/components/PerformanceReports';
 import PerformanceFilters, { type FilterState } from '@/components/performance/PerformanceFilters';
-import PerformanceDemoData from '@/components/performance/PerformanceDemoData';
 import { useProjects } from '@/features/projects/queries';
 import { useTeams } from '@/features/teams/queries';
 import DashboardHeader from '@/components/layout/DashboardHeader';
@@ -81,7 +80,14 @@ export default function PerformanceReportsPage() {
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
-              <PerformanceDemoData />
+              <PerformanceReports
+                projectId={filters.projects.length === 1 ? filters.projects[0] : undefined}
+                teamId={filters.teams.length === 1 ? filters.teams[0] : undefined}
+                dateRange={filters.dateRange}
+                priorities={filters.priorities}
+                statuses={filters.statuses}
+                searchTerm={filters.searchTerm}
+              />
             </TabsContent>
 
             <TabsContent value="team" className="mt-6">

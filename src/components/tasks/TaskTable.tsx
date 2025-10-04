@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { type Task } from "@/features/tasks/api"
 import { type ProjectTaskStatus } from "@/features/tasks/api"
 import { Badge } from "@/components/ui/badge"
@@ -12,9 +12,9 @@ import { format, isAfter, isBefore, isToday, isTomorrow } from "date-fns"
 import { tr } from "date-fns/locale"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-// virtualization temporarily removed due to bundler incompatibility
+// virtualization removed earlier; but we keep refs for future; ensure imports exist
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface TaskTableProps {
   tasks: Task[]
@@ -41,6 +41,17 @@ export default function TaskTable({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [showFilters, setShowFilters] = useState(false)
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+  const [tableOrderIds, setTableOrderIds] = useState<string[]>([])
+  useEffect(() => { setTableOrderIds(filteredAndSortedTasks.map(t => t.id)) }, [filteredAndSortedTasks])
+
+  const taskById: Record<string, Task> = useMemo(() => {
+    const map: Record<string, Task> = {}
+    for (const t of filteredAndSortedTasks) map[t.id] = t
+    return map
+  }, [filteredAndSortedTasks])
+
+  const orderedTasks: Task[] = useMemo(() => (tableOrderIds.length ? tableOrderIds.map(id => taskById[id]).filter(Boolean) : filteredAndSortedTasks), [tableOrderIds, taskById, filteredAndSortedTasks])
   const priorityTheme: Record<NonNullable<Task["priority"]>, { chip: string; dot: string }> = {
     urgent: {
       chip: "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
@@ -215,14 +226,8 @@ export default function TaskTable({
     dueDateFilter !== "all"
   ].filter(Boolean).length
 
-  // Virtualizer setup
+  // remove unused virtualizer; keep ref if needed later
   const parentRef = useRef<HTMLDivElement | null>(null)
-  const rowVirtualizer = useVirtualizer({
-    count: filteredAndSortedTasks.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 56,
-    overscan: 6,
-  })
 
   return (
     <div className="space-y-4">
@@ -420,11 +425,7 @@ export default function TaskTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            <div ref={parentRef} style={{ height: 480, overflow: 'auto' }}>
-              <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
-                {rowVirtualizer.getVirtualItems().map(virtualRow => {
-                  const index = virtualRow.index
-                  const task = filteredAndSortedTasks[index]
+                {orderedTasks.map(task => {
                   const group = getGroupForTask(task)
                   const isOverdue = task.due_date && isBefore(new Date(task.due_date), new Date())
                   const isDueToday = task.due_date && isToday(new Date(task.due_date))
@@ -433,11 +434,22 @@ export default function TaskTable({
                   return (
                 <TableRow 
                   key={task.id}
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
                   className={`hover:bg-muted/50 ${draggedTaskId === task.id ? 'opacity-50' : ''} ${isOverdue ? 'bg-red-50/50 dark:bg-red-900/20' : ''}`}
                   draggable
                   onDragStart={() => setDraggedTaskId(task.id)}
-                  onDragEnd={() => setDraggedTaskId(null)}
+                  onDragEnd={() => { setDraggedTaskId(null); setDragOverTaskId(null) }}
+                  onDragOver={(e) => { e.preventDefault(); if (dragOverTaskId !== task.id) setDragOverTaskId(task.id) }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    if (!draggedTaskId || draggedTaskId === task.id) return
+                    const from = tableOrderIds.indexOf(draggedTaskId)
+                    const to = tableOrderIds.indexOf(task.id)
+                    if (from === -1 || to === -1) return
+                    const next = [...tableOrderIds]
+                    next.splice(from, 1)
+                    next.splice(to, 0, draggedTaskId)
+                    setTableOrderIds(next)
+                  }}
                 >
                   <TableCell>
                     <div className="flex items-center">
@@ -467,52 +479,79 @@ export default function TaskTable({
                   
                   <TableCell>
                     {task.priority && (
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${priorityTheme[task.priority].chip}`}
-                      >
-                        <div className={`w-2 h-2 rounded-full mr-1 ${priorityTheme[task.priority].dot}`} />
-                        {task.priority === 'urgent' ? 'Acil' : 
-                         task.priority === 'high' ? 'Yüksek' :
-                         task.priority === 'medium' ? 'Orta' : 'Düşük'}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${priorityTheme[task.priority].chip}`}
+                          >
+                            <div className={`w-2 h-2 rounded-full mr-1 ${priorityTheme[task.priority].dot}`} />
+                            {task.priority === 'urgent' ? 'Acil' : 
+                             task.priority === 'high' ? 'Yüksek' :
+                             task.priority === 'medium' ? 'Orta' : 'Düşük'}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>Öncelik</TooltipContent>
+                      </Tooltip>
                     )}
                   </TableCell>
                   
                   <TableCell>
-                    <div className="flex items-center text-sm">
-                      <User className="w-3 h-3 mr-1 text-muted-foreground" />
-                      {task.assignee_name || 'Atanmamış'}
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-sm cursor-help">
+                          <User className="w-3 h-3 mr-1 text-muted-foreground" />
+                          {task.assignee_name || 'Atanmamış'}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Atanan Kişi: {task.assignee_name || 'Atanmamış'}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   
                   <TableCell>
                     {task.due_date ? (
-                      <div className={`flex items-center text-sm ${
-                        isOverdue ? 'text-red-600 font-medium' :
-                        isDueToday ? 'text-orange-600 font-medium' :
-                        isDueTomorrow ? 'text-yellow-600 font-medium' :
-                        'text-muted-foreground'
-                      }`}>
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {isDueToday ? 'Bugün' :
-                         isDueTomorrow ? 'Yarın' :
-                         format(new Date(task.due_date), 'dd MMM yyyy', { locale: tr })}
-                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className={`flex items-center text-sm ${
+                            isOverdue ? 'text-red-600 font-medium' :
+                            isDueToday ? 'text-orange-600 font-medium' :
+                            isDueTomorrow ? 'text-yellow-600 font-medium' :
+                            'text-muted-foreground'
+                          }`}>
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {isDueToday ? 'Bugün' :
+                             isDueTomorrow ? 'Yarın' :
+                             format(new Date(task.due_date), 'dd MMM yyyy', { locale: tr })}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>Bitiş Tarihi</TooltipContent>
+                      </Tooltip>
                     ) : (
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
                   
                   <TableCell>
-                    <div className="text-sm">{task.project_title}</div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-sm cursor-help">{task.project_title}</div>
+                      </TooltipTrigger>
+                      <TooltipContent>Proje: {task.project_title}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   
                   <TableCell>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {format(new Date(task.created_at), 'dd MMM', { locale: tr })}
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-sm text-muted-foreground cursor-help">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {format(new Date(task.created_at), 'dd MMM', { locale: tr })}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Oluşturulma Tarihi: {format(new Date(task.created_at), 'dd MMMM yyyy HH:mm', { locale: tr })}
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   
                   <TableCell>
@@ -549,8 +588,6 @@ export default function TaskTable({
                 </TableRow>
                   )
                 })}
-              </div>
-            </div>
           </TableBody>
         </Table>
       </div>

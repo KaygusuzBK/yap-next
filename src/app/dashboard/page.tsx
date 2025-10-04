@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Folder, Kanban, Grid3X3, Table, Plus, ListTodo, CheckCircle, Clock, AlertCircle, Target, BarChart3, Activity, Settings, Palette, Layout, GripVertical } from "lucide-react"
+import { Folder, Kanban, Grid3X3, Table, Plus, ListTodo, CheckCircle, Clock, AlertCircle, Target, BarChart3, Activity, Settings, Palette, Layout, GripVertical, Info } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchStatusesForProjects, type ProjectTaskStatus } from "@/features/tasks/api"
 import { toast } from "sonner"
@@ -31,6 +31,7 @@ import RecentActivities from "@/components/RecentActivities"
 import TaskKanban from "@/components/tasks/TaskKanban"
 import TaskBoard from "@/components/tasks/TaskBoard"
 import TaskTable from "@/components/tasks/TaskTable"
+import { Context, ContextContent, ContextContentBody, ContextContentHeader, ContextTrigger } from "@/components/ai-elements/context"
 // SprintList removed
 
 export default function Page() {
@@ -414,11 +415,37 @@ export default function Page() {
 
   const filteredBoardTasks = useMemo(() => {
     if (projectFilter === 'all') return boardTasks
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    if (projectFilter === 'overdue') {
+      return boardTasks.filter(t => t.due_date && new Date(t.due_date) < start)
+    }
+    if (projectFilter === 'today') {
+      return boardTasks.filter(t => {
+        if (!t.due_date) return false
+        const d = new Date(t.due_date)
+        return d >= start && d < end
+      })
+    }
     return boardTasks.filter(t => t.project_id === projectFilter)
   }, [boardTasks, projectFilter])
 
   const filteredMyTasks = useMemo(() => {
     if (projectFilter === 'all') return myTasks
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    if (projectFilter === 'overdue') {
+      return myTasks.filter(t => t.due_date && new Date(t.due_date) < start)
+    }
+    if (projectFilter === 'today') {
+      return myTasks.filter(t => {
+        if (!t.due_date) return false
+        const d = new Date(t.due_date)
+        return d >= start && d < end
+      })
+    }
     return myTasks.filter(t => t.project_id === projectFilter)
   }, [myTasks, projectFilter])
 
@@ -697,7 +724,7 @@ export default function Page() {
                                       onClick={() => setProjectFilter("overdue")}
                                     >
                                       <AlertCircle className="h-3 w-3 mr-2" />
-{t('dashboard.cards.actions.viewOverdue')}
+                                      Gecikenleri Göster
                                     </Button>
                                   )}
                                   {summaryStats.dueTodayTasks > 0 && (
@@ -746,21 +773,45 @@ export default function Page() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                   <Tabs value={taskView} onValueChange={(value) => setTaskView(value as 'kanban' | 'board' | 'table')} className="w-full sm:w-auto">
                     <TabsList className="grid w-full grid-cols-3 sm:w-auto overflow-x-auto no-scrollbar">
-                      <TabsTrigger value="kanban" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                      <TabsTrigger value="kanban" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm" title="Kanban görünümü - Görevleri kolonlar halinde yönetin">
                         <Kanban className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="hidden xs:inline">Kanban</span>
                       </TabsTrigger>
-                      <TabsTrigger value="board" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                      <TabsTrigger value="board" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm" title="Pano görünümü - Görevleri daha geniş alanda görün">
                         <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="hidden xs:inline">Pano</span>
                       </TabsTrigger>
-                      <TabsTrigger value="table" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                      <TabsTrigger value="table" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm" title="Tablo görünümü - Görevleri sıralama ve filtreleme ile listeleyin">
                         <Table className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="hidden xs:inline">Tablo</span>
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
                   
+                  <div className="flex items-center gap-2">
+                    {/* Hover detay ikonu */}
+                    <Context usedTokens={summaryStats.totalTasks} maxTokens={Math.max(1, summaryStats.totalTasks)}>
+                      <ContextTrigger>
+                        <Button variant="ghost" size="icon" aria-label="Detay">
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      </ContextTrigger>
+                      <ContextContent align="start">
+                        <ContextContentHeader>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Genel Bakış</span>
+                            <span className="font-medium">Görev Özeti</span>
+                          </div>
+                        </ContextContentHeader>
+                        <ContextContentBody>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Gecikmiş</span><span className="font-medium">{summaryStats.overdueTasks}</span></div>
+                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Bugün</span><span className="font-medium">{summaryStats.dueTodayTasks}</span></div>
+                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Toplam</span><span className="font-medium">{summaryStats.totalTasks}</span></div>
+                          </div>
+                        </ContextContentBody>
+                      </ContextContent>
+                    </Context>
                   <Button
                     size="sm"
                     onClick={() => {
@@ -779,6 +830,7 @@ export default function Page() {
                     <Plus className="h-4 w-4 mr-2" />
                     Yeni Görev
                   </Button>
+                  </div>
                 </div>
               </div>
               

@@ -12,6 +12,7 @@ import { Calendar, Clock, User, Flag, Search, Filter, X, ChevronDown, ChevronUp 
 import { format, isAfter, isBefore, isToday, isTomorrow, isYesterday } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 // virtualization removed - using simple map for better performance
 
 interface TaskKanbanProps {
@@ -174,15 +175,7 @@ export default function TaskKanban({
     return titles[status]
   }
 
-  const getStatusColor = (status: "todo" | "in_progress" | "review" | "completed") => {
-    const colors = {
-      todo: "bg-gray-100 dark:bg-gray-800",
-      in_progress: "bg-blue-100 dark:bg-blue-900/30",
-      review: "bg-yellow-100 dark:bg-yellow-900/30",
-      completed: "bg-green-100 dark:bg-green-900/30"
-    }
-    return colors[status]
-  }
+  const getStatusColor = () => "bg-muted/40"
 
   const clearFilters = () => {
     setSearchTerm("")
@@ -226,89 +219,81 @@ export default function TaskKanban({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80" align="start">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Filtreler</h4>
-                  {activeFiltersCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="h-4 w-4 mr-1" />
-                      Temizle
-                    </Button>
-                  )}
+            <PopoverContent className="w-60 p-2" align="start">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-xs font-medium">Filtreler</h4>
+                {activeFiltersCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 px-1 text-xs">
+                    <X className="h-3 w-3 mr-1" /> Temizle
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="col-span-2">
+                  <span className="text-[10px] text-muted-foreground">Proje</span>
+                  <Select value={projectFilter} onValueChange={setProjectFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Tümü" className="text-xs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>{project.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Öncelik</label>
-                    <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tüm öncelikler" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm öncelikler</SelectItem>
-                        <SelectItem value="urgent">Acil</SelectItem>
-                        <SelectItem value="high">Yüksek</SelectItem>
-                        <SelectItem value="medium">Orta</SelectItem>
-                        <SelectItem value="low">Düşük</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Proje</label>
-                    <Select value={projectFilter} onValueChange={setProjectFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tüm projeler" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm projeler</SelectItem>
-                        {projects.map(project => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Atanan</label>
-                    <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tüm atananlar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm atananlar</SelectItem>
-                        {assignees.map(assignee => (
-                          <SelectItem key={assignee} value={assignee}>
-                            {assignee}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Bitiş Tarihi</label>
-                    <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tüm tarihler" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm tarihler</SelectItem>
-                        <SelectItem value="overdue">Gecikenler</SelectItem>
-                        <SelectItem value="today">Bugün</SelectItem>
-                        <SelectItem value="tomorrow">Yarın</SelectItem>
-                        <SelectItem value="thisWeek">Bu hafta</SelectItem>
-                        <SelectItem value="noDate">Tarih yok</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground">Öncelik</span>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Tümü" className="text-xs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      <SelectItem value="urgent">Acil</SelectItem>
+                      <SelectItem value="high">Yüksek</SelectItem>
+                      <SelectItem value="medium">Orta</SelectItem>
+                      <SelectItem value="low">Düşük</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground">Atanan</span>
+                  <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Tümü" className="text-xs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      {assignees.map(a => (<SelectItem key={a} value={a}>{a}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-muted-foreground">Tarih</span>
+                  <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Tümü" className="text-xs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      <SelectItem value="overdue">Geciken</SelectItem>
+                      <SelectItem value="today">Bugün</SelectItem>
+                      <SelectItem value="tomorrow">Yarın</SelectItem>
+                      <SelectItem value="thisWeek">Bu Hafta</SelectItem>
+                      <SelectItem value="noDate">Tarih Yok</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </PopoverContent>
           </Popover>
+          {activeFiltersCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
+              Filtreleri Temizle
+            </Button>
+          )}
         </div>
         
         {/* Aktif filtreler */}
@@ -359,16 +344,16 @@ export default function TaskKanban({
         return (
         <div
           key={status}
-          className={`rounded-lg border-2 border-dashed p-1.5 min-h-[250px] transition-colors ${
-            dragOverStatus === status ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700'
-          } ${getStatusColor(status as any)}`}
+          className={`rounded-md border p-2 min-h-[250px] transition-colors bg-muted/40 ${
+            dragOverStatus === status ? 'border-primary bg-primary/10' : 'border-border'
+          }`}
           onDragOver={(e) => handleDragOver(e, status as any)}
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, status as any)}
         >
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-semibold text-xs">{getStatusTitle(status as any)}</h3>
-            <Badge variant="secondary" className="text-xs h-4 px-1">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm">{getStatusTitle(status as any)}</h3>
+            <Badge variant="secondary" className="text-xs h-5 px-2 rounded-full">
               {statusTasks.length}
             </Badge>
           </div>
@@ -387,9 +372,9 @@ export default function TaskKanban({
                     draggable
                     onDragStart={() => handleDragStart(task.id)}
                   >
-                    <CardContent className="p-2">
+                  <CardContent className="p-2.5">
                       <div className="flex items-center justify-between gap-1">
-                        <CardTitle className="text-xs font-medium leading-tight line-clamp-1 flex-1">
+                        <CardTitle className="text-sm font-medium leading-tight line-clamp-1 flex-1">
                           {task.title}
                         </CardTitle>
                         {isOverdue && (
@@ -398,46 +383,72 @@ export default function TaskKanban({
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">
                         {/* Proje adı */}
-                        <div className="text-xs text-muted-foreground truncate flex-1">
-                          {task.project_title}
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-xs text-muted-foreground truncate flex-1 cursor-help">
+                              {task.project_title}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>Proje: {task.project_title}</TooltipContent>
+                        </Tooltip>
                         
                         {/* Öncelik */}
                         {task.priority && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs h-3 px-1 ${priorityTheme[task.priority].chip}`}
-                          >
-                            <div className={`w-1 h-1 rounded-full mr-0.5 ${priorityTheme[task.priority].dot}`} />
-                            {task.priority === 'urgent' ? 'A' : 
-                             task.priority === 'high' ? 'Y' :
-                             task.priority === 'medium' ? 'O' : 'D'}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs h-3 px-1 ${priorityTheme[task.priority].chip} cursor-help`}
+                              >
+                                <div className={`w-1 h-1 rounded-full mr-0.5 ${priorityTheme[task.priority].dot}`} />
+                                {task.priority === 'urgent' ? 'A' : 
+                                 task.priority === 'high' ? 'Y' :
+                                 task.priority === 'medium' ? 'O' : 'D'}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Öncelik: {task.priority === 'urgent' ? 'Acil' : 
+                                       task.priority === 'high' ? 'Yüksek' :
+                                       task.priority === 'medium' ? 'Orta' : 'Düşük'}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                         
                         {/* Tarih */}
                         {task.due_date && (
-                          <div className={`flex items-center text-xs ${
-                            isOverdue ? 'text-red-600 font-medium' :
-                            isDueToday ? 'text-orange-600 font-medium' :
-                            isDueTomorrow ? 'text-yellow-600 font-medium' :
-                            'text-muted-foreground'
-                          }`}>
-                            <Calendar className="w-2 h-2 mr-0.5" />
-                            {isDueToday ? 'Bugün' :
-                             isDueTomorrow ? 'Yarın' :
-                             format(new Date(task.due_date), 'dd/MM', { locale: tr })}
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`flex items-center text-xs cursor-help ${
+                                isOverdue ? 'text-red-600 font-medium' :
+                                isDueToday ? 'text-orange-600 font-medium' :
+                                isDueTomorrow ? 'text-yellow-600 font-medium' :
+                                'text-muted-foreground'
+                              }`}>
+                                <Calendar className="w-2 h-2 mr-0.5" />
+                                {isDueToday ? 'Bugün' :
+                                 isDueTomorrow ? 'Yarın' :
+                                 format(new Date(task.due_date), 'dd/MM', { locale: tr })}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Bitiş Tarihi: {format(new Date(task.due_date), 'dd MMMM yyyy', { locale: tr })}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                         
                         {/* Atanan kişi */}
                         {task.assignee_name && (
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <User className="w-2 h-2 mr-0.5" />
-                            <span className="truncate max-w-16">{task.assignee_name.split(' ')[0]}</span>
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center text-xs text-muted-foreground cursor-help">
+                                <User className="w-2 h-2 mr-0.5" />
+                                <span className="truncate max-w-16">{task.assignee_name.split(' ')[0]}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Atanan: {task.assignee_name}</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </CardContent>
