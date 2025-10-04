@@ -713,7 +713,7 @@ export async function fetchTaskActivities(taskId: string): Promise<TaskActivity[
     action: r.action,
     details: r.details ?? null,
     created_at: r.created_at,
-    actor_name: idToProfile[r.user_id]?.name ?? null,
+    actor_name: idToProfile[r.user_id]?.full_name ?? null,
     actor_email: idToProfile[r.user_id]?.email ?? null,
   }));
 }
@@ -754,7 +754,7 @@ export async function fetchTaskTimeLogs(taskId: string): Promise<TaskTimeLog[]> 
       description: r.description,
       created_at: r.created_at,
       duration_seconds,
-      actor_name: idToProfile[r.user_id]?.name ?? null,
+      actor_name: idToProfile[r.user_id]?.full_name ?? null,
       actor_email: idToProfile[r.user_id]?.email ?? null,
     } as TaskTimeLog;
   });

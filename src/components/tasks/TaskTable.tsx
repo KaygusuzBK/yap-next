@@ -43,15 +43,7 @@ export default function TaskTable({
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
   const [tableOrderIds, setTableOrderIds] = useState<string[]>([])
-  useEffect(() => { setTableOrderIds(filteredAndSortedTasks.map(t => t.id)) }, [filteredAndSortedTasks])
 
-  const taskById: Record<string, Task> = useMemo(() => {
-    const map: Record<string, Task> = {}
-    for (const t of filteredAndSortedTasks) map[t.id] = t
-    return map
-  }, [filteredAndSortedTasks])
-
-  const orderedTasks: Task[] = useMemo(() => (tableOrderIds.length ? tableOrderIds.map(id => taskById[id]).filter(Boolean) : filteredAndSortedTasks), [tableOrderIds, taskById, filteredAndSortedTasks])
   const priorityTheme: Record<NonNullable<Task["priority"]>, { chip: string; dot: string }> = {
     urgent: {
       chip: "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
@@ -184,6 +176,15 @@ export default function TaskTable({
     })
   }, [tasks, searchTerm, priorityFilter, projectFilter, assigneeFilter, dueDateFilter, sortBy, sortOrder])
 
+  useEffect(() => { setTableOrderIds(filteredAndSortedTasks.map(t => t.id)) }, [filteredAndSortedTasks])
+
+  const taskById: Record<string, Task> = useMemo(() => {
+    const map: Record<string, Task> = {}
+    for (const t of filteredAndSortedTasks) map[t.id] = t
+    return map
+  }, [filteredAndSortedTasks])
+
+  const orderedTasks: Task[] = useMemo(() => (tableOrderIds.length ? tableOrderIds.map(id => taskById[id]).filter(Boolean) : filteredAndSortedTasks), [tableOrderIds, taskById, filteredAndSortedTasks])
 
   // Benzersiz atanan kişileri al
   const assignees = useMemo(() => {

@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   Edit,
   Shield,
-  Plus
+  Plus,
+  Info
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
