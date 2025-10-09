@@ -240,7 +240,7 @@ export default function AdvancedCalendar({
         {/* Hafta başlığı */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">
-            {format(weekRange[0], 'dd MMM', { locale: tr })} - {format(weekRange[6], 'dd MMM yyyy', { locale: tr })}
+            {weekRange[0] && weekRange[6] ? `${format(weekRange[0], 'dd MMM', { locale: tr })} - ${format(weekRange[6], 'dd MMM yyyy', { locale: tr })}` : ''}
           </h3>
           <div className="flex items-center gap-2">
             <Button

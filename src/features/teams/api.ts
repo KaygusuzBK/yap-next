@@ -123,30 +123,24 @@ export async function fetchTeams(): Promise<Team[]> {
       return [];
     }
     
-    // console.debug('fetchTeams - user', user.id);
-
     // 1) Sahibi olduğu takımlar
-    // console.debug('fetchTeams - owned');
     const { data: owned, error: ownedErr, count: ownedCount } = await supabase
       .from('teams')
       .select('*', { count: 'exact' })
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
     
-    // console.debug('fetchTeams - owned count', ownedCount);
     
     if (ownedErr) {
       // non-fatal
     }
 
     // 2) Üye olduğu takımların id listesini çek (RLS daha stabil)
-    // console.debug('fetchTeams - members');
     const { data: memberRows, error: memberErr, count: memberCount } = await supabase
       .from('team_members')
       .select('team_id', { count: 'exact' })
       .eq('user_id', user.id);
     
-    // console.debug('fetchTeams - members count', memberCount);
     
     if (memberErr) {
       // non-fatal
@@ -156,13 +150,11 @@ export async function fetchTeams(): Promise<Team[]> {
     let memberTeams: Team[] = [];
     
     if (memberIds.length > 0) {
-      // console.debug('fetchTeams - by ids');
       const { data: teamsByIds, error: teamsErr, count: teamsCount } = await supabase
         .from('teams')
         .select('*', { count: 'exact' })
         .in('id', memberIds);
       
-      // console.debug('fetchTeams - by ids count', teamsCount);
       
       if (teamsErr) {
         // non-fatal
@@ -174,7 +166,6 @@ export async function fetchTeams(): Promise<Team[]> {
     const all = [ ...(owned || []), ...memberTeams ];
     const unique = all.filter((team, index, self) => index === self.findIndex(t => t.id === team.id));
     
-    // console.debug('fetchTeams - done', unique.length);
     
     return unique;
   } catch (error) {
@@ -424,7 +415,7 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
     team_id: r.team_id,
     user_id: r.user_id,
     email: r.email ?? null,
-    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null),
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null) ?? null,
     role: r.role as TeamRole,
     joined_at: r.created_at,
     avatar_url: r.avatar_url ?? null,
@@ -452,7 +443,7 @@ export async function getTeamMembersForInvited(teamId: string): Promise<TeamMemb
     team_id: r.team_id,
     user_id: r.user_id,
     email: r.email ?? null,
-    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null),
+    name: r.full_name ?? (r.email ? r.email.split('@')[0] : null) ?? null,
     role: r.role as TeamRole,
     joined_at: r.created_at,
     avatar_url: r.avatar_url ?? null,

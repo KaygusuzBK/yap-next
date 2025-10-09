@@ -59,7 +59,7 @@ export function NavUser({
     if (!src) return 'U'
     const parts = src.split(/\s+/).filter(Boolean)
     const first = parts[0]?.[0] || src[0]
-    const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || '' : ''
     return (first + last).toUpperCase()
   }, [displayName, displayEmail])
   // const initials = computeInitials(displayName, displayEmail)

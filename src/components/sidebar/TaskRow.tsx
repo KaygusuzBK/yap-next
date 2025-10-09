@@ -160,11 +160,12 @@ export const TaskRow = React.memo(function TaskRow({
   }
 
   const onTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches[0]) return
     startXRef.current = e.touches[0].clientX
     firedRef.current = false
   }
   const onTouchMove = (e: React.TouchEvent) => {
-    if (startXRef.current == null) return
+    if (startXRef.current == null || !e.touches[0]) return
     const dx = e.touches[0].clientX - startXRef.current
     const clamped = Math.max(-140, Math.min(140, dx))
     setDragX(clamped)

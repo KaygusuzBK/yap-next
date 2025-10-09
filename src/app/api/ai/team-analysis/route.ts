@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const { type, teamData, projectData, meetingData } = await request.json();
 
     // Get user's teams, projects and tasks (optional - can work without user)
-    let realTeamData = {
+    let realTeamData: any = {
       user: { name: 'Kullanıcı', email: 'user@example.com' },
       teams: [],
       projects: [],
@@ -87,15 +87,15 @@ export async function POST(request: NextRequest) {
 
             realTeamData = {
               user: {
-                name: user.user_metadata?.name || user.email,
-                email: user.email
+                name: user.user_metadata?.name || user.email || 'Unknown User',
+                email: user.email || 'unknown@example.com'
               },
               teams: teams?.map(t => ({
                 id: t.id,
                 name: t.name,
                 description: t.description,
                 created_at: t.created_at,
-                members: t.team_members?.map(m => ({
+                members: t.team_members?.map((m: any) => ({
                   name: m.profiles?.name,
                   email: m.profiles?.email,
                   role: m.role
@@ -107,14 +107,14 @@ export async function POST(request: NextRequest) {
                 description: p.description,
                 status: p.status,
                 created_at: p.created_at,
-                tasks: p.project_tasks?.map(t => ({
+                tasks: p.project_tasks?.map((t: any) => ({
                   title: t.title,
                   status: t.status,
                   priority: t.priority,
                   due_date: t.due_date,
                   assigned_to: t.assigned_to
                 })) || [],
-                members: p.project_members?.map(m => ({
+                members: p.project_members?.map((m: any) => ({
                   name: m.profiles?.name,
                   role: m.role
                 })) || []

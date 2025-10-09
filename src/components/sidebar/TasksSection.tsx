@@ -89,13 +89,13 @@ export function TasksSection({
       return ad - bd
     })
   } else if (taskSortBy === 'priority') {
-    filtered.sort((a, b) => (priorityOrder[b.priority] - priorityOrder[a.priority]))
+    filtered.sort((a, b) => ((priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)))
   } else {
     // smart: önce tamamlanmamış, sonra öncelik, sonra gün
     filtered.sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
-      const pr = priorityOrder[b.priority] - priorityOrder[a.priority]
+      const pr = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
       if (pr !== 0) return pr
       const ad = a.days_remaining ?? Number.POSITIVE_INFINITY
       const bd = b.days_remaining ?? Number.POSITIVE_INFINITY

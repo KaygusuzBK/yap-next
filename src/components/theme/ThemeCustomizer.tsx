@@ -107,7 +107,7 @@ export default function ThemeCustomizer() {
   ]
 
   const randomHex = () => `#${Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0')}`
-  const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random()*arr.length)]
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random()*arr.length)]!
   const generateRandom = () => {
     // Light palette
     const lightBgCandidates = ['#ffffff', '#f9fafb', '#f8fafc', '#f1f5f9']

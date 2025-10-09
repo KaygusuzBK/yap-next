@@ -18,7 +18,10 @@ export default function MagicLink() {
       options: { emailRedirectTo: `${window.location.origin}/dashboard` },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success('Giriş bağlantısı gönderildi');
   };
   return (
@@ -42,7 +45,10 @@ export function MagicLinkInline({ email }: { email: string }) {
     const supabase = getSupabase()
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/dashboard` } })
     setLoading(false)
-    if (error) return toast.error(error.message)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
     toast.success('Giriş bağlantısı gönderildi')
   }
   return (

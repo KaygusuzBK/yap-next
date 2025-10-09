@@ -37,7 +37,6 @@ import {
 } from '../../../../components/ui/dialog';
 import { useI18n } from '@/i18n/I18nProvider';
 import DashboardHeader from '@/components/layout/DashboardHeader';
-// import Image from 'next/image';
 import {
   ChainOfThought,
   ChainOfThoughtHeader,
@@ -475,6 +474,7 @@ export default function TaskDetailPage() {
     const durations: Record<string, number> = {}
     for (let i = 0; i < changes.length; i++) {
       const current = changes[i]
+      if (!current) continue
       const next = changes[i+1]
       const statusKey = current.to || task?.status || 'unknown'
       const start = new Date(current.at).getTime()

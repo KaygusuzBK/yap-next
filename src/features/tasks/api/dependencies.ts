@@ -250,7 +250,7 @@ export async function checkDependencyCycle(taskId: string, dependsOnTaskId: stri
     }
     return false;
   } catch (error) {
-    if (error.message.includes('Döngüsel bağımlılık')) {
+    if (error instanceof Error && error.message.includes('Döngüsel bağımlılık')) {
       return true;
     }
     throw error;

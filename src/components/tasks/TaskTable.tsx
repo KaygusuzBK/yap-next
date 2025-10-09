@@ -163,8 +163,8 @@ export default function TaskTable({
           bValue = b.assignee_name || ""
           break
         case "project":
-          aValue = a.project_title.toLowerCase()
-          bValue = b.project_title.toLowerCase()
+          aValue = a.project_title?.toLowerCase() || ""
+          bValue = b.project_title?.toLowerCase() || ""
           break
         default:
           return 0
@@ -184,7 +184,7 @@ export default function TaskTable({
     return map
   }, [filteredAndSortedTasks])
 
-  const orderedTasks: Task[] = useMemo(() => (tableOrderIds.length ? tableOrderIds.map(id => taskById[id]).filter(Boolean) : filteredAndSortedTasks), [tableOrderIds, taskById, filteredAndSortedTasks])
+  const orderedTasks: Task[] = useMemo(() => (tableOrderIds.length ? tableOrderIds.map(id => taskById[id]).filter((task): task is Task => Boolean(task)) : filteredAndSortedTasks), [tableOrderIds, taskById, filteredAndSortedTasks])
 
   // Benzersiz atanan kişileri al
   const assignees = useMemo(() => {
@@ -311,8 +311,8 @@ export default function TaskTable({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Tüm atananlar</SelectItem>
-                        {assignees.map(assignee => (
-                          <SelectItem key={assignee} value={assignee}>
+                        {assignees.filter(Boolean).map(assignee => (
+                          <SelectItem key={assignee!} value={assignee!}>
                             {assignee}
                           </SelectItem>
                         ))}

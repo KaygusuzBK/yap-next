@@ -51,7 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         
         if (error) {
-          console.error('Auth init error:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Auth init error:', error);
+          }
           setUser(null);
           setCachedUser(null)
           return;
@@ -73,7 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (fullName || email) setProfile(fullName || 'Kullanıcı', email || '—')
         if (u && email) syncInvites(u)
       } catch (error) {
-        console.error('Auth init error:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Auth init error:', error);
+        }
         setUser(null);
         setCachedUser(null)
       } finally {

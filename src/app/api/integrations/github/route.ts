@@ -38,19 +38,25 @@ export async function GET(req: NextRequest) {
     const error = (userIntRes as any).error
 
     if (error) {
-      console.error('Error fetching GitHub integrations:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching GitHub integrations:', error)
+      }
       return NextResponse.json({ error: 'Failed to fetch integrations' }, { status: 500 })
     }
 
     if (error) {
-      console.error('Error fetching GitHub integrations:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching GitHub integrations:', error)
+      }
       return NextResponse.json({ error: 'Failed to fetch integrations' }, { status: 500 })
     }
 
     const projectIntegration = projectId ? (projectIntRes as any)?.data ?? null : null
     return NextResponse.json({ integrations: data || [], projectIntegration })
   } catch (error) {
-    console.error('GitHub integrations error:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('GitHub integrations error:', error)
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -77,7 +83,9 @@ export async function PATCH(req: NextRequest) {
         .from('project_integrations')
         .upsert(payload, { onConflict: 'project_id,provider' })
       if (error) {
-        console.error('Error upserting project integration:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error upserting project integration:', error)
+        }
         return NextResponse.json({ error: 'Failed to save project integration' }, { status: 500 })
       }
       return NextResponse.json({ success: true })
@@ -96,13 +104,17 @@ export async function PATCH(req: NextRequest) {
       .eq('id', integrationId)
 
     if (error) {
-      console.error('Error updating GitHub integration:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating GitHub integration:', error)
+      }
       return NextResponse.json({ error: 'Failed to update integration' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Update GitHub integration error:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Update GitHub integration error:', error)
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -124,13 +136,17 @@ export async function DELETE(req: NextRequest) {
       .eq('id', integrationId)
 
     if (error) {
-      console.error('Error deleting GitHub integration:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting GitHub integration:', error)
+      }
       return NextResponse.json({ error: 'Failed to delete integration' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Delete GitHub integration error:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Delete GitHub integration error:', error)
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -305,8 +305,8 @@ export default function TaskBoard({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Tüm atananlar</SelectItem>
-                        {assignees.map(assignee => (
-                          <SelectItem key={assignee} value={assignee}>
+                        {assignees.filter(Boolean).map(assignee => (
+                          <SelectItem key={assignee!} value={assignee!}>
                             {assignee}
                           </SelectItem>
                         ))}

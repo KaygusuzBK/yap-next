@@ -1,8 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-// import { type Project } from "@/features/projects/api"
-// import { type Team } from "@/features/teams/api"
 import { type Task } from "@/features/tasks/api"
 import { getSupabase } from "@/lib/supabase"
 import { useI18n } from "@/i18n/I18nProvider"
@@ -382,7 +380,7 @@ export default function Page() {
     
     // En aktif proje
     const mostActiveProjectId = Object.keys(projectTaskCounts).reduce((a, b) => 
-      projectTaskCounts[a] > projectTaskCounts[b] ? a : b, Object.keys(projectTaskCounts)[0] || ''
+      (projectTaskCounts[a] || 0) > (projectTaskCounts[b] || 0) ? a : b, Object.keys(projectTaskCounts)[0] || ''
     )
     const mostActiveProject = mostActiveProjectId ? projects.find(p => p.id === mostActiveProjectId)?.title || null : null
 
@@ -526,7 +524,7 @@ export default function Page() {
 
                     {/* Özet Bölümü */}
                     <section 
-                      className={`space-y-4 ${editMode ? 'cursor-move' : ''} ${isDragging ? 'opacity-50' : ''} ${getWidgetSizeClass(widgetSizes.summary)}`}
+                      className={`space-y-4 ${editMode ? 'cursor-move' : ''} ${isDragging ? 'opacity-50' : ''} ${getWidgetSizeClass(widgetSizes.summary || 'medium')}`}
                       draggable={editMode}
                       onDragStart={(e) => handleWidgetDragStart(e, 'summary')}
                       onDragOver={handleWidgetDragOver}

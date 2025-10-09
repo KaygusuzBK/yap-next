@@ -411,7 +411,7 @@ export async function fetchStatusesForProjects(projectIds: string[]): Promise<Re
   const map: Record<string, ProjectTaskStatus[]> = {};
   for (const row of (data ?? []) as ProjectTaskStatus[]) {
     if (!map[row.project_id]) map[row.project_id] = [];
-    map[row.project_id].push(row);
+    map[row.project_id]!.push(row);
   }
   return map;
 }

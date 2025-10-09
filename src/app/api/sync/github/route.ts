@@ -40,7 +40,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('GitHub sync error:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('GitHub sync error:', error)
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -10,7 +10,7 @@ interface UseLazyLoadingOptions {
 
 interface UseLazyLoadingReturn {
   isVisible: boolean
-  ref: React.RefObject<HTMLElement>
+  ref: React.RefObject<HTMLElement | null>
 }
 
 // Intersection Observer ile lazy loading
@@ -30,7 +30,7 @@ export function useLazyLoading(options: UseLazyLoadingOptions = {}): UseLazyLoad
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setIsVisible(true)
           if (triggerOnce) {
             observer.unobserve(element)
@@ -129,7 +129,7 @@ interface UseInfiniteScrollOptions {
 }
 
 interface UseInfiniteScrollReturn {
-  ref: React.RefObject<HTMLElement>
+  ref: React.RefObject<HTMLElement | null>
   isIntersecting: boolean
 }
 
@@ -149,7 +149,7 @@ export function useInfiniteScroll(options: UseInfiniteScrollOptions = {}): UseIn
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsIntersecting(entry.isIntersecting)
+        setIsIntersecting(entry?.isIntersecting ?? false)
       },
       {
         threshold,

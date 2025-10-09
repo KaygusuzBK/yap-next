@@ -8,8 +8,10 @@ function scorePassword(pw: string) {
   if (!pw) return 0;
   const letters: Record<string, number> = {};
   for (let i = 0; i < pw.length; i++) {
-    letters[pw[i]] = (letters[pw[i]] || 0) + 1;
-    score += 5.0 / letters[pw[i]];
+    const char = pw[i];
+    if (!char) continue;
+    letters[char] = (letters[char] || 0) + 1;
+    score += 5.0 / letters[char];
   }
   const variations = {
     digits: /\d/.test(pw),

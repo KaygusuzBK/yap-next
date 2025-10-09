@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   transpilePackages: ["@supabase/supabase-js", "@supabase/realtime-js"],
   outputFileTracingRoot: __dirname,

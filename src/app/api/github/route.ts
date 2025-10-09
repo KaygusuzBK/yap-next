@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
       if (!githubRepo) return NextResponse.json({ error: 'Project has no github repo mapping' }, { status: 400 })
 
       const [owner, repo] = githubRepo.split('/')
+      if (!owner || !repo) return NextResponse.json({ error: 'Invalid GitHub repo format' }, { status: 400 })
       // Simple branch name from task title
       const slug = (task.title as string)
         .toLowerCase()
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
         .slice(0, 60)
       const branchName = `feat/${slug || 'task-' + task.id}`
 
-      const res = await gh.createBranchFrom(owner, repo, baseBranch, branchName)
+      const res = await gh.createBranchFrom(owner, repo, baseBranch || 'main', branchName)
       return NextResponse.json({ ok: true, branch: branchName, res })
     }
       case 'list_branches': {

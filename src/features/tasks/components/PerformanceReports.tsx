@@ -232,7 +232,7 @@ export default function PerformanceReports({
         const dayInProgress = dayTasks.filter(t => t.status === 'in_progress').length;
 
         dailyStats.push({
-          date: d.toISOString().split('T')[0],
+          date: d.toISOString().split('T')[0] || '',
           completed: dayCompleted,
           created: dayTasks.length,
           inProgress: dayInProgress

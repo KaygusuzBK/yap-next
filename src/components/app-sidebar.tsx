@@ -92,6 +92,12 @@ const navData: NavItem[] = [
     icon: () => <div>🤖</div>,
     isActive: false,
   },
+  {
+    title: "Workflow",
+    url: "/workflow",
+    icon: () => <div>⚡</div>,
+    isActive: false,
+  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

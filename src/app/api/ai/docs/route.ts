@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const { type, projectData, customPrompt } = await request.json();
 
     // Get user's projects and tasks (optional - can work without user)
-    let realProjectData = {
+    let realProjectData: any = {
       user: { name: 'Kullanıcı', email: 'user@example.com' },
       projects: [],
       tasks: []
@@ -67,23 +67,23 @@ export async function POST(request: NextRequest) {
 
           realProjectData = {
             user: {
-              name: user.user_metadata?.name || user.email,
-              email: user.email
+              name: user.user_metadata?.name || user.email || 'Unknown User',
+              email: user.email || 'unknown@example.com'
             },
-            projects: projects?.map(p => ({
+            projects: (projects || []).map(p => ({
               id: p.id,
               title: p.title,
               description: p.description,
               status: p.status,
               created_at: p.created_at,
               updated_at: p.updated_at,
-              tasks: p.project_tasks?.map(t => ({
+              tasks: p.project_tasks?.map((t: any) => ({
                 title: t.title,
                 status: t.status,
                 priority: t.priority,
                 due_date: t.due_date
               })) || [],
-              members: p.project_members?.map(m => ({
+              members: p.project_members?.map((m: any) => ({
                 name: m.profiles?.name,
                 role: m.role
               })) || []

@@ -266,7 +266,7 @@ export default function TaskKanban({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tümü</SelectItem>
-                      {assignees.map(a => (<SelectItem key={a} value={a}>{a}</SelectItem>))}
+                      {assignees.filter(Boolean).map(a => (<SelectItem key={a!} value={a!}>{a}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>

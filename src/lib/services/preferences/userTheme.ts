@@ -74,7 +74,7 @@ export function pickReadableForeground(hex?: string): string | undefined {
     const g = parseInt(c.substring(2,4), 16) / 255
     const b = parseInt(c.substring(4,6), 16) / 255
     const srgb = [r,g,b].map((x) => x <= 0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4))
-    const L = 0.2126*srgb[0] + 0.7152*srgb[1] + 0.0722*srgb[2]
+    const L = 0.2126*(srgb[0] || 0) + 0.7152*(srgb[1] || 0) + 0.0722*(srgb[2] || 0)
     // Contrast threshold ~ choose white on dark colors
     return L > 0.6 ? '#111111' : '#ffffff'
   } catch {

@@ -98,10 +98,10 @@ export default function OnboardingTour() {
   );
 
   const current = steps[stepIndex];
-  const highlightRect = useElementRect(current.selector);
+  const highlightRect = useElementRect(current?.selector || '');
   const open = mounted && !tourSeen && (pathname?.startsWith('/dashboard') ?? false);
 
-  if (!open) return null;
+  if (!open || !current) return null;
 
   return createPortal(
     (
